@@ -31,6 +31,7 @@ const DASH_SPEED = DASH_DISTANCE / (DASH_TIME / 1000);
  */
 export class Player {
   readonly sprite: Phaser.Physics.Arcade.Sprite;
+  private readonly aura: Phaser.GameObjects.Image;
   private readonly core: Phaser.GameObjects.Image;
   private chargeGlow: Phaser.GameObjects.Image | null = null;
 
@@ -71,8 +72,16 @@ export class Player {
     this.lives = Math.max(1, lives);
     this.bombs = Math.min(MAX_BOMBS, Math.max(0, bombs));
 
-    this.sprite = scene.physics.add.sprite(200, 360, def.texture);
+    this.sprite = scene.physics.add.sprite(200, 360, def.texture).setScale(1.15);
     this.sprite.setDepth(100);
+    // 캐릭터 실루엣을 배경에서 분리하는 얇은 색 오라. 집중/차지 글로우와
+    // 겹치지 않도록 항상 뒤에 두고, 플레이어의 고유색으로만 식별성을 준다.
+    this.aura = scene.add
+      .image(this.sprite.x - 12, this.sprite.y, 'fx_glow')
+      .setDepth(99)
+      .setScale(1.25, 0.58)
+      .setAlpha(0.18)
+      .setTint(def.color);
     const body = this.sprite.body as Phaser.Physics.Arcade.Body | null;
     if (body) {
       body.setAllowGravity(false);
@@ -160,6 +169,10 @@ export class Player {
     const dt = dtMs / 1000;
     const def = getCharacter(this.charIndex);
     const focused = input.focusDown;
+
+    this.aura.setPosition(this.sprite.x - 14, this.sprite.y);
+    this.aura.setRotation(this.sprite.rotation);
+    this.aura.setAlpha(focused ? 0.28 : 0.18);
 
     // 무적 타이머
     if (this.invulnLeft > 0) {
@@ -521,6 +534,7 @@ export class Player {
       this.chargeGlow = null;
     }
     this.core.destroy();
+    this.aura.destroy();
     this.sprite.destroy();
   }
 }

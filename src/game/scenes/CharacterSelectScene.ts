@@ -123,7 +123,7 @@ export class CharacterSelectScene extends Phaser.Scene {
         .setOrigin(0.5);
       let portrait: Phaser.GameObjects.Image;
       try {
-        portrait = this.add.image(0, -84, ch.texture).setScale(2.2);
+        portrait = this.add.image(0, -84, ch.texture).setScale(1.45);
       } catch {
         portrait = this.add.image(0, -84, 'fx_glow').setScale(1.4);
       }
