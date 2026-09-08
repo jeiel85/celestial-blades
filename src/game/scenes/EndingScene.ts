@@ -178,7 +178,7 @@ export class EndingScene extends Phaser.Scene {
     this.step = 1;
     const ch = getCharacter(this.charIndex);
     try {
-      const img = this.add.image(WIDTH / 2, 300, ch.texture).setScale(3).setDepth(6).setAlpha(0);
+      const img = this.add.image(WIDTH / 2, 300, ch.texture).setScale(2.05).setDepth(6).setAlpha(0);
       this.tweens.add({ targets: img, alpha: 1, y: 290, duration: 1200, ease: 'Cubic.easeOut' });
     } catch {
       // 무시

@@ -51,93 +51,114 @@ export class BootScene extends Phaser.Scene {
 
   // -- 플레이어 (오른쪽 향함) ----------------------------------------------------
   private makePlayerTextures(): void {
-    // 윤: 파랑 검사 + 검
-    this.genTex('player_yun', 56, 48, (g) => {
-      g.fillStyle(0x10233d, 1);
-      g.fillEllipse(28, 24, 52, 40);
-      // 동체 (파랑 갑주)
-      g.fillStyle(0x2d7fd6, 1);
-      g.fillEllipse(26, 24, 40, 30);
-      g.fillStyle(0x4db2ff, 1);
-      g.fillEllipse(24, 22, 28, 20);
-      // 하이라이트
-      g.fillStyle(0xbfe6ff, 1);
-      g.fillEllipse(20, 17, 14, 7);
-      // 검 (우측 검기)
-      g.fillStyle(0xd8f2ff, 1);
-      g.fillTriangle(38, 14, 55, 24, 38, 34);
-      g.lineStyle(2, 0x1a4d8f, 1);
-      g.strokeTriangle(38, 14, 55, 24, 38, 34);
-      // 꼬리 날개
+    // 세 조종사는 모두 오른쪽을 향한 비행 자세. 얼굴/복장/무기를 분리해
+    // 작은 화면에서도 '캐릭터'로 읽히도록 실루엣을 먼저 만들었다.
+    // 윤: 청색 갑주 검사 + 긴 검 + 뒤로 흐르는 망토
+    this.genTex('player_yun', 88, 72, (g) => {
+      g.fillStyle(0x081321, 1);
+      g.fillTriangle(6, 44, 26, 25, 18, 68);
+      g.fillTriangle(8, 52, 35, 42, 18, 71);
       g.fillStyle(0x1a4d8f, 1);
-      g.fillTriangle(8, 10, 18, 24, 8, 30);
-      g.fillTriangle(8, 24, 18, 24, 8, 42);
-      // 조종석 코어
+      g.fillTriangle(10, 42, 31, 22, 24, 63);
+      g.fillTriangle(12, 52, 36, 43, 22, 68);
+      // 어깨와 몸통
+      g.fillStyle(0x10233d, 1);
+      g.fillEllipse(39, 43, 38, 38);
+      g.fillStyle(0x2d7fd6, 1);
+      g.fillRoundedRect(28, 33, 30, 28, 10);
+      g.fillStyle(0x4db2ff, 1);
+      g.fillTriangle(33, 35, 57, 41, 38, 57);
+      // 얼굴과 청옥 바이저
+      g.fillStyle(0x0d1c33, 1);
+      g.fillCircle(48, 27, 13);
       g.fillStyle(0x9fe0ff, 1);
-      g.fillCircle(26, 24, 6);
+      g.fillRoundedRect(45, 22, 18, 9, 4);
       g.fillStyle(0xffffff, 1);
-      g.fillCircle(26, 24, 2.5);
-      // 테두리 음영
-      g.lineStyle(2, 0x0d1c33, 1);
-      g.strokeEllipse(26, 24, 40, 30);
-    });
-
-    // 려화: 빨강/주황 술사 + 부채
-    this.genTex('player_ryeohwa', 56, 48, (g) => {
-      g.fillStyle(0x3d1408, 1);
-      g.fillEllipse(28, 24, 52, 40);
-      // 동체 (붉은 법의)
-      g.fillStyle(0xc33d1e, 1);
-      g.fillEllipse(26, 24, 40, 30);
-      g.fillStyle(0xff7b2d, 1);
-      g.fillEllipse(24, 24, 28, 20);
+      g.fillRect(48, 23, 5, 3);
+      // 손에 든 검
+      g.fillStyle(0xd8f2ff, 1);
+      g.fillTriangle(58, 29, 87, 36, 58, 43);
+      g.lineStyle(2, 0x1a4d8f, 1);
+      g.strokeTriangle(58, 29, 87, 36, 58, 43);
       g.fillStyle(0xffd75e, 1);
-      g.fillEllipse(20, 19, 13, 7);
-      // 부채 (우측 펼침)
-      g.fillStyle(0xffb347, 1);
-      g.fillTriangle(38, 8, 54, 24, 38, 40);
-      g.lineStyle(2, 0x7a1e0e, 1);
-      for (let i = 0; i <= 4; i += 1) {
-        const yy = 8 + i * 8;
-        g.lineBetween(38, 24, 54, yy);
-      }
-      g.strokeTriangle(38, 8, 54, 24, 38, 40);
-      // 불꽃 문양 꼬리
-      g.fillStyle(0x7a1e0e, 1);
-      g.fillTriangle(10, 12, 20, 24, 10, 28);
-      g.fillTriangle(10, 24, 20, 24, 10, 40);
-      g.fillStyle(0xff5f2d, 1);
-      g.fillCircle(26, 24, 6);
-      g.fillStyle(0xfff2c0, 1);
-      g.fillCircle(26, 24, 2.5);
-      g.lineStyle(2, 0x3d1408, 1);
-      g.strokeEllipse(26, 24, 40, 30);
+      g.fillRect(55, 34, 8, 4);
+      g.lineStyle(2, 0x0d1c33, 1);
+      g.strokeRoundedRect(28, 33, 30, 28, 10);
     });
 
-    // 무영: 보라 암살자 + 스카프
-    this.genTex('player_mooyoung', 56, 48, (g) => {
+    // 려화: 붉은 법의 술사 + 펼친 부채 + 불꽃 장식
+    this.genTex('player_ryeohwa', 88, 72, (g) => {
+      g.fillStyle(0x3d1408, 1);
+      g.fillTriangle(5, 22, 29, 37, 8, 58);
+      g.fillTriangle(10, 38, 34, 53, 5, 67);
+      g.fillStyle(0xc33d1e, 1);
+      g.fillTriangle(12, 24, 33, 38, 12, 55);
+      g.fillTriangle(15, 41, 34, 52, 10, 63);
+      // 넓은 소매와 몸통
+      g.fillStyle(0x7a1e0e, 1);
+      g.fillEllipse(39, 44, 42, 40);
+      g.fillStyle(0xe63b2e, 1);
+      g.fillRoundedRect(27, 34, 28, 28, 9);
+      g.fillStyle(0xff7b2d, 1);
+      g.fillTriangle(32, 38, 57, 45, 34, 58);
+      g.fillStyle(0xffd75e, 1);
+      g.fillTriangle(34, 52, 48, 57, 38, 62);
+      // 옆얼굴, 붉은 머리장식
+      g.fillStyle(0x5a160e, 1);
+      g.fillCircle(48, 26, 13);
+      g.fillStyle(0xffb347, 1);
+      g.fillCircle(52, 24, 8);
+      g.fillStyle(0xfff2c0, 1);
+      g.fillRoundedRect(48, 23, 15, 8, 4);
+      g.fillStyle(0xffd75e, 1);
+      g.fillCircle(55, 15, 4);
+      // 부채살
+      g.fillStyle(0xffb347, 1);
+      g.fillTriangle(58, 9, 86, 36, 58, 49);
+      g.lineStyle(2, 0x7a1e0e, 1);
+      for (let i = 0; i <= 4; i += 1) g.lineBetween(58, 36, 84, 10 + i * 13);
+      g.strokeTriangle(58, 9, 86, 36, 58, 49);
+      g.fillStyle(0xfff2c0, 1);
+      g.fillCircle(58, 36, 4);
+      g.lineStyle(2, 0x3d1408, 1);
+      g.strokeRoundedRect(27, 34, 28, 28, 9);
+    });
+
+    // 무영: 후드 암살자 + 보랏빛 스카프 + 쌍단검
+    this.genTex('player_mooyoung', 88, 72, (g) => {
       g.fillStyle(0x160f2e, 1);
-      g.fillEllipse(28, 24, 52, 40);
-      // 동체 (날렵한 자줏빛)
-      g.fillStyle(0x5b3fa8, 1);
-      g.fillTriangle(6, 24, 40, 8, 40, 40);
-      g.fillStyle(0xa06bff, 1);
-      g.fillTriangle(10, 24, 38, 12, 38, 36);
-      g.fillStyle(0xd8c8ff, 1);
-      g.fillTriangle(12, 24, 36, 16, 36, 32);
-      // 스카프 (좌측 펄럭임)
+      g.fillTriangle(8, 18, 32, 36, 0, 42);
+      g.fillTriangle(10, 48, 34, 42, 2, 68);
       g.fillStyle(0x3d2a6e, 1);
-      g.fillTriangle(10, 20, 0, 12, 8, 26);
-      g.fillTriangle(10, 28, 0, 38, 8, 26);
-      // 단검 (우측)
-      g.fillStyle(0xe8e8f2, 1);
-      g.fillTriangle(40, 20, 55, 24, 40, 28);
-      g.lineStyle(1, 0x2a1e5e, 1);
-      g.strokeTriangle(40, 20, 55, 24, 40, 28);
+      g.fillTriangle(12, 20, 35, 37, 6, 40);
+      g.fillTriangle(14, 50, 35, 43, 7, 63);
+      // 날씬한 몸통과 후드
       g.fillStyle(0x2a1e5e, 1);
-      g.fillCircle(26, 24, 5);
+      g.fillEllipse(40, 44, 34, 40);
+      g.fillStyle(0x5b3fa8, 1);
+      g.fillTriangle(27, 35, 59, 35, 44, 65);
       g.fillStyle(0xa06bff, 1);
-      g.fillCircle(26, 24, 2.5);
+      g.fillTriangle(34, 38, 56, 41, 44, 57);
+      g.fillStyle(0x160f2e, 1);
+      g.fillTriangle(29, 29, 49, 10, 66, 31);
+      g.fillStyle(0xa06bff, 1);
+      g.fillTriangle(38, 26, 49, 15, 59, 27);
+      g.fillStyle(0xd8c8ff, 1);
+      g.fillRoundedRect(45, 23, 16, 7, 3);
+      g.fillStyle(0xffffff, 1);
+      g.fillRect(49, 24, 4, 2);
+      // 두 개의 단검
+      g.fillStyle(0xe8e8f2, 1);
+      g.fillTriangle(57, 32, 87, 38, 57, 42);
+      g.fillTriangle(56, 45, 83, 58, 56, 51);
+      g.lineStyle(2, 0x2a1e5e, 1);
+      g.strokeTriangle(57, 32, 87, 38, 57, 42);
+      g.strokeTriangle(56, 45, 83, 58, 56, 51);
+      g.fillStyle(0xffd75e, 1);
+      g.fillCircle(57, 38, 3);
+      g.fillCircle(56, 48, 3);
+      g.lineStyle(2, 0x160f2e, 1);
+      g.strokeTriangle(29, 29, 49, 10, 66, 31);
     });
 
     // 히트 코어 (10px 빛점)

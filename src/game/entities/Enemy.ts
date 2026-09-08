@@ -25,6 +25,7 @@ const DESPAWN_MARGIN = 120;
 export class Enemy extends Phaser.Physics.Arcade.Image implements EnemyAgent {
   typeId = 'small';
 
+  private readonly aura: Phaser.GameObjects.Image;
   private maxHp = 3;
   private hp = 3;
   private radius = 14;
@@ -57,6 +58,7 @@ export class Enemy extends Phaser.Physics.Arcade.Image implements EnemyAgent {
     scene.physics.add.existing(this);
     this.setActive(false).setVisible(false);
     this.setDepth(50);
+    this.aura = scene.add.image(-200, -200, 'fx_glow').setDepth(49).setVisible(false);
     const body = this.body as Phaser.Physics.Arcade.Body | null;
     if (body) {
       body.setAllowGravity(false);
@@ -80,8 +82,17 @@ export class Enemy extends Phaser.Physics.Arcade.Image implements EnemyAgent {
     this.baseTint = opts?.tint ?? def.tint ?? null;
     if (this.baseTint !== null) this.setTint(this.baseTint);
     else this.clearTint();
-    this.setScale(opts?.scale ?? 1);
+    // 충돌 반경은 밸런스 값 그대로 유지하고, 화면에서만 조금 키운다.
+    // 소형 적도 얼굴과 실루엣이 읽혀야 웨이브의 존재감이 생긴다.
+    const visualBoost = this.typeId === 'small' || this.typeId === 'bat' || this.typeId === 'rusher' ? 1.2 : 1.1;
+    this.setScale((opts?.scale ?? 1) * visualBoost);
     this.setAlpha(1);
+    this.aura
+      .setVisible(true)
+      .setPosition(x, y)
+      .setScale(Math.max(0.72, Math.min(1.8, 0.65 + def.radius / 28)))
+      .setAlpha(def.radius >= 24 ? 0.24 : 0.16)
+      .setTint(this.baseTint ?? 0xff5f8f);
     this.setRotation(0);
 
     this.vx = 0;
@@ -123,6 +134,8 @@ export class Enemy extends Phaser.Physics.Arcade.Image implements EnemyAgent {
     this.age += dtMs;
     this.def.move(this, this.age, dtMs);
     this.def.fire(this, this.age, dtMs, this.world);
+    this.aura.setPosition(this.x, this.y);
+    this.aura.setAlpha((this.radius >= 24 ? 0.19 : 0.12) + Math.abs(Math.sin(this.age / 260)) * 0.08);
 
     if (this.warnOn) {
       this.setAlpha(0.35 + 0.65 * Math.abs(Math.sin(this.age / 70)));
@@ -260,5 +273,6 @@ export class Enemy extends Phaser.Physics.Arcade.Image implements EnemyAgent {
     }
     this.setActive(false).setVisible(false);
     this.setAlpha(1);
+    this.aura.setVisible(false);
   }
 }
