@@ -1,0 +1,19 @@
+{
+  "name": "celestial-blades",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "천명비행록 : Celestial Blades — 동양 판타지 횡스크롤 탄막 슈팅 게임 (Phaser 3 + TypeScript + Vite)",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "phaser": "^3.80.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "vite": "^5.4.11"
+  }
+}

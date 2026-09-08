@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0a0e1a" />
+  <meta name="description" content="천명비행록 : Celestial Blades — 동양 판타지 횡스크롤 탄막 슈팅 게임" />
+  <title>천명비행록 : Celestial Blades</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #05070d;
+      overflow: hidden;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    #game {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #game canvas {
+      outline: none;
+      image-rendering: pixelated;
+    }
+    #loading {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #8fd3ff;
+      font-family: "Segoe UI", "Malgun Gothic", sans-serif;
+      font-size: 18px;
+      letter-spacing: 4px;
+      background: #05070d;
+      z-index: 10;
+      transition: opacity 0.4s;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="loading">LOADING…</div>
+  <div id="game"></div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
