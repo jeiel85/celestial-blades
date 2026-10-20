@@ -70,4 +70,13 @@ if (document.readyState === 'complete') {
   }, 1500);
 }
 
+// PWA: 프로덕션 빌드에서만 서비스워커 등록(개발 서버 캐시 간섭 방지)
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch((err: unknown) => {
+      console.warn('서비스워커 등록 실패:', err);
+    });
+  });
+}
+
 export default game;
