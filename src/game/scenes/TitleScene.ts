@@ -57,8 +57,10 @@ export class TitleScene extends Phaser.Scene {
     this.buildBackground();
     this.buildLogo();
     this.buildMenu();
+    this.setRepoLinkVisible(true);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.setRepoLinkVisible(false);
       try {
         this.audio.stopMusic();
         this.audio.dispose();
@@ -97,6 +99,12 @@ export class TitleScene extends Phaser.Scene {
       return;
     }
     this.handleMenuKeys(kb);
+  }
+
+  /** index.html의 GitHub 저장소 링크를 타이틀 화면에서만 보이게 한다(플레이 중 화면을 가리지 않도록). */
+  private setRepoLinkVisible(visible: boolean): void {
+    const el = document.getElementById('repo-link');
+    if (el) el.hidden = !visible;
   }
 
   // -- 배경/로고/메뉴 ----------------------------------------------------------
