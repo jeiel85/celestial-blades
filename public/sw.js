@@ -1,15 +1,19 @@
 /* 천명비행록 : Celestial Blades 서비스워커
  * - 내비게이션: network-first, 오프라인이면 캐시된 index.html
  * - 같은 출처 정적 자산: stale-while-revalidate (NETWORK_FIRST_DESTINATIONS에 든 종류는 network-first)
- * - 프리캐시는 셸(index.html·manifest·아이콘)만. 그 외 자산은 처음 사용될 때 캐시된다.
- * 배포 내용이 바뀌어 캐시를 강제로 비워야 하면 CACHE_VERSION을 올린다.
+ * - 프리캐시는 셸(index.html·manifest·아이콘)과 Vite가 만든 JS/CSS 번들. 그 외 자산은 처음 사용될 때 캐시된다.
+ * 번들 파일명이 바뀌면 BUILD_ID가 바뀌어 새 캐시로 교체된다.
  */
-const CACHE_VERSION = 'v1';
+// 빌드 시 vite.config.ts의 swPrecachePlugin이 BUILD_ID와 BUILD_ASSETS를 채운다.
+const BUILD_ID = 'dev';
+const BUILD_ASSETS = [];
+const CACHE_VERSION = `v1-${BUILD_ID}`;
 const CACHE_NAME = `celestial-blades-${CACHE_VERSION}`;
 const CACHE_PREFIX = 'celestial-blades-';
 // 해시 없는 파일명으로 배포되는 스크립트/스타일은 버전이 섞이지 않도록 network-first로 처리한다.
 const NETWORK_FIRST_DESTINATIONS = [];
 const PRECACHE_URLS = [
+  ...BUILD_ASSETS,
   './',
   './index.html',
   './manifest.webmanifest',
@@ -41,16 +45,21 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// 캐시 쓰기 promise를 돌려주고, 호출하는 쪽에서 event.waitUntil()로 이벤트 수명 안에 묶는다.
 function putInCache(request, response) {
-  if (!response || !response.ok || response.type === 'opaque') return;
+  if (!response || !response.ok || response.type === 'opaque') return Promise.resolve();
   const copy = response.clone();
-  caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => {});
+  return caches
+    .open(CACHE_NAME)
+    .then((cache) => cache.put(request, copy))
+    .catch(() => {});
 }
 
-async function networkFirst(request) {
+async function networkFirst(event) {
+  const { request } = event;
   try {
     const response = await fetch(request);
-    putInCache(request, response);
+    event.waitUntil(putInCache(request, response));
     return response;
   } catch (err) {
     const cache = await caches.open(CACHE_NAME);
@@ -60,10 +69,11 @@ async function networkFirst(request) {
   }
 }
 
-async function networkFirstNavigation(request) {
+async function networkFirstNavigation(event) {
+  const { request } = event;
   try {
     const response = await fetch(request);
-    putInCache(request, response);
+    event.waitUntil(putInCache(request, response));
     return response;
   } catch (err) {
     const cache = await caches.open(CACHE_NAME);
@@ -77,14 +87,13 @@ async function staleWhileRevalidate(event) {
   const { request } = event;
   const cache = await caches.open(CACHE_NAME);
   const cached = await cache.match(request);
-  const network = fetch(request).then((response) => {
-    putInCache(request, response);
+  const network = fetch(request).then(async (response) => {
+    await putInCache(request, response);
     return response;
   });
-  if (cached) {
-    event.waitUntil(network.catch(() => {}));
-    return cached;
-  }
+  // 캐시 히트든 아니든 네트워크 갱신과 캐시 쓰기가 끝날 때까지 워커를 유지한다.
+  event.waitUntil(network.catch(() => {}));
+  if (cached) return cached;
   return network;
 }
 
@@ -99,11 +108,11 @@ self.addEventListener('fetch', (event) => {
   if (request.headers.has('range')) return;
 
   if (request.mode === 'navigate') {
-    event.respondWith(networkFirstNavigation(request));
+    event.respondWith(networkFirstNavigation(event));
     return;
   }
   if (NETWORK_FIRST_DESTINATIONS.includes(request.destination)) {
-    event.respondWith(networkFirst(request));
+    event.respondWith(networkFirst(event));
     return;
   }
   event.respondWith(staleWhileRevalidate(event));
