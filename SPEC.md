@@ -1,7 +1,7 @@
 # 천명비행록 : Celestial Blades — 구현 명세
 
 1990년대 아케이드 횡스크롤 탄막 슈팅을 현대 웹으로 재해석한 **완성형 오리지널 게임**.
-조종사·일반 적·아이템은 번들에 포함된 SVG 스프라이트, 나머지 그래픽은 런타임 절차 생성. 사운드는 Web Audio API 합성.
+그래픽은 Codex 이미지 생성 원본을 가공해 번들에 포함한 PNG/JPG. 사운드는 Web Audio API 합성.
 
 ## 기술 스택 / 실행
 - Phaser 3 (3.80+), TypeScript(strict), Vite, Arcade Physics, Web Audio, localStorage
@@ -70,11 +70,11 @@ Boot → Title → CharacterSelect → Game(stage 1) → (중간보스→보스�
 - 원형/부채꼴/나선/조준/교차/웨이브/링/분열 등 시각적 규칙. 색·크기·속도로 위험도 구분. 수백 발 동시 존재 대응(Object Pooling 필수).
 
 ## 그래픽 (BootScene)
-- 현대적 픽셀아트 풍. 단순 사각형 금지, 실루엣 구분 필수.
-- 스프라이트 SVG: `src/assets/sprites/<텍스처키>.svg`. SVG의 width/height가 곧 텍스처 크기(히트박스·배치가 기대하는 기존 크기 유지). 플레이어는 오른쪽, 적은 왼쪽을 향한다. 로드 실패 시 BootScene이 진행을 멈추고 오류를 표시한다.
-- 탄·보스·FX는 `Phaser.GameObjects.Graphics`/Canvas로 절차 생성.
-- 배경: 하늘(해·균열 기둥 포함)은 화면 폭 고정 이미지 1장, 나머지 레이어는 512px 타일을 좌우로 이어 그려 이음매가 보이지 않게 한다.
-- 패럴랙스 4단계 이상/스테이지(하늘→먼 산→가까운 산→구름→전경 등, 서로 다른 속도).
+- 손그림 애니풍 동양 판타지 일러스트, 외곽선 + 셀 셰이딩, 작은 크기에서도 실루엣 구분.
+- 그림 파이프라인: Codex `image_gen` 원본 → `art-raw/<텍스처키>.png`(git 제외) → `tools/process_art.py` → `src/assets/sprites/*.png`, `src/assets/backgrounds/*`. 파일명이 곧 텍스처 키.
+- 스프라이트 크기는 기존 텍스처 크기를 유지(히트박스가 프레임 크기 기준). 플레이어는 오른쪽, 적·보스는 왼쪽을 향한다. 적탄·FX는 흰색 바탕이며 런타임 setTint로 색을 입힌다.
+- 코드가 참조하는 텍스처가 하나라도 없으면 BootScene이 진행을 멈추고 오류를 표시한다(`REQUIRED_TEXTURES`).
+- 배경: 고정 원경 일러스트(`bg_<theme>`) + 가로 반복 전경 레이어(`layer_<theme>`, 좌우 끝 투명 페이드) + 도시 테마 회전 톱니(`gear`).
 - 캐릭터 상하 이동 기울임(팀 회전), 보스 등장/공격/피격/페이즈전환/사망 연출 구분.
 - 이펙트: 피격 플래시, 폭발, 잔상, 화면 흔들림(과하지 않게), 히트스톱, 파티클, 탄 소거.
 
@@ -95,7 +95,7 @@ Boot → Title → CharacterSelect → Game(stage 1) → (중간보스→보스�
 ```
 src/main.ts
 src/game/GameConfig.ts            // 상수(W/H, 색 팔레트, 밸런스 수치)
-src/game/scenes/BootScene.ts      // SVG 스프라이트 로드 + 나머지 텍스처 절차 생성
+src/game/scenes/BootScene.ts      // 그림·로고 글꼴 로드
 src/game/scenes/TitleScene.ts
 src/game/scenes/CharacterSelectScene.ts
 src/game/scenes/GameScene.ts

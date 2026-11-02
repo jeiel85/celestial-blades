@@ -621,7 +621,7 @@ export const BOSS_DEFS: Record<string, BossDef> = {
         hpAbove: 0.4,
         duration: 0,
         tex: 'boss_engine_core',
-        scale: 2.4,
+        scale: 1.0,
         flashColor: 0xffffff,
         attacks: [
           { name: 'laser', params: { sweep: 0.22, tint: 0xff2d3f }, interval: 4200, telegraph: 800 },

@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+// 타이틀 로고용 한글 붓 명조(Song Myung, OFL). 유니코드 범위별로 필요한 조각만 내려받는다.
+import '@fontsource/song-myung/korean-400.css';
 import { HEIGHT, WIDTH } from './game/GameConfig';
 import { BootScene } from './game/scenes/BootScene';
 import { TitleScene } from './game/scenes/TitleScene';

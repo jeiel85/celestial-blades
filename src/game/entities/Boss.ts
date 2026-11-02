@@ -541,7 +541,7 @@ export class Boss implements BossLike, BossAttackContext {
       try {
         const img = this.scene.add
           .image(this.sprite.x, this.sprite.y, 'boss_engine_core')
-          .setScale(0.9)
+          .setScale(0.375)
           .setDepth(59);
         this.parts.push({ img, angle: (i / 3) * Math.PI * 2, fireT: 1200 + i * 700 });
       } catch {

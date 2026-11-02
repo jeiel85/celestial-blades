@@ -1,8 +1,8 @@
 # Backlog
 
-## 그래픽 애셋 (2026-11-02, SVG 스프라이트 1차 작업 이후)
+## 그래픽 애셋 (2026-11-02, Codex 이미지 생성 1·2차 이후)
 
-- [ ] 보스·중간보스 SVG 스프라이트 — `boss_iron`(덩어리 실루엣), `boss_engine`(사각 상자) 등이 잡몹보다 디테일이 낮아 1차 작업 뒤 격차가 커짐 · 영향: `BootScene.makeBossTextures`, Boss.ts의 scale·페이즈 연출(크기 유지 필요)
-- [ ] 타이틀 키 아트/로고 이미지 — 현재 타이틀은 텍스트 + 별 파티클뿐 · 영향: TitleScene
-- [ ] 캐릭터 선택 카드 일러스트 — 88x72 인게임 스프라이트를 그대로 확대해 쓰고 있음 · 영향: CharacterSelectScene
+- [ ] 캐릭터 선택 카드 일러스트 — 88x72 인게임 스프라이트를 확대해 쓰고 있음 · 영향: CharacterSelectScene
 - [ ] 엔딩 컷 일러스트 — 캐릭터별 후일담이 텍스트만 있음 · 영향: EndingScene
+- [ ] UI 글꼴 — 로고 외 메뉴·HUD는 `"Courier New", monospace`라 한글이 시스템 대체 글꼴로 렌더링됨 · 영향: 모든 Scene의 FONT 상수
+- [ ] 레이저 경고선·터치 버튼 등 게임플레이 표시는 여전히 Graphics 도형 · 영향: bossPatterns(laser), InputSystem(터치 UI)

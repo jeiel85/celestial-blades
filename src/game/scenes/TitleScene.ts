@@ -5,6 +5,8 @@ import { AudioSystem } from '../systems/AudioSystem';
 import { SaveSystem } from '../systems/SaveSystem';
 
 const FONT = '"Courier New", monospace';
+export const LOGO_FONT = '"Song Myung", serif';
+export const LOGO_TEXT = '천명비행록';
 const MENU = ['START GAME', 'HOW TO PLAY', 'SETTINGS'] as const;
 
 interface Star {
@@ -110,17 +112,9 @@ export class TitleScene extends Phaser.Scene {
   // -- 배경/로고/메뉴 ----------------------------------------------------------
 
   private buildBackground(): void {
-    this.add.rectangle(0, 0, WIDTH, HEIGHT, 0x05070d).setOrigin(0).setDepth(-10);
-    // 균열 빛기둥
-    try {
-      const beam = this.add.image(WIDTH / 2, HEIGHT / 2, 'fx_glow').setScale(9, 5).setAlpha(0.16).setTint(0x4d6eff).setDepth(-9);
-      this.tweens.add({ targets: beam, alpha: 0.24, duration: 2200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-      const pillarL = this.add.image(WIDTH / 2 - 130, HEIGHT / 2, 'fx_glow').setScale(1.4, 6).setAlpha(0.2).setTint(0x8fd3ff).setDepth(-9);
-      const pillarR = this.add.image(WIDTH / 2 + 130, HEIGHT / 2, 'fx_glow').setScale(1.4, 6).setAlpha(0.2).setTint(0x8fd3ff).setDepth(-9);
-      this.tweens.add({ targets: [pillarL, pillarR], alpha: 0.32, duration: 1600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-    } catch {
-      // 무시
-    }
+    // 키 아트(균열을 향해 나는 세 조종사). 로고·메뉴 가독성을 위해 살짝 어둡게 덮는다.
+    this.add.image(0, 0, 'title_bg').setOrigin(0).setDisplaySize(WIDTH, HEIGHT).setDepth(-10);
+    this.add.rectangle(0, 0, WIDTH, HEIGHT, 0x05070d, 0.45).setOrigin(0).setDepth(-9);
     // 별 파티클
     for (let i = 0; i < 70; i += 1) {
       try {
@@ -138,16 +132,25 @@ export class TitleScene extends Phaser.Scene {
 
   private buildLogo(): void {
     const cx = WIDTH / 2;
-    this.add
-      .text(cx, 148, '천명비행록', {
-        fontFamily: FONT,
-        fontSize: '92px',
+    const logo = this.add
+      .text(cx, 148, LOGO_TEXT, {
+        fontFamily: LOGO_FONT,
+        fontSize: '104px',
         color: '#ffd75e',
-        fontStyle: 'bold',
-        stroke: '#3d2408',
-        strokeThickness: 10,
+        stroke: '#2a1404',
+        strokeThickness: 8,
+        padding: { x: 16, y: 12 },
+        shadow: { offsetX: 0, offsetY: 4, color: '#000000', blur: 14, fill: true, stroke: true },
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setLetterSpacing(6);
+    // 금박 느낌: 위는 밝은 금, 아래는 짙은 금으로 세로 그라데이션
+    const logoCtx = logo.context;
+    const grad = logoCtx.createLinearGradient(0, 0, 0, logo.height);
+    grad.addColorStop(0.2, '#fff4c2');
+    grad.addColorStop(0.55, '#ffd75e');
+    grad.addColorStop(0.9, '#c8861e');
+    logo.setFill(grad);
     this.add
       .text(cx, 224, 'CELESTIAL BLADES', { fontFamily: FONT, fontSize: '30px', color: '#8fd3ff', fontStyle: 'bold' })
       .setOrigin(0.5);
