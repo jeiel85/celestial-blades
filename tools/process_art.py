@@ -97,7 +97,8 @@ def fit_sprite(src: Image.Image, size: tuple[int, int]) -> Image.Image:
     nw, nh = max(1, round(img.width * scale)), max(1, round(img.height * scale))
     img = img.resize((nw, nh), Image.LANCZOS)
     out = Image.new("RGBA", size, (0, 0, 0, 0))
-    out.paste(img, ((tw - nw) // 2, (th - nh) // 2), img)
+    # 빈 투명 캔버스에 마스크 없이 붙여 원본 RGBA를 그대로 옮긴다(마스크를 주면 알파가 a²/255로 줄고 색이 어두워진다).
+    out.paste(img, ((tw - nw) // 2, (th - nh) // 2))
     return out
 
 
@@ -132,7 +133,7 @@ def fit_layer(src: Image.Image) -> Image.Image:
     th = BG_SIZE[1]
     out = Image.new("RGBA", (LAYER_W, th), (0, 0, 0, 0))
     top = min(th - img.height, max(0, round(th * LAYER_CENTER_Y - img.height / 2)))
-    out.paste(img, (0, top), img)
+    out.paste(img, (0, top))
     return out
 
 
