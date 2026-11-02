@@ -45,8 +45,10 @@ export const PLAYER_MIN_X = 40;
 export const PLAYER_MAX_X = Math.floor(WIDTH * 0.7);
 export const PLAYER_MIN_Y = 48;
 export const PLAYER_MAX_Y = HEIGHT - 48;
-/** 필살기 무적 시간 (ms) */
+/** 필살기 무적 시간 (ms, 컷인이 끝나 공격이 나간 뒤부터) */
 export const BOMB_INVULN = 1500;
+/** 필살기 컷인 길이 (ms, 실제 시간). 이 동안 게임 시간은 거의 멈춘다. */
+export const CUTIN_MS = 900;
 /** 돌진(무영 차지) 거리/무적 */
 export const DASH_DISTANCE = 420;
 export const DASH_INVULN = 250;
@@ -205,6 +207,8 @@ export interface IGameWorld {
   getPlayerPos(): { x: number; y: number };
   shake(intensity: number, dur: number): void;
   hitStop(ms: number): void;
+  /** 실제 시간 ms 동안 게임 시간을 factor배(0~1)로 늦춘다(필살기 컷인 등). */
+  slowMotion(factor: number, ms: number): void;
   audio: AudioSystem;
   fx: Effects;
   spawnEnemy(typeId: string, x: number, y: number, opts?: EnemySpawnOpts): void;

@@ -77,6 +77,9 @@ BACKGROUND_KEYS = [
     "ending_yun", "ending_ryeohwa", "ending_mooyoung",
 ]
 BG_SIZE = (1280, 720)
+# 필살기 컷인 띠(가로로 아주 긴 일러스트)
+CUTIN_KEYS = ["cutin_yun", "cutin_ryeohwa", "cutin_mooyoung"]
+CUTIN_SIZE = (1280, 360)
 # 가로로 반복되는 전경 레이어(투명 PNG). 높이를 화면 높이에 맞추고 좌우 끝을 투명하게 비워 이음매를 없앤다.
 LAYER_KEYS = ["layer_valley", "layer_city", "layer_fortress", "layer_rift"]
 LAYER_EDGE = 0.04
@@ -102,9 +105,9 @@ def fit_sprite(src: Image.Image, size: tuple[int, int]) -> Image.Image:
     return out
 
 
-def fit_background(src: Image.Image) -> Image.Image:
+def fit_background(src: Image.Image, size: tuple[int, int] = BG_SIZE) -> Image.Image:
     img = src.convert("RGB")
-    tw, th = BG_SIZE
+    tw, th = size
     scale = max(tw / img.width, th / img.height)
     img = img.resize((round(img.width * scale), round(img.height * scale)), Image.LANCZOS)
     left = (img.width - tw) // 2
@@ -157,6 +160,13 @@ def main() -> int:
             continue
         with Image.open(raw) as im:
             fit_background(im).save(BACKGROUNDS / f"{key}.jpg", quality=86, optimize=True, progressive=True)
+    for key in CUTIN_KEYS:
+        raw = RAW / f"{key}.png"
+        if not raw.exists():
+            missing.append(key)
+            continue
+        with Image.open(raw) as im:
+            fit_background(im, CUTIN_SIZE).save(BACKGROUNDS / f"{key}.jpg", quality=88, optimize=True, progressive=True)
     for key in LAYER_KEYS:
         raw = RAW / f"{key}.png"
         if not raw.exists():

@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import {
   BOMB_INVULN,
   CHARGE_TIME,
+  CUTIN_MS,
   DASH_DISTANCE,
   DASH_INVULN,
   FOCUS_SPEED_MULT,
@@ -55,6 +56,8 @@ export class Player {
   private dashTick = 0;
 
   private bombSwordLeft = 0;
+  /** 컷인 재생 중(중복 발동 방지) */
+  private cutInActive = false;
   private bombSwordTick = 0;
 
   private onDeath: (() => void) | null = null;
@@ -135,7 +138,7 @@ export class Player {
   }
 
   isInvulnerable(): boolean {
-    return this.invulnLeft > 0 || this.godMode;
+    return this.invulnLeft > 0 || this.cutInActive || this.godMode;
   }
 
   getChargeRatio(): number {
@@ -398,15 +401,30 @@ export class Player {
   }
 
   // -- 필살기 ------------------------------------------------------------------
+  /** 필살기 입력: 컷인을 띄우고 게임 시간을 거의 멈춘 뒤, 컷인이 빠져나가는 순간 releaseBomb로 공격한다. */
   private tryBomb(): void {
-    if (!this.alive || this.bombs <= 0) return;
+    if (!this.alive || this.bombs <= 0 || this.cutInActive) return;
     this.bombs -= 1;
+    // 컷인 동안은 cutInActive로 무적, 공격이 나가는 releaseBomb부터 BOMB_INVULN을 센다.
+    this.cutInActive = true;
+    const w = this.world;
+    const ch = getCharacter(this.charIndex);
+    w.clearEnemyBullets();
+    w.audio.playSfx('chargeFull');
+    w.slowMotion(0.06, CUTIN_MS);
+    w.fx.cutIn(ch.cutin, ch.color, ch.bombName, ch.bombNameEng, () => {
+      this.cutInActive = false;
+      this.releaseBomb();
+    });
+  }
+
+  private releaseBomb(): void {
+    if (!this.alive) return;
     this.invulnLeft = Math.max(this.invulnLeft, BOMB_INVULN);
     const w = this.world;
     w.audio.playSfx('bomb');
     w.clearEnemyBullets();
-    w.shake(0.006, 350);
-    w.hitStop(120);
+    w.shake(0.012, 450);
 
     const x = this.sprite.x;
     const y = this.sprite.y;
@@ -491,7 +509,7 @@ export class Player {
   // -- 피격 ------------------------------------------------------------------
   damagePlayer(): PlayerHitResult {
     if (!this.alive) return 'dead';
-    if (this.godMode || this.invulnLeft > 0) return 'invulnerable';
+    if (this.godMode || this.invulnLeft > 0 || this.cutInActive) return 'invulnerable';
     this.lives -= 1;
     this.power = Math.max(0, this.power - 1);
     this.chargeTime = 0;
