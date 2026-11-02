@@ -41,6 +41,7 @@ export class RankingScene extends Phaser.Scene {
   private status!: Phaser.GameObjects.Text;
   private subtitle!: Phaser.GameObjects.Text;
   private form: HTMLDivElement | null = null;
+  private onFullscreenChange: (() => void) | null = null;
 
   constructor() {
     super('Ranking');
@@ -275,19 +276,34 @@ export class RankingScene extends Phaser.Scene {
       void this.loadList();
     });
     input.addEventListener('keydown', (e) => {
+      // 한글 조합 중의 Enter(글자 확정)·Escape(조합 취소)는 입력기에 맡긴다. 229는 구형 브라우저의 조합 중 키 코드.
+      if (e.isComposing || e.keyCode === 229) return;
       if (e.key === 'Enter') void send();
       else if (e.key === 'Escape') skip.click();
     });
 
     // 전체화면이면 Phaser가 캔버스를 감싼 요소만 전체화면으로 띄우므로, 그 안에 붙여야 입력창이 보인다.
-    (document.fullscreenElement ?? document.body).appendChild(form);
+    // 전체화면이 바뀌면(특히 해제 시 Phaser가 감싼 요소를 지운다) 입력창을 다시 붙인다.
+    const mount = (): void => {
+      (document.fullscreenElement ?? document.body).appendChild(form);
+    };
+    mount();
     this.form = form;
+    // 닫힌 뒤에 예약된 다시 붙이기가 실행되지 않도록 아직 열려 있는지 확인한다.
+    this.onFullscreenChange = () => {
+      window.setTimeout(() => {
+        if (this.form === form) mount();
+      }, 0);
+    };
+    document.addEventListener('fullscreenchange', this.onFullscreenChange);
     input.focus();
     input.select();
   }
 
   private closeForm(): void {
     if (!this.form) return;
+    if (this.onFullscreenChange) document.removeEventListener('fullscreenchange', this.onFullscreenChange);
+    this.onFullscreenChange = null;
     this.form.remove();
     this.form = null;
     this.pending = undefined;
