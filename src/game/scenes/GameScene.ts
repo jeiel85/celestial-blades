@@ -90,6 +90,10 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
   private noMiss = true;
   private stageKills = 0;
   private paused = false;
+  /** 게임 시간 배속(1 = 보통). 히트스톱·필살기 컷인 슬로모션이 낮춘다. */
+  private timeFactor = 1;
+  /** 배속이 원래대로 돌아오기까지 남은 실제 시간(ms, 일시정지 중에는 줄지 않음) */
+  private slowLeftMs = 0;
   private pauseLayer: Phaser.GameObjects.Container | null = null;
   private clearShown = false;
   private clearReadyAt = 0;
@@ -125,6 +129,9 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
 
   create(): void {
     const stage = STAGES[this.stageIndex];
+    // 장면 객체는 재시작 때 재사용되므로 배속 상태를 매번 초기화한다.
+    this.slowLeftMs = 0;
+    this.applyTimeFactor(1);
     this.save = new SaveSystem();
     this.scoreSys = new ScoreSystem(this.save);
     this.scoreSys.addRaw(this.registry.get('carryScore') as number);
@@ -272,6 +279,13 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
     }
     if (debug.next) this.advanceStage();
 
+    if (this.slowLeftMs > 0) {
+      this.slowLeftMs -= dt;
+      if (this.slowLeftMs <= 0) this.applyTimeFactor(1);
+    }
+    // 이 아래 게임 진행은 배속이 적용된 시간으로 돈다(물리·타이머는 applyTimeFactor가 맞춘다).
+    const wdt = dt * this.timeFactor;
+
     // 클리어 패널: 4초 자동 진행 + 공격키 스킵
     if (this.clearShown) {
       this.player.update(dt, this.inputSys);
@@ -286,19 +300,19 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
       return;
     }
 
-    this.player.update(dt, this.inputSys);
-    this.spawner.update(dt);
-    this.parallax.update(dt);
+    this.player.update(wdt, this.inputSys);
+    this.spawner.update(wdt);
+    this.parallax.update(wdt);
     for (const e of this.enemies) {
-      if (e.active) e.update(dt);
+      if (e.active) e.update(wdt);
     }
     for (const item of this.items) {
-      if (item.active) item.update(dt, this.player.x, this.player.y);
+      if (item.active) item.update(wdt, this.player.x, this.player.y);
     }
     const boss = this.boss;
     if (boss && this.bossState === 'active') {
       try {
-        boss.update(dt);
+        boss.update(wdt);
       } catch {
         // 보스 내부 오류가 게임 루프를 멈추지 않게
       }
@@ -306,7 +320,7 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
       this.updateBossBar(boss);
       if (boss.isDefeated) this.onBossDefeated();
     }
-    this.scoreSys.update(dt);
+    this.scoreSys.update(wdt);
     this.refreshHud();
   }
 
@@ -421,7 +435,24 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
   }
 
   hitStop(ms: number): void {
-    this.fx.hitStop(ms);
+    this.slowMotion(0.05, Math.min(500, Math.max(16, ms)));
+  }
+
+  /**
+   * 실제 시간 ms 동안 게임 시간을 factor배로 늦춘다. 겹치면 더 느린 쪽·더 긴 쪽을 따른다.
+   * 트윈은 늦추지 않으므로 연출(컷인·폭발 이펙트)은 보통 속도로 재생된다.
+   */
+  slowMotion(factor: number, ms: number): void {
+    const f = Math.min(1, Math.max(0.02, factor));
+    this.slowLeftMs = Math.max(this.slowLeftMs, ms);
+    this.applyTimeFactor(this.timeFactor < 1 ? Math.min(this.timeFactor, f) : f);
+  }
+
+  private applyTimeFactor(f: number): void {
+    this.timeFactor = f;
+    // Arcade 물리 timeScale은 값이 클수록 느리다(2.0 = 절반 속도). Clock.timeScale은 작을수록 느리다.
+    this.physics.world.timeScale = 1 / f;
+    this.time.timeScale = f;
   }
 
   findTarget(x: number, y: number, maxDist = 800): TargetRef | null {

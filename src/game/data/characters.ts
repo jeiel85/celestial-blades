@@ -35,6 +35,11 @@ export interface CharacterDef {
   portrait: string;
   /** 엔딩 후일담 일러스트 */
   ending: string;
+  /** 필살기 컷인 일러스트 */
+  cutin: string;
+  /** 필살기 이름(컷인에 표시) */
+  bombName: string;
+  bombNameEng: string;
 }
 
 export const CHARACTERS: CharacterDef[] = [
@@ -55,6 +60,9 @@ export const CHARACTERS: CharacterDef[] = [
     texture: 'player_yun',
     portrait: 'portrait_yun',
     ending: 'ending_yun',
+    cutin: 'cutin_yun',
+    bombName: '천명검진',
+    bombNameEng: 'HEAVENLY SWORD FORMATION',
   },
   {
     id: 'ryeohwa',
@@ -73,6 +81,9 @@ export const CHARACTERS: CharacterDef[] = [
     texture: 'player_ryeohwa',
     portrait: 'portrait_ryeohwa',
     ending: 'ending_ryeohwa',
+    cutin: 'cutin_ryeohwa',
+    bombName: '홍련화재',
+    bombNameEng: 'CRIMSON LOTUS INFERNO',
   },
   {
     id: 'mooyoung',
@@ -91,6 +102,9 @@ export const CHARACTERS: CharacterDef[] = [
     texture: 'player_mooyoung',
     portrait: 'portrait_mooyoung',
     ending: 'ending_mooyoung',
+    cutin: 'cutin_mooyoung',
+    bombName: '백귀야행',
+    bombNameEng: 'NIGHT PARADE OF A HUNDRED GHOSTS',
   },
 ];
 
