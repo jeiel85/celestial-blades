@@ -138,7 +138,7 @@ export class Player {
   }
 
   isInvulnerable(): boolean {
-    return this.invulnLeft > 0 || this.godMode;
+    return this.invulnLeft > 0 || this.cutInActive || this.godMode;
   }
 
   getChargeRatio(): number {
@@ -405,9 +405,8 @@ export class Player {
   private tryBomb(): void {
     if (!this.alive || this.bombs <= 0 || this.cutInActive) return;
     this.bombs -= 1;
+    // 컷인 동안은 cutInActive로 무적, 공격이 나가는 releaseBomb부터 BOMB_INVULN을 센다.
     this.cutInActive = true;
-    // 컷인 동안 + 공격 후 BOMB_INVULN. 무적 시간은 게임 시간으로 줄어 슬로모션 중엔 거의 줄지 않는다.
-    this.invulnLeft = Math.max(this.invulnLeft, CUTIN_MS + BOMB_INVULN);
     const w = this.world;
     const ch = getCharacter(this.charIndex);
     w.clearEnemyBullets();
@@ -421,6 +420,7 @@ export class Player {
 
   private releaseBomb(): void {
     if (!this.alive) return;
+    this.invulnLeft = Math.max(this.invulnLeft, BOMB_INVULN);
     const w = this.world;
     w.audio.playSfx('bomb');
     w.clearEnemyBullets();
@@ -509,7 +509,7 @@ export class Player {
   // -- 피격 ------------------------------------------------------------------
   damagePlayer(): PlayerHitResult {
     if (!this.alive) return 'dead';
-    if (this.godMode || this.invulnLeft > 0) return 'invulnerable';
+    if (this.godMode || this.invulnLeft > 0 || this.cutInActive) return 'invulnerable';
     this.lives -= 1;
     this.power = Math.max(0, this.power - 1);
     this.chargeTime = 0;

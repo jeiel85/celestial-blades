@@ -109,10 +109,12 @@ export class Bullet extends Phaser.Physics.Arcade.Image {
     // scene.add.existing이 updateList에 등록해 매 프레임 호출된다.
     void time;
     if (!this.active) return;
-    const dt = delta / 1000;
+    // 게임 시간 배속(히트스톱·필살기 슬로모션)을 따른다. GameScene이 scene.time.timeScale에 배속을 넣는다.
+    const gameDelta = delta * this.scene.time.timeScale;
+    const dt = gameDelta / 1000;
 
     if (this.hasLife) {
-      this.lifeLeft -= delta;
+      this.lifeLeft -= gameDelta;
       if (this.lifeLeft <= 0) {
         this.kill();
         return;
