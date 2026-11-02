@@ -75,6 +75,8 @@ Boot → Title → CharacterSelect → Game(stage 1) → (중간보스→보스�
 - 스프라이트 크기는 기존 텍스처 크기를 유지(히트박스가 프레임 크기 기준). 플레이어는 오른쪽, 적·보스는 왼쪽을 향한다. 적탄·FX는 흰색 바탕이며 런타임 setTint로 색을 입힌다.
 - 코드가 참조하는 텍스처가 하나라도 없으면 BootScene이 진행을 멈추고 오류를 표시한다(`REQUIRED_TEXTURES`).
 - 배경: 고정 원경 일러스트(`bg_<theme>`) + 가로 반복 전경 레이어(`layer_<theme>`, 좌우 끝 투명 페이드) + 도시 테마 회전 톱니(`gear`).
+- 캐릭터 카드 초상화 `portrait_<id>`, 엔딩 후일담 일러스트 `ending_<id>`, 터치 UI `touch_*`, 레이저 경고선 `fx_warn_line`(흰색 균일 빛줄기를 늘리고 색을 입힘).
+- 글꼴: 로고 Song Myung, UI Gowun Dodum(`GameConfig`의 `LOGO_FONT`/`UI_FONT`). 빌드 시 소스에 쓰인 글자를 모은 `virtual:ui-glyphs`로 BootScene이 필요한 글꼴 조각을 미리 받는다.
 - 캐릭터 상하 이동 기울임(팀 회전), 보스 등장/공격/피격/페이즈전환/사망 연출 구분.
 - 이펙트: 피격 플래시, 폭발, 잔상, 화면 흔들림(과하지 않게), 히트스톱, 파티클, 탄 소거.
 

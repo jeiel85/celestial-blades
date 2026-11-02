@@ -1,12 +1,10 @@
 import Phaser from 'phaser';
-import { HEIGHT, WIDTH } from '../GameConfig';
+import { HEIGHT, LOGO_FONT, LOGO_TEXT, UI_FONT, WIDTH } from '../GameConfig';
 import type { Difficulty } from '../GameConfig';
 import { AudioSystem } from '../systems/AudioSystem';
 import { SaveSystem } from '../systems/SaveSystem';
 
-const FONT = '"Courier New", monospace';
-export const LOGO_FONT = '"Song Myung", serif';
-export const LOGO_TEXT = '천명비행록';
+const FONT = UI_FONT;
 const MENU = ['START GAME', 'HOW TO PLAY', 'SETTINGS'] as const;
 
 interface Star {

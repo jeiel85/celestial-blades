@@ -22,7 +22,7 @@ npm run build    # dist/ 생성 (tsc 타입 검사 포함)
 npm run preview  # 빌드 결과 미리보기
 ```
 
-외부 서버·로그인·백엔드가 없는 순수 클라이언트 게임입니다. 모든 그림(캐릭터·적·보스·탄·이펙트·아이템·배경)은 Codex 이미지 생성으로 만든 원본을 게임 크기에 맞게 가공해 번들에 포함합니다(`src/assets/`). 타이틀 로고는 Song Myung 글꼴(OFL, `@fontsource/song-myung`)을 씁니다. 모든 사운드는 Web Audio API로 합성합니다(외부 CDN·원격 리소스 없음).
+외부 서버·로그인·백엔드가 없는 순수 클라이언트 게임입니다. 모든 그림(캐릭터·적·보스·탄·이펙트·아이템·배경·캐릭터 초상화·엔딩 일러스트·터치 UI)은 Codex 이미지 생성으로 만든 원본을 게임 크기에 맞게 가공해 번들에 포함합니다(`src/assets/`). 글꼴은 타이틀 로고 Song Myung, 메뉴·HUD Gowun Dodum(둘 다 OFL, `@fontsource`)입니다. 모든 사운드는 Web Audio API로 합성합니다(외부 CDN·원격 리소스 없음).
 
 그림 다시 만들기: Codex로 생성한 원본 PNG를 `art-raw/<텍스처키>.png`(git 제외)에 두고 `python tools/process_art.py`를 실행하면 `src/assets/`가 갱신됩니다. 목표 크기는 스크립트의 `SPRITE_SIZES`에 있습니다(히트박스가 프레임 크기 기준이라 바꾸지 않습니다).
 

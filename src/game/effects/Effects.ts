@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { UI_FONT } from '../GameConfig';
 
 /**
  * 폭발/플래시/히트스톱/쉐이크/잔상/탄소거/플로팅 텍스트 헬퍼.
@@ -160,6 +161,7 @@ export class Effects {
     try {
       const t = s.add
         .text(x, y, text, {
+          fontFamily: UI_FONT,
           fontSize: `${fontSize}px`,
           color,
           fontStyle: 'bold',

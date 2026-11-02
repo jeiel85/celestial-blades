@@ -1,11 +1,11 @@
 import Phaser from 'phaser';
-import { DIFFICULTY_PRESETS, HEIGHT, START_BOMBS, WIDTH } from '../GameConfig';
+import { DIFFICULTY_PRESETS, HEIGHT, START_BOMBS, UI_FONT, WIDTH } from '../GameConfig';
 import type { Difficulty } from '../GameConfig';
 import { CHARACTERS } from '../data/characters';
 import { AudioSystem } from '../systems/AudioSystem';
 import { SaveSystem } from '../systems/SaveSystem';
 
-const FONT = '"Courier New", monospace';
+const FONT = UI_FONT;
 const DIFFS: Difficulty[] = ['EASY', 'NORMAL', 'HARD'];
 
 /**
@@ -121,12 +121,8 @@ export class CharacterSelectScene extends Phaser.Scene {
       const title = this.add
         .text(0, -186, ch.title, { fontFamily: FONT, fontSize: '15px', color: '#8fd3ff' })
         .setOrigin(0.5);
-      let portrait: Phaser.GameObjects.Image;
-      try {
-        portrait = this.add.image(0, -84, ch.texture).setScale(1.45);
-      } catch {
-        portrait = this.add.image(0, -84, 'fx_glow').setScale(1.4);
-      }
+      // 제목(-186) 아래, 설명(-18) 위 공간에 맞춘 220x150 초상화
+      const portrait = this.add.image(0, -100, ch.portrait);
       const desc = this.add
         .text(0, -18, ch.desc, {
           fontFamily: FONT,

@@ -283,12 +283,17 @@ function laser(boss: BossAttackContext, world: IGameWorld, params: AttackParams)
   const tint = num(params, 'tint', 0xff4d5e);
   const warnMs = 800;
   boss.telegraph(warnMs, 0xff2d3f);
-  let g: Phaser.GameObjects.Graphics | null = null;
+  let g: Phaser.GameObjects.Image | null = null;
   try {
-    g = scene.add.graphics().setDepth(490);
-    g.lineStyle(3, 0xff2d3f, 0.85);
-    const len = 1400;
-    g.lineBetween(ax, ay, ax + Math.cos(aim) * len, ay + Math.sin(aim) * len);
+    // 경고선: 가로로 균일한 빛줄기 그림을 조준 방향으로 길게 늘린다.
+    g = scene.add
+      .image(ax, ay, 'fx_warn_line')
+      .setOrigin(0, 0.5)
+      .setRotation(aim)
+      .setDisplaySize(1400, 12)
+      .setTint(0xff2d3f)
+      .setAlpha(0.85)
+      .setDepth(490);
     scene.tweens.add({ targets: g, alpha: 0.25, duration: 130, yoyo: true, repeat: 5 });
   } catch {
     g = null;

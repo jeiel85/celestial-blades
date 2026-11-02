@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
-import { readFileSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { defineConfig, type Plugin, type ResolvedConfig } from 'vite';
 
 /**
@@ -41,9 +41,46 @@ function swPrecachePlugin(): Plugin {
   };
 }
 
+/**
+ * `virtual:ui-glyphs`: src/ 아래 .ts 소스에 등장하는 비ASCII 글자 + 출력 가능한 ASCII 전부.
+ * 글꼴이 유니코드 범위별 조각으로 나뉘어 있어서, BootScene이 이 문자열로 document.fonts.load를 호출해
+ * 화면에 쓰일 조각을 미리 받는다(Phaser 텍스트는 생성 시점 글꼴로 한 번 래스터화되기 때문).
+ */
+function uiGlyphsPlugin(): Plugin {
+  const id = 'virtual:ui-glyphs';
+  const resolvedId = `\0${id}`;
+  let root = '';
+  const collect = (dir: string, out: Set<string>): void => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const p = join(dir, entry.name);
+      if (entry.isDirectory()) collect(p, out);
+      else if (entry.name.endsWith('.ts')) {
+        for (const ch of readFileSync(p, 'utf8')) if (ch.charCodeAt(0) > 0x7e) out.add(ch);
+      }
+    }
+  };
+  return {
+    name: 'ui-glyphs',
+    configResolved(resolved) {
+      root = resolved.root;
+    },
+    resolveId(source) {
+      return source === id ? resolvedId : null;
+    },
+    load(loadId) {
+      if (loadId !== resolvedId) return null;
+      const set = new Set<string>();
+      collect(resolve(root, 'src'), set);
+      let ascii = '';
+      for (let c = 0x20; c <= 0x7e; c += 1) ascii += String.fromCharCode(c);
+      return `export default ${JSON.stringify(ascii + [...set].sort().join(''))};`;
+    },
+  };
+}
+
 export default defineConfig({
   base: './',
-  plugins: [swPrecachePlugin()],
+  plugins: [swPrecachePlugin(), uiGlyphsPlugin()],
   build: {
     target: 'es2020',
     chunkSizeWarningLimit: 1600

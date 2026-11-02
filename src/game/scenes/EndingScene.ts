@@ -1,11 +1,11 @@
 import Phaser from 'phaser';
-import { HEIGHT, WIDTH } from '../GameConfig';
+import { HEIGHT, UI_FONT, WIDTH } from '../GameConfig';
 import type { Difficulty } from '../GameConfig';
 import { getCharacter } from '../data/characters';
 import { AudioSystem } from '../systems/AudioSystem';
 import { SaveSystem } from '../systems/SaveSystem';
 
-const FONT = '"Courier New", monospace';
+const FONT = UI_FONT;
 
 export interface EndingSceneData {
   charIndex?: number;
@@ -51,7 +51,8 @@ export class EndingScene extends Phaser.Scene {
   private done = false;
   private typingTimer: Phaser.Time.TimerEvent | null = null;
 
-  private rift!: Phaser.GameObjects.Rectangle;
+  private rift!: Phaser.GameObjects.Image;
+  private riftBaseScaleY = 1;
   private riftGlow!: Phaser.GameObjects.Image;
   private bright!: Phaser.GameObjects.Rectangle;
 
@@ -87,10 +88,18 @@ export class EndingScene extends Phaser.Scene {
     this.done = false;
 
     // 어두운 균열 하늘
-    this.add.rectangle(0, 0, WIDTH, HEIGHT, 0x05040f).setOrigin(0);
+    this.add.image(0, 0, 'bg_rift').setOrigin(0).setDisplaySize(WIDTH, HEIGHT);
+    this.add.rectangle(0, 0, WIDTH, HEIGHT, 0x05040f, 0.5).setOrigin(0);
     this.bright = this.add.rectangle(0, 0, WIDTH, HEIGHT, 0x9fd8f2, 0).setOrigin(0).setDepth(5);
-    // 균열 기둥 (수축 연출 대상)
-    this.rift = this.add.rectangle(WIDTH / 2, 0, 90, HEIGHT, 0xa06bff).setOrigin(0.5, 0).setDepth(2);
+    // 균열 기둥 (수축 연출 대상): 가로 빛줄기 그림을 세로로 세워 화면 높이만큼 늘린다.
+    // 회전했으므로 화면상 폭은 scaleY가 맡는다.
+    this.rift = this.add
+      .image(WIDTH / 2, HEIGHT / 2, 'fx_warn_line')
+      .setRotation(Math.PI / 2)
+      .setDisplaySize(HEIGHT, 90)
+      .setTint(0xa06bff)
+      .setDepth(2);
+    this.riftBaseScaleY = this.rift.scaleY;
     this.riftGlow = this.add.image(WIDTH / 2, HEIGHT / 2, 'fx_glow').setScale(4, 8).setTint(0xa06bff).setAlpha(0.5).setDepth(1);
 
     this.input.on('pointerdown', () => this.skipStep());
@@ -145,7 +154,7 @@ export class EndingScene extends Phaser.Scene {
     this.audio.playSfx('bossDie');
     this.tweens.add({
       targets: this.rift,
-      scaleX: 0.02,
+      scaleY: this.riftBaseScaleY * 0.02,
       duration: 4500,
       ease: 'Cubic.easeInOut',
     });
@@ -177,12 +186,10 @@ export class EndingScene extends Phaser.Scene {
     if (!this.scene.isActive() || this.step > 1) return;
     this.step = 1;
     const ch = getCharacter(this.charIndex);
-    try {
-      const img = this.add.image(WIDTH / 2, 300, ch.texture).setScale(2.05).setDepth(6).setAlpha(0);
-      this.tweens.add({ targets: img, alpha: 1, y: 290, duration: 1200, ease: 'Cubic.easeOut' });
-    } catch {
-      // 무시
-    }
+    // 후일담 일러스트(화면 전체) + 글자 영역 어둡게
+    const art = this.add.image(0, 0, ch.ending).setOrigin(0).setDisplaySize(WIDTH, HEIGHT).setDepth(5.5).setAlpha(0);
+    const shade = this.add.rectangle(0, 392, WIDTH, HEIGHT - 392, 0x05040f, 0.55).setOrigin(0).setDepth(5.6).setAlpha(0);
+    this.tweens.add({ targets: [art, shade], alpha: 1, duration: 1400, ease: 'Cubic.easeOut' });
     this.add
       .text(WIDTH / 2, 420, `${ch.nameKor} · ${ch.nameEng} — ${ch.title}`, {
         fontFamily: FONT,
@@ -239,7 +246,7 @@ export class EndingScene extends Phaser.Scene {
         `SCORE  ${this.score.toString().padStart(8, '0')}\nHI-SCORE  ${this.save.hiscore.toString().padStart(8, '0')}${
           isHigh ? '\n★ NEW HIGH SCORE ★' : ''
         }\n${this.difficulty} CLEAR`,
-        { fontFamily: FONT, fontSize: '24px', color: '#ffe9a0', align: 'center', lineSpacing: 10, fontStyle: 'bold' },
+        { fontFamily: FONT, fontSize: '24px', color: '#ffe9a0', align: 'center', lineSpacing: 10, fontStyle: 'bold', stroke: '#05040f', strokeThickness: 6 },
       )
       .setOrigin(0.5)
       .setDepth(6);
@@ -270,7 +277,7 @@ export class EndingScene extends Phaser.Scene {
     this.audio.playSfx('menu');
     if (this.step === 0) {
       this.tweens.killTweensOf([this.rift, this.riftGlow, this.bright]);
-      this.rift.setScale(0.02, 1).setAlpha(0);
+      this.rift.setScale(this.rift.scaleX, this.riftBaseScaleY * 0.02).setAlpha(0);
       this.riftGlow.setAlpha(0);
       this.bright.setFillStyle(0x9fd8f2, 0.55);
       this.playEpilogue();

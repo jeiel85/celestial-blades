@@ -60,8 +60,22 @@ SPRITE_SIZES = {
     "item_l": (24, 24),
     "item_g": (24, 24),
     "gear": (256, 256),
+    # 캐릭터 선택 카드 초상화(카드 폭 300 안쪽)
+    "portrait_yun": (220, 150),
+    "portrait_ryeohwa": (220, 150),
+    "portrait_mooyoung": (220, 150),
+    # 모바일 터치 조작 UI
+    "touch_stick_base": (140, 140),
+    "touch_stick_knob": (64, 64),
+    "touch_btn_attack": (108, 108),
+    "touch_btn_bomb": (84, 84),
+    # 레이저 경고선: 흰색 균일 빛줄기, 런타임에 길이·색을 바꿔 쓴다(엔딩 균열 기둥에도 사용)
+    "fx_warn_line": (512, 32),
 }
-BACKGROUND_KEYS = ["bg_valley", "bg_city", "bg_fortress", "bg_rift", "title_bg"]
+BACKGROUND_KEYS = [
+    "bg_valley", "bg_city", "bg_fortress", "bg_rift", "title_bg",
+    "ending_yun", "ending_ryeohwa", "ending_mooyoung",
+]
 BG_SIZE = (1280, 720)
 # 가로로 반복되는 전경 레이어(투명 PNG). 높이를 화면 높이에 맞추고 좌우 끝을 투명하게 비워 이음매를 없앤다.
 LAYER_KEYS = ["layer_valley", "layer_city", "layer_fortress", "layer_rift"]

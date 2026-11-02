@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { LOGO_FONT, LOGO_TEXT } from './TitleScene';
+import UI_GLYPHS from 'virtual:ui-glyphs';
+import { LOGO_FONT, LOGO_TEXT, UI_FONT } from '../GameConfig';
 
 // 게임의 모든 그림: 스프라이트(src/assets/sprites)와 배경(src/assets/backgrounds). 파일명이 곧 텍스처 키다.
 // 원본은 art-raw/(Codex 이미지 생성)에서 tools/process_art.py로 가공한다.
@@ -21,6 +22,9 @@ const REQUIRED_TEXTURES = [
   'fx_spark', 'fx_smoke', 'fx_ring', 'fx_glow', 'fx_star',
   'bg_valley', 'bg_city', 'bg_fortress', 'bg_rift', 'title_bg',
   'layer_valley', 'layer_city', 'layer_fortress', 'layer_rift', 'gear',
+  'portrait_yun', 'portrait_ryeohwa', 'portrait_mooyoung',
+  'ending_yun', 'ending_ryeohwa', 'ending_mooyoung',
+  'touch_stick_base', 'touch_stick_knob', 'touch_btn_attack', 'touch_btn_bomb', 'fx_warn_line',
 ];
 
 function keyOf(path: string): string {
@@ -40,6 +44,7 @@ export class BootScene extends Phaser.Scene {
   preload(): void {
     const label = this.add
       .text(640, 360, 'LOADING...', {
+        fontFamily: UI_FONT,
         fontSize: '28px',
         color: '#8fd3ff',
         align: 'center',
@@ -67,6 +72,7 @@ export class BootScene extends Phaser.Scene {
       this.children.removeAll(true);
       this.add
         .text(640, 360, `그래픽 리소스를 불러오지 못했습니다.\n(${this.failedSprites.join(', ')})\n\n새로고침해 다시 시도해 주세요.`, {
+          fontFamily: UI_FONT,
           fontSize: '22px',
           color: '#ff8f8f',
           align: 'center',
@@ -82,12 +88,13 @@ export class BootScene extends Phaser.Scene {
       this.textures.get(keyOf(path)).setFilter(Phaser.Textures.FilterMode.LINEAR);
     }
 
-    // Phaser 텍스트는 생성 시점의 글꼴로 한 번 래스터화되므로, 로고 글꼴을 받은 뒤 타이틀로 넘어간다.
-    // 네트워크가 느리거나 실패하면 대체 글꼴로라도 진행한다(3초 상한).
-    const fontReady = document.fonts
-      .load(`92px ${LOGO_FONT}`, LOGO_TEXT)
-      .catch((err: unknown) => console.warn('로고 글꼴 로드 실패:', err));
-    const timeout = new Promise<void>((resolve) => window.setTimeout(resolve, 3000));
+    // Phaser 텍스트는 생성 시점의 글꼴로 한 번 래스터화되므로, 화면에 쓰일 글자의 글꼴 조각을 받은 뒤 타이틀로 넘어간다.
+    // 네트워크가 느리거나 실패하면 대체 글꼴로라도 진행한다(5초 상한).
+    const fontReady = Promise.all([
+      document.fonts.load(`92px ${LOGO_FONT}`, LOGO_TEXT),
+      document.fonts.load(`20px ${UI_FONT}`, UI_GLYPHS),
+    ]).catch((err: unknown) => console.warn('글꼴 로드 실패:', err));
+    const timeout = new Promise<void>((resolve) => window.setTimeout(resolve, 5000));
     void Promise.race([fontReady, timeout]).then(() => this.scene.start('Title'));
   }
 }
