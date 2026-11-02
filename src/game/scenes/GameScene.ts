@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { HEIGHT, MAX_BOMBS, START_BOMBS, WIDTH } from '../GameConfig';
+import { HEIGHT, MAX_BOMBS, START_BOMBS, UI_FONT, WIDTH } from '../GameConfig';
 import type {
   BossLike,
   Difficulty,
@@ -46,7 +46,7 @@ const MAX_PLAYER_BULLETS = 240;
 const MAX_ENEMY_BULLETS = 700;
 const MAX_ENEMIES = 80;
 const MAX_ITEMS = 48;
-const FONT = '"Courier New", monospace';
+const FONT = UI_FONT;
 const RESPAWN_X = 200;
 const RESPAWN_Y = 360;
 

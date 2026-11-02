@@ -7,6 +7,13 @@ import type { Effects } from './effects/Effects';
 export const WIDTH = 1280;
 export const HEIGHT = 720;
 
+// 글꼴(둘 다 OFL, @fontsource로 번들). BootScene이 실제로 쓰이는 글자의 조각을 미리 받은 뒤 장면을 연다.
+/** 메뉴·HUD·대사 */
+export const UI_FONT = '"Gowun Dodum", "Malgun Gothic", sans-serif';
+/** 타이틀 로고 */
+export const LOGO_FONT = '"Song Myung", serif';
+export const LOGO_TEXT = '천명비행록';
+
 // ---------------------------------------------------------------------------
 // 플레이어 / 전투 밸런스 상수
 // ---------------------------------------------------------------------------

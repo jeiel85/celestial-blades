@@ -22,7 +22,9 @@ npm run build    # dist/ 생성 (tsc 타입 검사 포함)
 npm run preview  # 빌드 결과 미리보기
 ```
 
-외부 서버·로그인·백엔드가 없는 순수 클라이언트 게임입니다. 모든 그래픽은 런타임에 절차 생성하고, 모든 사운드는 Web Audio API로 합성합니다(외부 에셋 0개).
+외부 서버·로그인·백엔드가 없는 순수 클라이언트 게임입니다. 모든 그림(캐릭터·적·보스·탄·이펙트·아이템·배경·캐릭터 초상화·엔딩 일러스트·터치 UI)은 Codex 이미지 생성으로 만든 원본을 게임 크기에 맞게 가공해 번들에 포함합니다(`src/assets/`). 글꼴은 타이틀 로고 Song Myung, 메뉴·HUD Gowun Dodum(둘 다 OFL, `@fontsource`)입니다. 모든 사운드는 Web Audio API로 합성합니다(외부 CDN·원격 리소스 없음).
+
+그림 다시 만들기: Codex로 생성한 원본 PNG를 `art-raw/<텍스처키>.png`(git 제외)에 두고 `python tools/process_art.py`를 실행하면 `src/assets/`가 갱신됩니다. 목표 크기는 스크립트의 `SPRITE_SIZES`에 있습니다(히트박스가 프레임 크기 기준이라 바꾸지 않습니다).
 
 ---
 
@@ -78,11 +80,13 @@ npm run preview  # 빌드 결과 미리보기
 
 ```
 src/
+  assets/sprites/*.png         # 스프라이트 (파일명 = 텍스처 키)
+  assets/backgrounds/          # 스테이지 원경(jpg)·전경 레이어(png)·타이틀 키 아트
   main.ts                      # Phaser 게임 부트
   game/
     GameConfig.ts              # 상수·밸런스 수치·IGameWorld 계약·난이도 프리셋
     scenes/
-      BootScene.ts             # 전체 텍스처 절차 생성 (외부 이미지 없음)
+      BootScene.ts             # 그림·로고 글꼴 로드
       TitleScene.ts            # 로고·메뉴·설정·하이스코어
       CharacterSelectScene.ts  # 캐릭터 3인 카드 + 난이도 선택
       GameScene.ts             # 게임플레이 심장 (충돌·HUD·보스 흐름·클리어)

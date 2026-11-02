@@ -1,10 +1,10 @@
 import Phaser from 'phaser';
-import { DIFFICULTY_PRESETS, HEIGHT, WIDTH } from '../GameConfig';
+import { DIFFICULTY_PRESETS, HEIGHT, UI_FONT, WIDTH } from '../GameConfig';
 import type { Difficulty } from '../GameConfig';
 import { AudioSystem } from '../systems/AudioSystem';
 import { SaveSystem } from '../systems/SaveSystem';
 
-const FONT = '"Courier New", monospace';
+const FONT = UI_FONT;
 
 export interface ResultSceneData {
   gameOver?: boolean;

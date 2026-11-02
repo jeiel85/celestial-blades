@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { UI_FONT } from '../GameConfig';
 
 /**
  * 키보드(화살표+WASD, Z/Space, X, Shift, ESC, M, F1~F4) + 게임패드 + 터치 입력.
@@ -45,8 +46,8 @@ export class InputSystem {
   private padBomb = false;
   private padBombPrev = false;
 
-  private stickBase: Phaser.GameObjects.Arc | null = null;
-  private stickKnob: Phaser.GameObjects.Arc | null = null;
+  private stickBase: Phaser.GameObjects.Image | null = null;
+  private stickKnob: Phaser.GameObjects.Image | null = null;
   private stickOrigin = { x: 0, y: 0 };
   private stickPointerId: number | null = null;
 
@@ -258,25 +259,23 @@ export class InputSystem {
 
     const stickX = 150;
     const stickY = h - 150;
-    const base = targetScene.add.circle(stickX, stickY, 70, 0x8fd3ff, 0.15).setScrollFactor(0).setDepth(900);
-    base.setStrokeStyle(2, 0x8fd3ff, 0.5);
-    const knob = targetScene.add.circle(stickX, stickY, 30, 0x8fd3ff, 0.35).setScrollFactor(0).setDepth(901);
+    // 조작 UI는 게임 화면을 가리지 않도록 반투명으로 둔다.
+    const base = targetScene.add.image(stickX, stickY, 'touch_stick_base').setAlpha(0.55).setScrollFactor(0).setDepth(900);
+    const knob = targetScene.add.image(stickX, stickY, 'touch_stick_knob').setAlpha(0.75).setScrollFactor(0).setDepth(901);
     this.stickBase = base;
     this.stickKnob = knob;
     this.stickOrigin = { x: stickX, y: stickY };
     this.stickPointerId = null;
 
-    const atkBtn = targetScene.add.circle(w - 130, h - 150, 52, 0xff5f5f, 0.3).setScrollFactor(0).setDepth(900);
-    atkBtn.setStrokeStyle(2, 0xff8f8f, 0.7);
+    const atkBtn = targetScene.add.image(w - 130, h - 150, 'touch_btn_attack').setAlpha(0.7).setScrollFactor(0).setDepth(900);
     targetScene.add
-      .text(w - 130, h - 150, '공격', { fontSize: '20px', color: '#ffd0d0' })
+      .text(w - 130, h - 150 + 66, '공격', { fontFamily: UI_FONT, fontSize: '18px', color: '#ffd0d0', stroke: '#000000', strokeThickness: 4 })
       .setOrigin(0.5)
       .setDepth(901)
       .setScrollFactor(0);
-    const bombBtn = targetScene.add.circle(w - 250, h - 110, 40, 0xffd75e, 0.3).setScrollFactor(0).setDepth(900);
-    bombBtn.setStrokeStyle(2, 0xffd75e, 0.7);
+    const bombBtn = targetScene.add.image(w - 250, h - 110, 'touch_btn_bomb').setAlpha(0.7).setScrollFactor(0).setDepth(900);
     targetScene.add
-      .text(w - 250, h - 110, '필살', { fontSize: '16px', color: '#fff2c0' })
+      .text(w - 250, h - 110 + 54, '필살', { fontFamily: UI_FONT, fontSize: '16px', color: '#fff2c0', stroke: '#000000', strokeThickness: 4 })
       .setOrigin(0.5)
       .setDepth(901)
       .setScrollFactor(0);

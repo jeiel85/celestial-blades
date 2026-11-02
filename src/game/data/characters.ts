@@ -31,6 +31,10 @@ export interface CharacterDef {
   /** 기본탄 대미지 배율 (캐릭터 간 DPS 조정용) */
   damageMult: number;
   texture: string;
+  /** 캐릭터 선택 카드 초상화 */
+  portrait: string;
+  /** 엔딩 후일담 일러스트 */
+  ending: string;
 }
 
 export const CHARACTERS: CharacterDef[] = [
@@ -49,6 +53,8 @@ export const CHARACTERS: CharacterDef[] = [
     shotIntervalMs: 110,
     damageMult: 1.0,
     texture: 'player_yun',
+    portrait: 'portrait_yun',
+    ending: 'ending_yun',
   },
   {
     id: 'ryeohwa',
@@ -65,6 +71,8 @@ export const CHARACTERS: CharacterDef[] = [
     shotIntervalMs: 150,
     damageMult: 0.85,
     texture: 'player_ryeohwa',
+    portrait: 'portrait_ryeohwa',
+    ending: 'ending_ryeohwa',
   },
   {
     id: 'mooyoung',
@@ -81,6 +89,8 @@ export const CHARACTERS: CharacterDef[] = [
     shotIntervalMs: 85,
     damageMult: 1.15,
     texture: 'player_mooyoung',
+    portrait: 'portrait_mooyoung',
+    ending: 'ending_mooyoung',
   },
 ];
 
