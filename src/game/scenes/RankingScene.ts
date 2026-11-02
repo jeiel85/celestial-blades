@@ -18,6 +18,17 @@ const DIFFS: Difficulty[] = ['EASY', 'NORMAL', 'HARD'];
 const TOP = 20;
 const PILOT_NAME: Record<PilotId, string> = { yun: '윤', ryeohwa: '려화', mooyoung: '무영' };
 const STAGE_NAME = ['청운계곡', '기계도시', '천공성', '천문'];
+/** 닉네임 칸 폭(px). 한글 12자는 20px 글꼴로 약 240px라 넘치면 줄인다. */
+const NICK_MAX_W = 140;
+
+/** 글자가 maxWidth보다 넓으면 비율을 유지해 줄인다(세로 중심 유지). */
+function fitWidth(t: Phaser.GameObjects.Text, maxWidth: number): Phaser.GameObjects.Text {
+  if (t.width > maxWidth) {
+    const s = maxWidth / t.width;
+    t.setScale(s).setY(t.y + (t.height * (1 - s)) / 2);
+  }
+  return t;
+}
 
 export interface RankingSceneData {
   /** 게임오버·엔딩에서 넘어온 등록 대기 기록(닉네임 제외) */
@@ -184,7 +195,7 @@ export class RankingScene extends Phaser.Scene {
       this.list.push(
         this.add.text(x, y, `${i + 1}`, { fontFamily: FONT, fontSize: '22px', color: medal ?? color, fontStyle: 'bold' }),
         this.add.image(x + 74, y + 13, `portrait_${r.pilot}`).setScale(0.17),
-        this.add.text(x + 100, y + 2, r.nickname, { fontFamily: FONT, fontSize: '20px', color }),
+        fitWidth(this.add.text(x + 100, y + 2, r.nickname, { fontFamily: FONT, fontSize: '20px', color }), NICK_MAX_W),
         this.add.text(x + 250, y + 4, `${r.cleared ? 'CLEAR' : STAGE_NAME[r.stage - 1] ?? ''} · ${PILOT_NAME[r.pilot]}`, {
           fontFamily: FONT,
           fontSize: '15px',
