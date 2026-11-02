@@ -3,6 +3,7 @@ import { DIFFICULTY_PRESETS, HEIGHT, UI_FONT, WIDTH } from '../GameConfig';
 import type { Difficulty } from '../GameConfig';
 import { AudioSystem } from '../systems/AudioSystem';
 import { SaveSystem } from '../systems/SaveSystem';
+import { getCharacter } from '../data/characters';
 
 const FONT = UI_FONT;
 
@@ -20,7 +21,7 @@ export interface ResultSceneData {
 
 /**
  * 결과 씬 (키 'Result'). Game Over 전용.
- * RETRY(같은 스테이지 재시작) / TITLE. NEW HIGH SCORE 강조.
+ * RETRY(같은 스테이지 재시작) / 랭킹 등록 / TITLE. NEW HIGH SCORE 강조.
  */
 export class ResultScene extends Phaser.Scene {
   private result!: Required<Pick<ResultSceneData, 'score' | 'charIndex' | 'stageIndex' | 'stageStartScore' | 'power'>> & {
@@ -126,7 +127,7 @@ export class ResultScene extends Phaser.Scene {
 
     this.menuIndex = 0;
     this.buttons = [];
-    const labels = ['RETRY', 'TITLE'];
+    const labels = ['RETRY', '랭킹 등록', 'TITLE'];
     labels.forEach((label, i) => {
       const t = this.add
         .text(WIDTH / 2, 460 + i * 56, label, { fontFamily: FONT, fontSize: '30px', color: '#e8f2ff', fontStyle: 'bold' })
@@ -165,8 +166,12 @@ export class ResultScene extends Phaser.Scene {
     const z = kb.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
     const enter = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
     const space = kb.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-    if (Phaser.Input.Keyboard.JustDown(up) || Phaser.Input.Keyboard.JustDown(down)) {
-      this.menuIndex = this.menuIndex === 0 ? 1 : 0;
+    // JustDown은 한 번 읽으면 초기화되므로 먼저 받아 둔다.
+    const upPressed = Phaser.Input.Keyboard.JustDown(up);
+    const downPressed = Phaser.Input.Keyboard.JustDown(down);
+    if (upPressed || downPressed) {
+      const n = this.buttons.length;
+      this.menuIndex = (this.menuIndex + (upPressed ? n - 1 : 1)) % n;
       this.audio.playSfx('menu');
       this.refresh();
     } else if (
@@ -197,6 +202,16 @@ export class ResultScene extends Phaser.Scene {
         power: this.result.power,
         charIndex: this.result.charIndex,
         difficulty: this.result.difficulty,
+      });
+    } else if (this.menuIndex === 1) {
+      this.scene.start('Ranking', {
+        pending: {
+          score: this.result.score,
+          pilot: getCharacter(this.result.charIndex).id,
+          difficulty: this.result.difficulty,
+          stage: this.result.stageIndex + 1,
+          cleared: false,
+        },
       });
     } else {
       this.scene.start('Title');

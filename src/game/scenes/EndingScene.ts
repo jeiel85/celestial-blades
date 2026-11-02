@@ -302,6 +302,15 @@ export class EndingScene extends Phaser.Scene {
     } catch {
       // 무시
     }
-    this.scene.start('Title');
+    // 클리어 기록은 랭킹 등록으로 이어진다(건너뛰기 가능).
+    this.scene.start('Ranking', {
+      pending: {
+        score: this.score,
+        pilot: getCharacter(this.charIndex).id,
+        difficulty: this.difficulty,
+        stage: 4,
+        cleared: true,
+      },
+    });
   }
 }

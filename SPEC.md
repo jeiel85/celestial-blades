@@ -92,6 +92,12 @@ Boot → Title → CharacterSelect → Game(stage 1) → (중간보스→보스�
 ## 타이틀 화면
 - 로고, START GAME, HOW TO PLAY, SETTINGS, HI-SCORE 표시. SETTINGS: Master/SFX Volume, Screen Shake, Difficulty, Fullscreen.
 
+## 온라인 랭킹 (RankingService · RankingScene, Supabase `public.scores`)
+- 등록: 게임오버 화면 `랭킹 등록`, 엔딩 종료 후 자동 진입(건너뛰기 가능). 닉네임 2~12자(한글·영문·숫자·_·-), 마지막 닉네임은 localStorage에 기억.
+- 조회: 타이틀 `RANKING` → 난이도 탭(←→) + TOP 20(점수 내림차순, 동점은 먼저 올린 기록이 위). 방금 올린 기록 강조, TOP 20 밖이면 아래에 순위 표시.
+- 서버 규칙(마이그레이션 `supabase/migrations/`): 조회·제출만 허용, 수정·삭제 불가, 클리어는 4스테이지에서만, 닉네임별 1분 3회. 점수 위조는 완전히 막지 못한다(DECISIONS.md).
+- 무료 플랜 일시정지 방지: `.github/workflows/supabase-keepalive.yml`이 사흘마다 조회.
+
 ## 저장 (SaveSystem, localStorage key `celestial-blades-save`)
 - hiscore, settings(masterVol, sfxVol, shake, difficulty), lastChar. 새로고침 후 유지.
 

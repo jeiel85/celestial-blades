@@ -5,7 +5,7 @@ import { AudioSystem } from '../systems/AudioSystem';
 import { SaveSystem } from '../systems/SaveSystem';
 
 const FONT = UI_FONT;
-const MENU = ['START GAME', 'HOW TO PLAY', 'SETTINGS'] as const;
+const MENU = ['START GAME', 'RANKING', 'HOW TO PLAY', 'SETTINGS'] as const;
 
 interface Star {
   img: Phaser.GameObjects.Image;
@@ -14,7 +14,7 @@ interface Star {
 
 /**
  * 타이틀 씬 (키 'Title').
- * 로고 + 메뉴(START/HOWTO/SETTINGS) + HI-SCORE. 키보드/마우스/터치 지원.
+ * 로고 + 메뉴(START/RANKING/HOWTO/SETTINGS) + HI-SCORE. 키보드/마우스/터치 지원.
  */
 export class TitleScene extends Phaser.Scene {
   private save!: SaveSystem;
@@ -233,6 +233,8 @@ export class TitleScene extends Phaser.Scene {
     const item = MENU[this.menuIndex];
     if (item === 'START GAME') {
       this.scene.start('CharacterSelect');
+    } else if (item === 'RANKING') {
+      this.scene.start('Ranking');
     } else if (item === 'HOW TO PLAY') {
       this.openHowto();
     } else {
