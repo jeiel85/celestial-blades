@@ -1,30 +1,62 @@
-# 천명비행록 : Celestial Blades
+<div align="center">
 
-동양 판타지 세계관의 **횡스크롤 탄막 슈팅 게임**입니다. 1990년대 아케이드 슈팅의 재미 — 화면을 채우는 탄막, 캐릭터별 공격 방식, 차지 공격과 필살기, 단계별 보스 패턴 — 을 현대적인 웹 기술로 재해석한 오리지널 게임입니다.
+<img src="src/assets/backgrounds/title_bg.jpg" alt="천명비행록 키 아트" width="100%">
 
-인간계와 천계 사이의 거대한 균열에서 요괴와 기계 생명체가 쏟아져 나옵니다. 플레이어는 공중을 나는 **천명사** 중 한 명을 선택해 균열의 근원을 추적합니다.
+# 천명비행록 · Celestial Blades
 
-**라이브 데모**: GitHub Pages (저장소 Settings → Pages 참고)
+**동양 판타지 횡스크롤 탄막 슈팅** — 하늘의 균열을 봉인하라
+
+<a href="https://jeiel85.github.io/celestial-blades/"><img src="https://img.shields.io/badge/%E2%96%B6%20%EC%A7%80%EA%B8%88%20%ED%94%8C%EB%A0%88%EC%9D%B4-PLAY%20NOW-ffd75e?style=for-the-badge&labelColor=2a1404" alt="지금 플레이"></a>
+
+<img src="https://img.shields.io/badge/version-1.1.0-a06bff?style=flat-square" alt="version">
+<img src="https://img.shields.io/badge/Phaser-3.80-8fd3ff?style=flat-square" alt="Phaser">
+<img src="https://img.shields.io/badge/TypeScript-strict-3178c6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript">
+<img src="https://img.shields.io/badge/Vite-5-646cff?style=flat-square&logo=vite&logoColor=white" alt="Vite">
+<img src="https://img.shields.io/badge/PWA-installable-53e0b0?style=flat-square" alt="PWA">
+
+</div>
+
+인간계와 천계 사이의 거대한 균열에서 요괴와 기계 생명체가 쏟아져 나옵니다. 하늘을 나는 **천명사** 한 명을 골라 균열의 근원을 추적하세요.
+
+1990년대 아케이드 슈팅의 재미(화면을 채우는 탄막, 캐릭터별 공격 방식, 차지 공격과 필살기, 단계별 보스 패턴)를 웹 기술로 다시 만든 오리지널 게임입니다. 설치 없이 브라우저에서 바로 플레이할 수 있고, PWA로 설치하면 오프라인에서도 실행됩니다.
 
 ---
 
-## 실행 방법
+## 천명사
 
-```bash
-npm install
-npm run dev      # http://localhost:5173
-```
+<table>
+<tr>
+<td align="center" width="33%"><img src="src/assets/sprites/portrait_yun.png" width="220" alt="윤"><br><b>윤 · YUN</b><br><sub>균형의 검사 · 초보자 추천</sub></td>
+<td align="center" width="33%"><img src="src/assets/sprites/portrait_ryeohwa.png" width="220" alt="려화"><br><b>려화 · RYEOHWA</b><br><sub>화염의 술사 · 광역</sub></td>
+<td align="center" width="33%"><img src="src/assets/sprites/portrait_mooyoung.png" width="220" alt="무영"><br><b>무영 · MOOYOUNG</b><br><sub>그림자의 암살자 · 최고 DPS</sub></td>
+</tr>
+<tr>
+<td><b>기본</b> 빠른 직선 검기<br><b>차지</b> 거대 초승달 검기 — 적탄 소거<br><b>필살</b> 천명검진 — 2초간 거대 검진</td>
+<td><b>기본</b> 3갈래 화염탄<br><b>차지</b> 자동 추적 화염조 5~7기<br><b>필살</b> 홍련화재 — 불기둥 연발</td>
+<td><b>기본</b> 초고속 직선 수리검<br><b>차지</b> 전방 돌진 — 경로 대미지 + 순간 무적<br><b>필살</b> 백귀야행 — 잔상이 화면을 가로지름</td>
+</tr>
+</table>
 
-프로덕션 빌드:
+## 스테이지
 
-```bash
-npm run build    # dist/ 생성 (tsc 타입 검사 포함)
-npm run preview  # 빌드 결과 미리보기
-```
+<table>
+<tr>
+<td width="50%"><img src="src/assets/backgrounds/bg_valley.jpg" alt="청운계곡"><br><b>1 · 청운계곡</b> <sub>AZURE VALLEY</sub><br><sub>보스 <b>철갑귀 장군</b></sub></td>
+<td width="50%"><img src="src/assets/backgrounds/bg_city.jpg" alt="붉은 기계도시"><br><b>2 · 붉은 기계도시</b> <sub>CRIMSON MACHINE CITY</sub><br><sub>보스 <b>홍련기관왕</b> — 외장 파괴 후 코어 노출</sub></td>
+</tr>
+<tr>
+<td><img src="src/assets/backgrounds/bg_fortress.jpg" alt="천공성"><br><b>3 · 천공성</b> <sub>SKY FORTRESS</sub><br><sub>보스 <b>백야천녀</b> — 순간이동·분신, 화면 암전</sub></td>
+<td><img src="src/assets/backgrounds/bg_rift.jpg" alt="천문"><br><b>FINAL · 천문</b> <sub>CELESTIAL RIFT</sub><br><sub>최종 보스 <b>무명천</b> — 인간형 → 거대 신수형</sub></td>
+</tr>
+</table>
 
-외부 서버·로그인·백엔드가 없는 순수 클라이언트 게임입니다. 모든 그림(캐릭터·적·보스·탄·이펙트·아이템·배경·캐릭터 초상화·엔딩 일러스트·터치 UI)은 Codex 이미지 생성으로 만든 원본을 게임 크기에 맞게 가공해 번들에 포함합니다(`src/assets/`). 글꼴은 타이틀 로고 Song Myung, 메뉴·HUD Gowun Dodum(둘 다 OFL, `@fontsource`)입니다. 모든 사운드는 Web Audio API로 합성합니다(외부 CDN·원격 리소스 없음).
-
-그림 다시 만들기: Codex로 생성한 원본 PNG를 `art-raw/<텍스처키>.png`(git 제외)에 두고 `python tools/process_art.py`를 실행하면 `src/assets/`가 갱신됩니다. 목표 크기는 스크립트의 `SPRITE_SIZES`에 있습니다(히트박스가 프레임 크기 기준이라 바꾸지 않습니다).
+<p align="center">
+<img src="src/assets/sprites/boss_iron.png" height="90" alt="철갑귀 장군">
+<img src="src/assets/sprites/boss_engine.png" height="90" alt="홍련기관왕">
+<img src="src/assets/sprites/boss_maiden.png" height="90" alt="백야천녀">
+<img src="src/assets/sprites/final_human.png" height="90" alt="무명천 인간형">
+<img src="src/assets/sprites/final_beast.png" height="90" alt="무명천 신수형">
+</p>
 
 ---
 
@@ -44,16 +76,6 @@ npm run preview  # 빌드 결과 미리보기
 모바일 브라우저에서는 터치 UI(좌측 가상 이동 영역, 우측 공격/필살기 버튼)가 표시됩니다.
 
 디버그 키(일반 UI 미노출): `F1` 히트박스, `F2` 무적, `F3` 보스 호출, `F4` 다음 스테이지.
-
----
-
-## 캐릭터
-
-| 캐릭터 | 스타일 | 기본 공격 | 차지 공격 | 필살기 |
-| --- | --- | --- | --- | --- |
-| **윤 (YUN)** | 균형형 검사 · 초보자 추천 | 빠른 직선 검기 (파워마다 검기 증가) | 거대 초승달 검기 — **적탄 소거** | 천명검진 — 2초간 화면을 휩쓰는 거대 검진 |
-| **려화 (RYEOHWA)** | 화염 술사 · 광역 | 3갈래 화염탄 | 자동 추적 화염조 5~7기 | 홍련화재 — 화면 곳곳에 불기둥 연발 |
-| **무영 (MOOYOUNG)** | 고속 암살자 · 최고 DPS | 초고속 직선 수리검 | 전방 돌진 — 경로 대미지 + 순간 무적 | 백귀야행 — 잔상 다수가 화면을 가로질러 공격 |
 
 ---
 
@@ -78,6 +100,9 @@ npm run preview  # 빌드 결과 미리보기
 
 ## 프로젝트 구조
 
+<details>
+<summary>디렉터리 구성 펼치기</summary>
+
 ```
 src/
   assets/sprites/*.png         # 스프라이트 (파일명 = 텍스처 키)
@@ -86,7 +111,7 @@ src/
   game/
     GameConfig.ts              # 상수·밸런스 수치·IGameWorld 계약·난이도 프리셋
     scenes/
-      BootScene.ts             # 그림·로고 글꼴 로드
+      BootScene.ts             # 그림·글꼴 로드
       TitleScene.ts            # 로고·메뉴·설정·하이스코어
       CharacterSelectScene.ts  # 캐릭터 3인 카드 + 난이도 선택
       GameScene.ts             # 게임플레이 심장 (충돌·HUD·보스 흐름·클리어)
@@ -105,7 +130,7 @@ src/
       SaveSystem.ts            # localStorage (하이스코어·설정)
       InputSystem.ts           # 키보드·게임패드·터치 UI
     effects/Effects.ts         # 폭발·플래시·히트스톱·쉐이크·잔상
-    backgrounds/Parallax.ts    # 스테이지별 5층 패럴랙스 배경
+    backgrounds/Parallax.ts    # 원경 일러스트 + 전경 레이어 스크롤
     data/
       characters.ts            # 캐릭터 스탯/문구
       stages.ts                # 스테이지 웨이브 타임라인 (데이터 기반)
@@ -114,21 +139,43 @@ src/
     utils/Pool.ts
 ```
 
+</details>
+
 적 웨이브와 보스 패턴은 씬에 하드코딩되지 않고 `data/`의 타임라인·패턴 데이터로 정의되어 있어, 새 스테이지/보스를 데이터 추가만으로 확장할 수 있습니다.
 
 ---
 
-## 기술 스택
+## 개발
 
-- [Phaser 3](https://phaser.io/) (Arcade Physics, Object Pooling)
-- TypeScript (strict) + Vite
-- Web Audio API (효과음·BGM 전부 합성)
-- localStorage (하이스코어·설정 저장)
+```bash
+npm install
+npm run dev      # http://localhost:5173
+npm run build    # dist/ 생성 (tsc 타입 검사 포함)
+npm run preview  # 빌드 결과 미리보기
+```
 
-목표 해상도 1280×720 (16:9), 화면 크기에 맞춰 자동 스케일링. 데스크톱 Chrome 기준 60FPS 지향.
+`main`에 푸시하면 GitHub Actions가 빌드해 GitHub Pages로 배포합니다. 외부 서버·로그인·백엔드가 없는 순수 클라이언트 게임입니다.
+
+| | |
+| --- | --- |
+| 엔진 | [Phaser 3](https://phaser.io/) (Arcade Physics, Object Pooling) |
+| 언어·빌드 | TypeScript (strict) + Vite |
+| 사운드 | Web Audio API — 효과음·BGM 전부 실시간 합성 |
+| 저장 | localStorage (하이스코어·설정) |
+| 화면 | 1280×720 (16:9) 자동 스케일링, 60FPS 지향 |
+| 글꼴 | 로고 Song Myung, UI Gowun Dodum (둘 다 OFL, `@fontsource`) |
+
+### 그림 파이프라인
+
+모든 그림(캐릭터·적·보스·탄·이펙트·아이템·배경·초상화·엔딩 일러스트·터치 UI)은 Codex 이미지 생성으로 만든 원본을 게임 크기에 맞게 가공해 번들에 포함합니다.
+
+1. 원본 PNG를 `art-raw/<텍스처키>.png`에 둡니다(git 제외).
+2. `python tools/process_art.py`를 실행하면 `src/assets/`가 갱신됩니다.
+
+목표 크기는 스크립트의 `SPRITE_SIZES`에 있습니다. 히트박스가 프레임 크기를 기준으로 잡히므로 크기는 바꾸지 않습니다. 파일명이 곧 텍스처 키이고, 코드가 참조하는 그림이 빠지면 부팅 단계에서 오류를 표시합니다.
 
 ---
 
 ## 라이선스
 
-모든 코드·그래픽·사운드는 이 저장소에서 오리지널로 제작되었습니다. 외부 저작권 리소스를 사용하지 않습니다.
+코드·그래픽·사운드는 이 저장소를 위해 만든 오리지널입니다. 글꼴 Song Myung·Gowun Dodum은 SIL Open Font License 1.1을 따릅니다.
