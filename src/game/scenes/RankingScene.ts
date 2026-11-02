@@ -279,7 +279,8 @@ export class RankingScene extends Phaser.Scene {
       else if (e.key === 'Escape') skip.click();
     });
 
-    document.body.appendChild(form);
+    // 전체화면이면 Phaser가 캔버스를 감싼 요소만 전체화면으로 띄우므로, 그 안에 붙여야 입력창이 보인다.
+    (document.fullscreenElement ?? document.body).appendChild(form);
     this.form = form;
     input.focus();
     input.select();
