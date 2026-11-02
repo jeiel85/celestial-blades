@@ -239,12 +239,16 @@ export class RankingScene extends Phaser.Scene {
     const skip = form.querySelector('.rank-form__skip') as HTMLButtonElement;
     input.value = loadNickname();
 
+    let sending = false;
     const send = async (): Promise<void> => {
+      // Enter 연타·키 반복으로 같은 기록이 여러 번 저장되지 않게 한다.
+      if (sending) return;
       const nickname = input.value.trim();
       if (!NICKNAME_RULE.test(nickname)) {
         error.textContent = errorMessage('invalid');
         return;
       }
+      sending = true;
       submit.disabled = true;
       skip.disabled = true;
       error.textContent = '등록 중…';
@@ -252,6 +256,7 @@ export class RankingScene extends Phaser.Scene {
       if (!this.scene.isActive()) return;
       if (!res.ok) {
         error.textContent = errorMessage(res.error);
+        sending = false;
         submit.disabled = false;
         skip.disabled = false;
         return;

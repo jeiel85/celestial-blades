@@ -52,12 +52,12 @@ async function request(url: string, init: RequestInit): Promise<Response> {
   }
 }
 
-/** 난이도별 상위 기록(점수 내림차순, 동점은 먼저 올린 기록이 위). */
+/** 난이도별 상위 기록(점수 내림차순, 동점은 먼저 올린 기록(작은 id)이 위). */
 export async function fetchTop(difficulty: Difficulty, limit = 20): Promise<Result<RankRow[]>> {
   const q = new URLSearchParams({
     select: 'id,nickname,score,pilot,difficulty,stage,cleared,created_at',
     difficulty: `eq.${difficulty}`,
-    order: 'score.desc,created_at.asc',
+    order: 'score.desc,id.asc',
     limit: String(limit),
   });
   try {
@@ -69,7 +69,7 @@ export async function fetchTop(difficulty: Difficulty, limit = 20): Promise<Resu
   }
 }
 
-/** 기록을 올리고, 저장된 행과 그 난이도에서의 순위(1부터)를 돌려준다. */
+/** 기록을 올리고, 저장된 행과 그 난이도에서의 순위(1부터, 조회 실패 시 0)를 돌려준다. */
 export async function submitScore(entry: ScoreEntry): Promise<Result<{ row: RankRow; rank: number }>> {
   if (!NICKNAME_RULE.test(entry.nickname)) return { ok: false, error: 'invalid' };
   try {
@@ -86,17 +86,27 @@ export async function submitScore(entry: ScoreEntry): Promise<Result<{ row: Rank
       return { ok: false, error: 'server' };
     }
     const [row] = (await res.json()) as RankRow[];
-    // 순위 = 이 기록보다 점수가 높은 기록 수 + 1 (동점은 먼저 올린 쪽이 위이므로 같은 점수는 세지 않는다)
-    const q = new URLSearchParams({ select: 'id', difficulty: `eq.${entry.difficulty}`, score: `gt.${entry.score}` });
-    const countRes = await request(`${ENDPOINT}?${q}`, {
-      method: 'HEAD',
-      headers: headers({ Prefer: 'count=exact' }),
-    });
-    const total = Number(countRes.headers.get('content-range')?.split('/')[1]);
-    const rank = Number.isFinite(total) ? total + 1 : 0;
-    return { ok: true, value: { row, rank } };
+    // 저장은 끝났으므로 순위 조회가 실패해도 성공으로 돌려준다(재시도하면 같은 기록이 또 저장된다).
+    return { ok: true, value: { row, rank: await rankOf(row) } };
   } catch {
     return { ok: false, error: 'network' };
+  }
+}
+
+/** fetchTop과 같은 정렬 기준의 순위: 더 높은 점수 + 같은 점수 중 먼저 올린 기록 수 + 1. 실패하면 0. */
+async function rankOf(row: RankRow): Promise<number> {
+  const q = new URLSearchParams({
+    select: 'id',
+    difficulty: `eq.${row.difficulty}`,
+    or: `(score.gt.${row.score},and(score.eq.${row.score},id.lt.${row.id}))`,
+  });
+  try {
+    const res = await request(`${ENDPOINT}?${q}`, { method: 'HEAD', headers: headers({ Prefer: 'count=exact' }) });
+    if (!res.ok) return 0;
+    const ahead = Number(res.headers.get('content-range')?.split('/')[1]);
+    return Number.isFinite(ahead) ? ahead + 1 : 0;
+  } catch {
+    return 0;
   }
 }
 
