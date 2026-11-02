@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="40" viewBox="0 0 48 40">
+  <!-- 돌진형 기계: 왼쪽으로 뾰족한 충각 + 뒤쪽 쌍발 추진기 -->
+  <defs>
+    <linearGradient id="hull" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffc06e"/>
+      <stop offset="0.5" stop-color="#d9782a"/>
+      <stop offset="1" stop-color="#7a3a10"/>
+    </linearGradient>
+    <linearGradient id="jet" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#d8f2ff"/>
+      <stop offset="1" stop-color="#4db2ff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect x="40" y="9" width="8" height="6" fill="url(#jet)"/>
+  <rect x="40" y="25" width="8" height="6" fill="url(#jet)"/>
+  <g stroke="#1e1005" stroke-width="1.5" stroke-linejoin="round">
+    <rect x="30" y="7" width="11" height="9" rx="2" fill="#5e5e6e"/>
+    <rect x="30" y="24" width="11" height="9" rx="2" fill="#5e5e6e"/>
+    <path d="M2 20 L22 6 L36 9 L36 31 L22 34 Z" fill="url(#hull)"/>
+    <path d="M2 20 L14 16 L14 24 Z" fill="#e8e8f2"/>
+  </g>
+  <path d="M18 20 L34 20" stroke="#7a3a10" stroke-width="1.2"/>
+  <ellipse cx="22" cy="15" rx="4" ry="2.5" fill="#ff4d5e" stroke="#1e1005" stroke-width="1"/>
+  <ellipse cx="21" cy="14.5" rx="1.5" ry="1" fill="#ffd0d0"/>
+  <path d="M22 8 L34 10" stroke="#ffe6b8" stroke-width="1.2" opacity="0.8"/>
+</svg>

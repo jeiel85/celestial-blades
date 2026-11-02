@@ -28,12 +28,13 @@ function lerpColor(a: number, b: number, t: number): number {
 /**
  * 스테이지 배경 패럴랙스. 생성 시 Graphics.generateTexture로 레이어
  * 텍스처를 자체 생성한다 (키 `bg_<theme>_...`, 충돌 없음).
- * tileSprite 5층 + 도시 테마 회전 톱니 3개를 서로 다른 속도로 스크롤한다.
+ * 고정 하늘 1장 위에 tileSprite 4층 + 도시 테마 회전 톱니 3개를 서로 다른 속도로 스크롤한다.
  */
 export class Parallax {
   private readonly layers: Layer[] = [];
   private readonly texKeys: string[] = [];
   private readonly gears: Phaser.GameObjects.Image[] = [];
+  private sky: Phaser.GameObjects.Image | null = null;
   private darkness: Phaser.GameObjects.Rectangle | null = null;
   private mult = 1;
 
@@ -92,6 +93,14 @@ export class Parallax {
       }
     }
     this.gears.length = 0;
+    if (this.sky) {
+      try {
+        this.sky.destroy();
+      } catch {
+        // 무시
+      }
+      this.sky = null;
+    }
     if (this.darkness) {
       try {
         this.darkness.destroy();
@@ -112,15 +121,36 @@ export class Parallax {
 
   // -- 텍스처 생성 기반 ----------------------------------------------------------
 
+  /**
+   * 가로로 반복되는 레이어 텍스처. 좌우로 한 장씩 더 그려 경계(x=0, x=TEX_W)에
+   * 걸친 도형이 반대편으로 이어지게 한다 — 타일 이음매에서 구름·바위가 잘리지 않는다.
+   */
   private genTex(key: string, draw: (g: Phaser.GameObjects.Graphics) => void): string {
     const full = `bg_${this.theme}_${key}`;
     if (this.scene.textures.exists(full)) this.scene.textures.remove(full);
     const g = this.scene.add.graphics();
-    draw(g);
+    for (const dx of [-TEX_W, 0, TEX_W]) {
+      g.save();
+      g.translateCanvas(dx, 0);
+      draw(g);
+      g.restore();
+    }
     g.generateTexture(full, TEX_W, TEX_H);
     g.destroy();
     this.texKeys.push(full);
     return full;
+  }
+
+  /** 화면 전체 폭의 고정 하늘(해·균열 기둥 포함). 타일 반복하지 않아 해가 하나만 보인다. */
+  private genSky(draw: (g: Phaser.GameObjects.Graphics) => void): void {
+    const full = `bg_${this.theme}_sky`;
+    if (this.scene.textures.exists(full)) this.scene.textures.remove(full);
+    const g = this.scene.add.graphics();
+    draw(g);
+    g.generateTexture(full, WIDTH, TEX_H);
+    g.destroy();
+    this.texKeys.push(full);
+    this.sky = this.scene.add.image(0, 0, full).setOrigin(0).setDepth(-10);
   }
 
   private addLayer(key: string, speed: number, depth: number, alpha = 1): void {
@@ -131,11 +161,12 @@ export class Parallax {
     this.layers.push({ img, speed });
   }
 
+  /** 하늘 그라데이션 + 해. genSky 안에서만 쓴다(화면 폭 기준). */
   private skyBands(g: Phaser.GameObjects.Graphics, top: number, bottom: number, sunX: number, sunY: number, sunColor: number): void {
     const bands = 24;
     for (let i = 0; i < bands; i += 1) {
       g.fillStyle(lerpColor(top, bottom, i / (bands - 1)), 1);
-      g.fillRect(0, (TEX_H / bands) * i, TEX_W, TEX_H / bands + 1);
+      g.fillRect(0, (TEX_H / bands) * i, WIDTH, TEX_H / bands + 1);
     }
     g.fillStyle(sunColor, 0.9);
     g.fillCircle(sunX, sunY, 46);
@@ -150,7 +181,9 @@ export class Parallax {
     const steps = 16;
     for (let i = 0; i <= steps; i += 1) {
       const x = (TEX_W / steps) * i;
-      const h = baseY - Math.abs(Math.sin(i * 1.7 + seed)) * amp - Math.abs(Math.sin(i * 0.6 + seed * 2)) * amp * 0.5;
+      // 2π 주기 함수만 써서 i=0과 i=steps의 높이가 같다 → 타일 이음매에서 능선이 끊기지 않음
+      const t = (i / steps) * Math.PI * 2;
+      const h = baseY - Math.abs(Math.sin(t * 4 + seed)) * amp - Math.abs(Math.sin(t + seed * 2)) * amp * 0.5;
       g.lineTo(x, h);
     }
     g.lineTo(TEX_W, TEX_H);
@@ -161,11 +194,11 @@ export class Parallax {
   // -- valley: 청운계곡 ------------------------------------------------------------
 
   private buildValley(): void {
-    const sky = this.genTex('sky', (g) => {
+    this.genSky((g) => {
       this.skyBands(g, 0x9fd8f2, 0x2c5f8a, 150, 150, 0xfff2c0);
       g.fillStyle(0xffffff, 0.85);
-      for (let i = 0; i < 5; i += 1) {
-        const cx = 40 + i * 110;
+      for (let i = 0; i < 6; i += 1) {
+        const cx = 90 + i * 220;
         const cy = 420 + (i % 2) * 60;
         g.fillEllipse(cx, cy, 90, 22);
         g.fillEllipse(cx + 24, cy - 10, 60, 20);
@@ -222,7 +255,6 @@ export class Parallax {
         }
       }
     });
-    this.addLayer(sky, 6, -10);
     this.addLayer(far, 18, -9);
     this.addLayer(near, 42, -8);
     this.addLayer(clouds, 85, -7, 0.95);
@@ -232,10 +264,10 @@ export class Parallax {
   // -- city: 붉은 기계도시 ------------------------------------------------------------
 
   private buildCity(): void {
-    const sky = this.genTex('sky', (g) => {
+    this.genSky((g) => {
       this.skyBands(g, 0x6e2a1e, 0x1a0a12, 380, 200, 0xff9f5f);
       g.fillStyle(0x2a0f0a, 0.8);
-      for (let i = 0; i < 4; i += 1) g.fillEllipse(80 + i * 130, 560 + (i % 2) * 40, 170, 30);
+      for (let i = 0; i < 9; i += 1) g.fillEllipse(80 + i * 145, 560 + (i % 2) * 40, 170, 30);
     });
     const ships = this.genTex('ships', (g) => {
       // 원거리 비행선 실루엣
@@ -266,9 +298,10 @@ export class Parallax {
       g.fillCircle(c, c, 10);
     });
     const buildings = this.genTex('buildings', (g) => {
-      g.fillStyle(0x241210, 1);
       const xs = [0, 90, 200, 310, 420];
       for (let i = 0; i < xs.length; i += 1) {
+        // 창문·등불 색이 다음 건물 몸체로 새지 않도록 매 건물마다 몸체 색을 다시 지정
+        g.fillStyle(0x241210, 1);
         const bw = 70 + (i % 3) * 20;
         const bh = 260 + ((i * 53) % 120);
         g.fillRect(xs[i], TEX_H - bh, bw, bh);
@@ -281,7 +314,6 @@ export class Parallax {
             if ((wx + wy + i) % 3 !== 0) g.fillRect(wx, wy, 8, 10);
           }
         }
-        g.fillStyle(0x241210, 1);
         // 붉은 등불
         g.fillStyle(0xe63b2e, 1);
         g.fillCircle(xs[i] + bw / 2, TEX_H - bh + 44, 9);
@@ -302,7 +334,6 @@ export class Parallax {
         g.fillCircle(x, TEX_H - 26, 7);
       }
     });
-    this.addLayer(sky, 6, -10);
     this.addLayer(ships, 16, -9);
     this.addLayer(buildings, 46, -8);
     this.addLayer(pipes, 150, -6);
@@ -321,11 +352,11 @@ export class Parallax {
   // -- fortress: 천공성 ------------------------------------------------------------
 
   private buildFortress(): void {
-    const sky = this.genTex('sky', (g) => {
+    this.genSky((g) => {
       this.skyBands(g, 0x8f9fd6, 0x2e1a5e, 400, 140, 0xfff2d8);
       g.fillStyle(0xffffff, 0.9);
-      for (let i = 0; i < 26; i += 1) {
-        const sx = (i * 97) % TEX_W;
+      for (let i = 0; i < 64; i += 1) {
+        const sx = (i * 97) % WIDTH;
         const sy = (i * 61) % 320;
         g.fillCircle(sx, sy, i % 3 === 0 ? 2 : 1.2);
       }
@@ -388,7 +419,6 @@ export class Parallax {
         g.fillStyle(0x14122a, 1);
       }
     });
-    this.addLayer(sky, 6, -10);
     this.addLayer(cloudsea, 20, -9);
     this.addLayer(towers, 44, -8);
     this.addLayer(islands, 88, -7);
@@ -398,15 +428,16 @@ export class Parallax {
   // -- rift: 천문 ------------------------------------------------------------
 
   private buildRift(): void {
-    const sky = this.genTex('sky', (g) => {
-      this.skyBands(g, 0x0a0618, 0x1e1a4d, 256, 300, 0xa06bff);
-      // 균열 발광 (중앙 세로 기둥)
+    this.genSky((g) => {
+      const cx = WIDTH / 2;
+      this.skyBands(g, 0x0a0618, 0x1e1a4d, cx, 300, 0xa06bff);
+      // 균열 발광 (화면 중앙 세로 기둥 하나)
       g.fillStyle(0xa06bff, 0.28);
-      g.fillRect(220, 0, 72, TEX_H);
+      g.fillRect(cx - 36, 0, 72, TEX_H);
       g.fillStyle(0xd8c8ff, 0.4);
-      g.fillRect(242, 0, 28, TEX_H);
+      g.fillRect(cx - 14, 0, 28, TEX_H);
       g.fillStyle(0xffffff, 0.75);
-      g.fillRect(252, 0, 8, TEX_H);
+      g.fillRect(cx - 4, 0, 8, TEX_H);
     });
     const stars = this.genTex('stars', (g) => {
       // 뒤틀린 별 (십자/마름모)
@@ -461,7 +492,6 @@ export class Parallax {
       g.fillRect(0, 0, TEX_W, 4);
       g.fillRect(0, TEX_H - 4, TEX_W, 4);
     });
-    this.addLayer(sky, 5, -10);
     this.addLayer(stars, 14, -9);
     this.addLayer(debris, 48, -8);
     this.addLayer(rays, 90, -7, 0.9);

@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import { defineConfig, type Plugin, type ResolvedConfig } from 'vite';
 
 /**
- * 빌드 산출물(dist/sw.js)에 해시가 붙은 JS/CSS 번들 목록과 빌드 ID를 주입한다.
+ * 빌드 산출물(dist/sw.js)에 해시가 붙은 JS/CSS/SVG 번들 목록과 빌드 ID를 주입한다.
  * 서비스워커가 첫 방문 뒤 오프라인 실행에 필요한 번들을 프리캐시하게 하려는 것으로,
  * 새 npm 의존성(vite-plugin-pwa 등) 없이 처리한다.
  */
@@ -19,7 +19,7 @@ function swPrecachePlugin(): Plugin {
     },
     generateBundle(_options, bundle) {
       assets = Object.keys(bundle)
-        .filter((file) => /\.(js|css)$/.test(file))
+        .filter((file) => /\.(js|css|svg)$/.test(file))
         .sort()
         .map((file) => `./${file}`);
     },

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <!-- 아이템 B (필살기): 마름모 보석 + 글자 -->
+  <defs>
+    <linearGradient id="gem" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff6c8"/>
+      <stop offset="0.45" stop-color="#ffd75e"/>
+      <stop offset="1" stop-color="#a8761a"/>
+    </linearGradient>
+  </defs>
+  <path d="M12 0.5 L23.5 12 L12 23.5 L0.5 12 Z" fill="#101020"/>
+  <path d="M12 2.5 L21.5 12 L12 21.5 L2.5 12 Z" fill="url(#gem)"/>
+  <path d="M12 2.5 L21.5 12 L12 12 Z" fill="#ffffff" opacity="0.18"/>
+  <text x="12" y="16.6" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="12.5" fill="#101020">B</text>
+  <path d="M8.5 6 L12 3.8 L15.5 6" stroke="#ffffff" stroke-width="1.4" fill="none" stroke-linecap="round" opacity="0.9"/>
+</svg>

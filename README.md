@@ -22,7 +22,7 @@ npm run build    # dist/ 생성 (tsc 타입 검사 포함)
 npm run preview  # 빌드 결과 미리보기
 ```
 
-외부 서버·로그인·백엔드가 없는 순수 클라이언트 게임입니다. 모든 그래픽은 런타임에 절차 생성하고, 모든 사운드는 Web Audio API로 합성합니다(외부 에셋 0개).
+외부 서버·로그인·백엔드가 없는 순수 클라이언트 게임입니다. 조종사·일반 적·아이템 스프라이트는 손으로 그린 SVG(`src/assets/sprites/`)를 번들에 포함해 쓰고, 탄·보스·이펙트·배경은 런타임에 절차 생성합니다. 모든 사운드는 Web Audio API로 합성합니다(외부 CDN·원격 리소스 없음).
 
 ---
 
@@ -78,11 +78,12 @@ npm run preview  # 빌드 결과 미리보기
 
 ```
 src/
+  assets/sprites/*.svg         # 조종사·일반 적·아이템 스프라이트 (파일명 = 텍스처 키)
   main.ts                      # Phaser 게임 부트
   game/
     GameConfig.ts              # 상수·밸런스 수치·IGameWorld 계약·난이도 프리셋
     scenes/
-      BootScene.ts             # 전체 텍스처 절차 생성 (외부 이미지 없음)
+      BootScene.ts             # SVG 스프라이트 로드 + 나머지 텍스처 절차 생성
       TitleScene.ts            # 로고·메뉴·설정·하이스코어
       CharacterSelectScene.ts  # 캐릭터 3인 카드 + 난이도 선택
       GameScene.ts             # 게임플레이 심장 (충돌·HUD·보스 흐름·클리어)

@@ -1,16 +1,26 @@
 import Phaser from 'phaser';
 
+// 손으로 그린 SVG 스프라이트(src/assets/sprites). 파일명이 곧 텍스처 키다.
+// Vite가 해시 붙은 URL로 번들하므로 서비스워커 프리캐시 대상에도 포함된다.
+const SPRITE_URLS = import.meta.glob<string>('../../assets/sprites/*.svg', {
+  eager: true,
+  query: '?url',
+  import: 'default',
+});
+
 /**
- * BootScene: 전체 텍스처를 런타임 절차 생성한 뒤 'Title'로 이동한다.
- * 외부 에셋 없음. 모든 텍스처는 Graphics.generateTexture 또는 Canvas 기반.
+ * BootScene: SVG 스프라이트(조종사·일반 적·아이템)를 로드하고,
+ * 나머지 텍스처(탄·보스·FX)는 런타임 절차 생성한 뒤 'Title'로 이동한다.
  */
 export class BootScene extends Phaser.Scene {
+  private readonly failedSprites: string[] = [];
+
   constructor() {
     super('Boot');
   }
 
-  create(): void {
-    this.add
+  preload(): void {
+    const label = this.add
       .text(640, 360, 'LOADING...', {
         fontSize: '28px',
         color: '#8fd3ff',
@@ -19,12 +29,39 @@ export class BootScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
+    this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, (file: Phaser.Loader.File) => {
+      this.failedSprites.push(file.key);
+    });
+    this.load.on(Phaser.Loader.Events.PROGRESS, (p: number) => {
+      label.setText(`LOADING... ${Math.round(p * 100)}%`);
+    });
+
+    for (const [path, url] of Object.entries(SPRITE_URLS)) {
+      const key = path.slice(path.lastIndexOf('/') + 1, -'.svg'.length);
+      this.load.svg(key, url);
+    }
+  }
+
+  create(): void {
+    if (this.failedSprites.length > 0) {
+      // 스프라이트 없이 진행하면 적/조종사가 Phaser 기본 '누락' 텍스처로 보이므로 멈추고 알린다.
+      console.error('스프라이트 로드 실패:', this.failedSprites);
+      this.children.removeAll(true);
+      this.add
+        .text(640, 360, `그래픽 리소스를 불러오지 못했습니다.\n(${this.failedSprites.join(', ')})\n\n새로고침해 다시 시도해 주세요.`, {
+          fontSize: '22px',
+          color: '#ff8f8f',
+          align: 'center',
+          lineSpacing: 10,
+        })
+        .setOrigin(0.5);
+      return;
+    }
+
     this.makePlayerTextures();
     this.makeShotTextures();
     this.makeEnemyBulletTextures();
-    this.makeEnemyTextures();
     this.makeBossTextures();
-    this.makeItemTextures();
     this.makeFxTextures();
 
     this.scene.start('Title');
@@ -49,118 +86,8 @@ export class BootScene extends Phaser.Scene {
     tex.refresh();
   }
 
-  // -- 플레이어 (오른쪽 향함) ----------------------------------------------------
+  // -- 플레이어 히트 코어 ------------------------------------------------------
   private makePlayerTextures(): void {
-    // 세 조종사는 모두 오른쪽을 향한 비행 자세. 얼굴/복장/무기를 분리해
-    // 작은 화면에서도 '캐릭터'로 읽히도록 실루엣을 먼저 만들었다.
-    // 윤: 청색 갑주 검사 + 긴 검 + 뒤로 흐르는 망토
-    this.genTex('player_yun', 88, 72, (g) => {
-      g.fillStyle(0x081321, 1);
-      g.fillTriangle(6, 44, 26, 25, 18, 68);
-      g.fillTriangle(8, 52, 35, 42, 18, 71);
-      g.fillStyle(0x1a4d8f, 1);
-      g.fillTriangle(10, 42, 31, 22, 24, 63);
-      g.fillTriangle(12, 52, 36, 43, 22, 68);
-      // 어깨와 몸통
-      g.fillStyle(0x10233d, 1);
-      g.fillEllipse(39, 43, 38, 38);
-      g.fillStyle(0x2d7fd6, 1);
-      g.fillRoundedRect(28, 33, 30, 28, 10);
-      g.fillStyle(0x4db2ff, 1);
-      g.fillTriangle(33, 35, 57, 41, 38, 57);
-      // 얼굴과 청옥 바이저
-      g.fillStyle(0x0d1c33, 1);
-      g.fillCircle(48, 27, 13);
-      g.fillStyle(0x9fe0ff, 1);
-      g.fillRoundedRect(45, 22, 18, 9, 4);
-      g.fillStyle(0xffffff, 1);
-      g.fillRect(48, 23, 5, 3);
-      // 손에 든 검
-      g.fillStyle(0xd8f2ff, 1);
-      g.fillTriangle(58, 29, 87, 36, 58, 43);
-      g.lineStyle(2, 0x1a4d8f, 1);
-      g.strokeTriangle(58, 29, 87, 36, 58, 43);
-      g.fillStyle(0xffd75e, 1);
-      g.fillRect(55, 34, 8, 4);
-      g.lineStyle(2, 0x0d1c33, 1);
-      g.strokeRoundedRect(28, 33, 30, 28, 10);
-    });
-
-    // 려화: 붉은 법의 술사 + 펼친 부채 + 불꽃 장식
-    this.genTex('player_ryeohwa', 88, 72, (g) => {
-      g.fillStyle(0x3d1408, 1);
-      g.fillTriangle(5, 22, 29, 37, 8, 58);
-      g.fillTriangle(10, 38, 34, 53, 5, 67);
-      g.fillStyle(0xc33d1e, 1);
-      g.fillTriangle(12, 24, 33, 38, 12, 55);
-      g.fillTriangle(15, 41, 34, 52, 10, 63);
-      // 넓은 소매와 몸통
-      g.fillStyle(0x7a1e0e, 1);
-      g.fillEllipse(39, 44, 42, 40);
-      g.fillStyle(0xe63b2e, 1);
-      g.fillRoundedRect(27, 34, 28, 28, 9);
-      g.fillStyle(0xff7b2d, 1);
-      g.fillTriangle(32, 38, 57, 45, 34, 58);
-      g.fillStyle(0xffd75e, 1);
-      g.fillTriangle(34, 52, 48, 57, 38, 62);
-      // 옆얼굴, 붉은 머리장식
-      g.fillStyle(0x5a160e, 1);
-      g.fillCircle(48, 26, 13);
-      g.fillStyle(0xffb347, 1);
-      g.fillCircle(52, 24, 8);
-      g.fillStyle(0xfff2c0, 1);
-      g.fillRoundedRect(48, 23, 15, 8, 4);
-      g.fillStyle(0xffd75e, 1);
-      g.fillCircle(55, 15, 4);
-      // 부채살
-      g.fillStyle(0xffb347, 1);
-      g.fillTriangle(58, 9, 86, 36, 58, 49);
-      g.lineStyle(2, 0x7a1e0e, 1);
-      for (let i = 0; i <= 4; i += 1) g.lineBetween(58, 36, 84, 10 + i * 13);
-      g.strokeTriangle(58, 9, 86, 36, 58, 49);
-      g.fillStyle(0xfff2c0, 1);
-      g.fillCircle(58, 36, 4);
-      g.lineStyle(2, 0x3d1408, 1);
-      g.strokeRoundedRect(27, 34, 28, 28, 9);
-    });
-
-    // 무영: 후드 암살자 + 보랏빛 스카프 + 쌍단검
-    this.genTex('player_mooyoung', 88, 72, (g) => {
-      g.fillStyle(0x160f2e, 1);
-      g.fillTriangle(8, 18, 32, 36, 0, 42);
-      g.fillTriangle(10, 48, 34, 42, 2, 68);
-      g.fillStyle(0x3d2a6e, 1);
-      g.fillTriangle(12, 20, 35, 37, 6, 40);
-      g.fillTriangle(14, 50, 35, 43, 7, 63);
-      // 날씬한 몸통과 후드
-      g.fillStyle(0x2a1e5e, 1);
-      g.fillEllipse(40, 44, 34, 40);
-      g.fillStyle(0x5b3fa8, 1);
-      g.fillTriangle(27, 35, 59, 35, 44, 65);
-      g.fillStyle(0xa06bff, 1);
-      g.fillTriangle(34, 38, 56, 41, 44, 57);
-      g.fillStyle(0x160f2e, 1);
-      g.fillTriangle(29, 29, 49, 10, 66, 31);
-      g.fillStyle(0xa06bff, 1);
-      g.fillTriangle(38, 26, 49, 15, 59, 27);
-      g.fillStyle(0xd8c8ff, 1);
-      g.fillRoundedRect(45, 23, 16, 7, 3);
-      g.fillStyle(0xffffff, 1);
-      g.fillRect(49, 24, 4, 2);
-      // 두 개의 단검
-      g.fillStyle(0xe8e8f2, 1);
-      g.fillTriangle(57, 32, 87, 38, 57, 42);
-      g.fillTriangle(56, 45, 83, 58, 56, 51);
-      g.lineStyle(2, 0x2a1e5e, 1);
-      g.strokeTriangle(57, 32, 87, 38, 57, 42);
-      g.strokeTriangle(56, 45, 83, 58, 56, 51);
-      g.fillStyle(0xffd75e, 1);
-      g.fillCircle(57, 38, 3);
-      g.fillCircle(56, 48, 3);
-      g.lineStyle(2, 0x160f2e, 1);
-      g.strokeTriangle(29, 29, 49, 10, 66, 31);
-    });
-
     // 히트 코어 (10px 빛점)
     this.genTex('player_core', 12, 12, (g) => {
       g.fillStyle(0xffffff, 1);
@@ -272,176 +199,6 @@ export class BootScene extends Phaser.Scene {
       g.fillTriangle(1, 1, 19, 5, 1, 9);
       g.fillStyle(0xdfe6f2, 1);
       g.fillTriangle(4, 3, 15, 5, 4, 7);
-    });
-  }
-
-  // -- 적 ------------------------------------------------------------------
-  private makeEnemyTextures(): void {
-    // 소형 비행 요괴 (40x36)
-    this.genTex('enemy_small', 40, 36, (g) => {
-      g.fillStyle(0x2a1420, 1);
-      g.fillEllipse(20, 18, 38, 34);
-      g.fillStyle(0x8f3d5e, 1);
-      g.fillEllipse(20, 18, 30, 26);
-      g.fillStyle(0xd66b8f, 1);
-      g.fillEllipse(20, 15, 20, 15);
-      // 눈
-      g.fillStyle(0xffe066, 1);
-      g.fillCircle(14, 16, 4);
-      g.fillCircle(26, 16, 4);
-      g.fillStyle(0x101020, 1);
-      g.fillCircle(14, 16, 1.8);
-      g.fillCircle(26, 16, 1.8);
-      // 뿔
-      g.fillStyle(0x3d2a3d, 1);
-      g.fillTriangle(8, 8, 13, 0, 15, 9);
-      g.fillTriangle(32, 8, 27, 0, 25, 9);
-      // 기계 턱
-      g.fillStyle(0x5e5e6e, 1);
-      g.fillRect(14, 26, 12, 5);
-      g.lineStyle(1, 0x101020, 1);
-      g.strokeRect(14, 26, 12, 5);
-    });
-    // 박쥐형 (44x32)
-    this.genTex('enemy_bat', 44, 32, (g) => {
-      g.fillStyle(0x1e1030, 1);
-      g.fillTriangle(22, 16, 0, 2, 4, 26);
-      g.fillTriangle(22, 16, 44, 2, 40, 26);
-      g.fillStyle(0x5b3fa8, 1);
-      g.fillTriangle(22, 16, 4, 6, 7, 24);
-      g.fillTriangle(22, 16, 40, 6, 37, 24);
-      g.fillStyle(0x3d2a6e, 1);
-      g.fillEllipse(22, 17, 18, 20);
-      g.fillStyle(0xa06bff, 1);
-      g.fillEllipse(22, 15, 12, 13);
-      g.fillStyle(0xff4d5e, 1);
-      g.fillCircle(18, 14, 2.5);
-      g.fillCircle(26, 14, 2.5);
-    });
-    // 돌진형 (48x40)
-    this.genTex('enemy_rusher', 48, 40, (g) => {
-      g.fillStyle(0x2e1a0a, 1);
-      g.fillTriangle(4, 20, 34, 2, 34, 38);
-      g.fillStyle(0xc36b1e, 1);
-      g.fillTriangle(6, 20, 32, 6, 32, 34);
-      g.fillStyle(0xffb347, 1);
-      g.fillTriangle(10, 20, 30, 10, 30, 30);
-      // 추진기
-      g.fillStyle(0x5e5e6e, 1);
-      g.fillRect(32, 8, 12, 8);
-      g.fillRect(32, 24, 12, 8);
-      g.fillStyle(0x8fd3ff, 1);
-      g.fillRect(42, 10, 4, 4);
-      g.fillRect(42, 26, 4, 4);
-      g.lineStyle(2, 0x1e1005, 1);
-      g.strokeTriangle(6, 20, 32, 6, 32, 34);
-    });
-    // 포대형 (56x56)
-    this.genTex('enemy_turret', 56, 56, (g) => {
-      g.fillStyle(0x1a1a24, 1);
-      g.fillCircle(28, 28, 26);
-      g.fillStyle(0x4d4d5e, 1);
-      g.fillCircle(28, 28, 21);
-      g.lineStyle(3, 0x2a2a3a, 1);
-      g.strokeCircle(28, 28, 21);
-      // 포신 4문
-      g.fillStyle(0x33333f, 1);
-      g.fillRect(2, 24, 16, 8);
-      g.fillRect(38, 24, 16, 8);
-      g.fillRect(24, 2, 8, 16);
-      g.fillRect(24, 38, 8, 16);
-      // 코어
-      g.fillStyle(0xff4d5e, 1);
-      g.fillCircle(28, 28, 10);
-      g.fillStyle(0xffb3ba, 1);
-      g.fillCircle(28, 28, 5);
-      g.fillStyle(0xffffff, 1);
-      g.fillCircle(28, 28, 2);
-      // 리벳
-      g.fillStyle(0x8f8f9f, 1);
-      g.fillCircle(12, 12, 2.5);
-      g.fillCircle(44, 12, 2.5);
-      g.fillCircle(12, 44, 2.5);
-      g.fillCircle(44, 44, 2.5);
-    });
-    // 방패형 (52x56, 정면 방패)
-    this.genTex('enemy_shield', 52, 56, (g) => {
-      // 본체
-      g.fillStyle(0x24303d, 1);
-      g.fillEllipse(32, 28, 32, 44);
-      g.fillStyle(0x5e7a8f, 1);
-      g.fillEllipse(32, 28, 24, 36);
-      g.fillStyle(0xff5f5f, 1);
-      g.fillCircle(32, 28, 6);
-      // 정면 방패 (좌측)
-      g.fillStyle(0x1a2530, 1);
-      g.fillRoundedRect(0, 4, 20, 48, 5);
-      g.fillStyle(0x8fd3ff, 1);
-      g.fillRoundedRect(2, 6, 16, 44, 4);
-      g.fillStyle(0x3d6e8f, 1);
-      g.fillRoundedRect(4, 10, 6, 36, 2);
-      g.fillStyle(0xffffff, 0.8);
-      g.fillRect(3, 8, 3, 40);
-      // 눈
-      g.fillStyle(0xffe066, 1);
-      g.fillCircle(32, 18, 3);
-    });
-    // 소환형 (60x60)
-    this.genTex('enemy_spawner', 60, 60, (g) => {
-      g.fillStyle(0x0f2418, 1);
-      g.fillCircle(30, 30, 28);
-      g.fillStyle(0x2e6e4d, 1);
-      g.fillCircle(30, 30, 23);
-      g.lineStyle(3, 0x123524, 1);
-      g.strokeCircle(30, 30, 23);
-      // 소환 구멍 4개
-      g.fillStyle(0x0a1a10, 1);
-      g.fillCircle(18, 18, 7);
-      g.fillCircle(42, 18, 7);
-      g.fillCircle(18, 42, 7);
-      g.fillCircle(42, 42, 7);
-      g.fillStyle(0x53e0b0, 1);
-      g.fillCircle(18, 18, 3);
-      g.fillCircle(42, 18, 3);
-      g.fillCircle(18, 42, 3);
-      g.fillCircle(42, 42, 3);
-      // 중앙 눈
-      g.fillStyle(0xd0ffe8, 1);
-      g.fillCircle(30, 30, 9);
-      g.fillStyle(0x0a1a10, 1);
-      g.fillCircle(30, 30, 4);
-    });
-    // 엘리트 (84x72)
-    this.genTex('enemy_elite', 84, 72, (g) => {
-      g.fillStyle(0x241226, 1);
-      g.fillEllipse(42, 36, 82, 70);
-      // 어깨 갑주
-      g.fillStyle(0x5e2a4d, 1);
-      g.fillEllipse(20, 22, 30, 24);
-      g.fillEllipse(64, 22, 30, 24);
-      g.fillStyle(0x8f3d5e, 1);
-      g.fillEllipse(42, 38, 52, 44);
-      g.fillStyle(0xd66b8f, 1);
-      g.fillEllipse(42, 34, 36, 28);
-      // 가슴 코어
-      g.fillStyle(0x3d1020, 1);
-      g.fillCircle(42, 40, 12);
-      g.fillStyle(0xff4d5e, 1);
-      g.fillCircle(42, 40, 8);
-      g.fillStyle(0xffffff, 1);
-      g.fillCircle(42, 40, 3);
-      // 뿔 + 눈
-      g.fillStyle(0xd8c8e8, 1);
-      g.fillTriangle(28, 14, 34, 0, 38, 14);
-      g.fillTriangle(56, 14, 50, 0, 46, 14);
-      g.fillStyle(0xffe066, 1);
-      g.fillCircle(33, 26, 4);
-      g.fillCircle(51, 26, 4);
-      g.fillStyle(0x101020, 1);
-      g.fillCircle(33, 26, 1.8);
-      g.fillCircle(51, 26, 1.8);
-      g.lineStyle(2, 0x12060f, 1);
-      g.strokeEllipse(42, 38, 52, 44);
     });
   }
 
@@ -727,44 +484,6 @@ export class BootScene extends Phaser.Scene {
       g.fillStyle(0xffffff, 1);
       g.fillCircle(190, 170, 8);
     });
-  }
-
-  // -- 아이템 (20x20, 글자 명확 — Canvas) ------------------------------------------
-  private makeItemTextures(): void {
-    const defs: Array<[string, string, string]> = [
-      ['item_p', 'P', '#4db2ff'],
-      ['item_b', 'B', '#ffd75e'],
-      ['item_l', 'L', '#53e0b0'],
-      ['item_g', 'G', '#ffb347'],
-    ];
-    for (const [key, letter, color] of defs) {
-      this.canvasTex(key, 24, (ctx, s) => {
-        // 보석형 배경
-        ctx.fillStyle = '#101020';
-        ctx.beginPath();
-        ctx.moveTo(s / 2, 0);
-        ctx.lineTo(s - 1, s / 2);
-        ctx.lineTo(s / 2, s - 1);
-        ctx.lineTo(1, s / 2);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.moveTo(s / 2, 3);
-        ctx.lineTo(s - 4, s / 2);
-        ctx.lineTo(s / 2, s - 4);
-        ctx.lineTo(4, s / 2);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = '#101020';
-        ctx.font = 'bold 13px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(letter, s / 2, s / 2 + 1);
-        ctx.fillStyle = 'rgba(255,255,255,0.85)';
-        ctx.fillRect(s / 2 - 4, 4, 8, 2);
-      });
-    }
   }
 
   // -- FX -----------------------------------------------------------------

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="52" height="56" viewBox="0 0 52 56">
+  <!-- 방패형: 왼쪽(정면)에 큰 결정 방패를 든 기계 병사 -->
+  <defs>
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8fb0c8"/>
+      <stop offset="1" stop-color="#2e4256"/>
+    </linearGradient>
+    <linearGradient id="shield" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#e8f8ff"/>
+      <stop offset="0.4" stop-color="#8fd3ff"/>
+      <stop offset="1" stop-color="#3d6e8f"/>
+    </linearGradient>
+  </defs>
+  <g stroke="#0e1620" stroke-width="1.5" stroke-linejoin="round">
+    <path d="M36 4 L42 10 L40 14 Z" fill="#5e7a8f"/>
+    <ellipse cx="33" cy="29" rx="15" ry="22" fill="url(#body)"/>
+    <path d="M24 16 Q33 10 42 16 L40 22 L26 22 Z" fill="#24303d"/>
+    <circle cx="33" cy="34" r="6" fill="#ff5f5f"/>
+  </g>
+  <rect x="29" y="18" width="8" height="2.5" rx="1" fill="#ffe066"/>
+  <circle cx="31.5" cy="32.5" r="2" fill="#ffd0d0"/>
+  <!-- 방패 -->
+  <path d="M3 6 L17 2 L21 8 L21 48 L17 54 L3 50 Q0 28 3 6 Z" fill="url(#shield)" stroke="#0e1620" stroke-width="1.6" stroke-linejoin="round"/>
+  <path d="M6 9 L15 6.5 L15 50 L6 47.5 Z" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.6"/>
+  <path d="M10.5 18 L14 28 L10.5 38 L7 28 Z" fill="#3d6e8f" stroke="#0e1620" stroke-width="1"/>
+  <rect x="5" y="9" width="2" height="36" fill="#ffffff" opacity="0.7"/>
+</svg>
