@@ -73,6 +73,88 @@
     #repo-link[hidden] {
       display: none;
     }
+    /* 랭킹 닉네임 입력 창 (RankingScene이 만들고 지운다) */
+    .rank-form {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(5, 7, 13, 0.6);
+      font-family: "Gowun Dodum", "Malgun Gothic", sans-serif;
+    }
+    .rank-form__panel {
+      width: min(360px, calc(100vw - 32px));
+      padding: 24px;
+      border: 1px solid #c8861e;
+      border-radius: 12px;
+      background: linear-gradient(180deg, #1a1426, #0d0a16);
+      box-shadow: 0 0 32px rgba(255, 215, 94, 0.25);
+      color: #e8f2ff;
+      text-align: center;
+      -webkit-user-select: text;
+      user-select: text;
+    }
+    .rank-form__panel h2 {
+      margin: 0 0 6px;
+      color: #ffd75e;
+      font-size: 22px;
+      letter-spacing: 2px;
+    }
+    .rank-form__score {
+      margin: 0 0 16px;
+      color: #8fd3ff;
+      font-size: 15px;
+    }
+    .rank-form__input {
+      box-sizing: border-box;
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #3d4d5e;
+      border-radius: 8px;
+      background: #05070d;
+      color: #fff;
+      font: inherit;
+      font-size: 18px;
+      text-align: center;
+      outline: none;
+    }
+    .rank-form__input:focus {
+      border-color: #ffd75e;
+    }
+    .rank-form__error {
+      min-height: 20px;
+      margin: 8px 0 12px;
+      color: #ff8f8f;
+      font-size: 13px;
+    }
+    .rank-form__buttons {
+      display: flex;
+      gap: 10px;
+    }
+    .rank-form__buttons button {
+      flex: 1;
+      padding: 10px;
+      border: 0;
+      border-radius: 8px;
+      font: inherit;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .rank-form__skip {
+      background: #2a3340;
+      color: #c9d4e0;
+    }
+    .rank-form__submit {
+      background: #ffd75e;
+      color: #2a1404;
+      font-weight: bold;
+    }
+    .rank-form__buttons button:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
   </style>
 </head>
 <body>

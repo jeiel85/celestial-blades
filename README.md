@@ -8,7 +8,7 @@
 
 <a href="https://jeiel85.github.io/celestial-blades/"><img src="https://img.shields.io/badge/%E2%96%B6%20%EC%A7%80%EA%B8%88%20%ED%94%8C%EB%A0%88%EC%9D%B4-PLAY%20NOW-ffd75e?style=for-the-badge&labelColor=2a1404" alt="지금 플레이"></a>
 
-<img src="https://img.shields.io/badge/version-1.1.0-a06bff?style=flat-square" alt="version">
+<img src="https://img.shields.io/badge/version-1.3.0-a06bff?style=flat-square" alt="version">
 <img src="https://img.shields.io/badge/Phaser-3.80-8fd3ff?style=flat-square" alt="Phaser">
 <img src="https://img.shields.io/badge/TypeScript-strict-3178c6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript">
 <img src="https://img.shields.io/badge/Vite-5-646cff?style=flat-square&logo=vite&logoColor=white" alt="Vite">
@@ -94,6 +94,8 @@
 - **아이템**: P(파워) / B(필살기) / L(목숨) / G(점수) — 적 처치 시 확률 드롭
 - **난이도**: EASY(탄속·밀도 감소) / NORMAL / HARD(탄속·패턴·조합 강화)
 - **점수**: 처치·보스 타격·아이템·콤보·노미스·클리어 보너스, 최고 점수는 localStorage 저장
+- **온라인 랭킹**: 게임오버·엔딩 뒤 닉네임으로 등록, 타이틀 `RANKING`에서 난이도별 TOP 20 확인
+- **필살기 컷인**: 발동 순간 캐릭터 일러스트 컷인이 화면을 가로지르고 공격이 터짐
 - **보스**: 각 보스 3개 이상 패턴, 체력 감소 시 패턴 추가/강화, 공격 전 경고 연출, 모든 탄막에 안전 경로 존재
 
 ---
@@ -162,6 +164,7 @@ npm run preview  # 빌드 결과 미리보기
 | 언어·빌드 | TypeScript (strict) + Vite |
 | 사운드 | Web Audio API — 효과음·BGM 전부 실시간 합성 |
 | 저장 | localStorage (하이스코어·설정) |
+| 랭킹 | Supabase (PostgREST 직접 호출, RLS·제출 빈도 제한) — [DECISIONS.md](DECISIONS.md) |
 | 화면 | 1280×720 (16:9) 자동 스케일링, 60FPS 지향 |
 | 글꼴 | 로고 Song Myung, UI Gowun Dodum (둘 다 OFL, `@fontsource`) |
 
