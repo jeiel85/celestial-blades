@@ -15,7 +15,7 @@ const IMAGE_URLS = import.meta.glob<string>(
 
 // 코드가 키로 직접 참조하는 텍스처. 파일이 빠지면 Phaser가 조용히 '누락' 텍스처를 쓰므로 부팅 때 확인한다.
 const REQUIRED_TEXTURES = [
-  ...CHARACTERS.flatMap((c) => [c.texture, c.portrait, c.ending, c.cutin]),
+  ...CHARACTERS.flatMap((c) => [c.texture, c.portrait, c.select, c.ending, c.cutin]),
   ...STORY.map((ch) => ch.image),
   'player_core',
   'shot_ki', 'shot_crescent', 'shot_flame', 'shot_seeker', 'shot_kunai', 'shot_arrow', 'shot_talisman',
