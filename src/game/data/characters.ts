@@ -37,6 +37,9 @@ export interface CharacterDef {
   select: string;
   /** 기본 공격 탄 텍스처(선택 화면 미리보기) */
   shotTexture: string;
+  /** 따라다니며 함께 쏘는 식신(텐가이식 옵션) 그림 */
+  familiar: string;
+  familiarName: string;
   /** 엔딩 후일담 일러스트 */
   ending: string;
   /** 필살기 컷인 일러스트 */
@@ -64,6 +67,8 @@ export const CHARACTERS: CharacterDef[] = [
     texture: 'player_yun',
     portrait: 'portrait_yun',
     select: 'select_yun',
+    familiar: 'familiar_yun',
+    familiarName: '검령',
     shotTexture: 'shot_ki',
     ending: 'ending_yun',
     cutin: 'cutin_yun',
@@ -87,6 +92,8 @@ export const CHARACTERS: CharacterDef[] = [
     texture: 'player_ryeohwa',
     portrait: 'portrait_ryeohwa',
     select: 'select_ryeohwa',
+    familiar: 'familiar_ryeohwa',
+    familiarName: '화조',
     shotTexture: 'shot_flame',
     ending: 'ending_ryeohwa',
     cutin: 'cutin_ryeohwa',
@@ -110,6 +117,8 @@ export const CHARACTERS: CharacterDef[] = [
     texture: 'player_mooyoung',
     portrait: 'portrait_mooyoung',
     select: 'select_mooyoung',
+    familiar: 'familiar_mooyoung',
+    familiarName: '그림자 고양이',
     shotTexture: 'shot_kunai',
     ending: 'ending_mooyoung',
     cutin: 'cutin_mooyoung',
@@ -133,6 +142,8 @@ export const CHARACTERS: CharacterDef[] = [
     texture: 'player_soyul',
     portrait: 'portrait_soyul',
     select: 'select_soyul',
+    familiar: 'familiar_soyul',
+    familiarName: '옥매',
     shotTexture: 'shot_arrow',
     ending: 'ending_soyul',
     cutin: 'cutin_soyul',
@@ -156,6 +167,8 @@ export const CHARACTERS: CharacterDef[] = [
     texture: 'player_haerang',
     portrait: 'portrait_haerang',
     select: 'select_haerang',
+    familiar: 'familiar_haerang',
+    familiarName: '종이 인형',
     shotTexture: 'shot_talisman',
     ending: 'ending_haerang',
     cutin: 'cutin_haerang',

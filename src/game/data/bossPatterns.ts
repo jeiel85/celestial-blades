@@ -1,5 +1,4 @@
 import type Phaser from 'phaser';
-import { DIFFICULTY_PRESETS } from '../GameConfig';
 import type { IGameWorld } from '../GameConfig';
 
 // ---------------------------------------------------------------------------
@@ -112,7 +111,7 @@ function aimAngle(boss: BossAttackContext, world: IGameWorld): number {
 
 /** 난이도별 탄속/밀도 배율 */
 function diff(world: IGameWorld): { speed: number; density: number } {
-  const preset = DIFFICULTY_PRESETS[world.getDifficulty()];
+  const preset = world.getPreset();
   return { speed: preset.bulletSpeed, density: preset.density };
 }
 
@@ -128,7 +127,7 @@ function str(p: any, key: string, fallback: string): string {
 
 /** 밀도 배율을 발수에 반영 (최소 1, 상한은 난이도 프리셋 countCap) */
 function scaledCount(world: IGameWorld, base: number): number {
-  const preset = DIFFICULTY_PRESETS[world.getDifficulty()];
+  const preset = world.getPreset();
   return Math.max(1, Math.round(base * Math.min(preset.countCap, Math.max(0.6, preset.density))));
 }
 
@@ -182,7 +181,7 @@ function fan(boss: BossAttackContext, world: IGameWorld, params: AttackParams): 
 function ring(boss: BossAttackContext, world: IGameWorld, params: AttackParams): void {
   if (!world.isPlayerAlive()) return;
   const count = Math.max(8, scaledCount(world, num(params, 'count', 14)));
-  const skip = Math.max(1, Math.min(DIFFICULTY_PRESETS[world.getDifficulty()].ringSkipMax, Math.round(num(params, 'skip', 2))));
+  const skip = Math.max(1, Math.min(world.getPreset().ringSkipMax, Math.round(num(params, 'skip', 2))));
   const speed = num(params, 'speed', 150) * diff(world).speed;
   const tex = str(params, 'tex', 'eb_mid');
   const tint = num(params, 'tint', 0xc9a8ff);

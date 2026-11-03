@@ -75,6 +75,14 @@ Boot → Title → CharacterSelect → Story(서장) → Game(stage 1) → (중�
 - 보스전 상단에 보스 이름 + HP 바.
 - **데이터 기반**: 패턴은 bossPatterns.ts의 공격 함수 레지스트리 + 페이즈 데이터로 정의.
 
+## 텐가이 벤치마크 요소 (v1.8.0)
+- 식신(Player.updateFamiliar): `familiar_<id>`, 플레이어 뒤 위(집중 시 앞 위)로 지연 추종, 공격키 동안 캐릭터별 탄(파워에 따라 간격 100→70%).
+- 보스전 대사(data/bossTalk.ts + effects/BossTalkPanel.ts): 중간보스 제외 6보스. bossState `'talk'` 동안 전투 정지.
+- 탄 소거 → 금화(GameScene.convertEnemyBulletsToCoins): 보스 형태 변화 탄당 30점, 중간보스 격파 50점, 보스 격파 100점.
+- 컨티뉴: stageRetry 난이도만. 10초, 공격키 이어 하기·필살키 1초씩 넘기기, 점수 0 + 이어 한 횟수.
+- 2주차(GameConfig.presetFor): loop 2는 탄속 1.15·밀도 1.3·발수 상한 +0.4·보스 빈도 1.15·HP 1.2·격파탄. 컷신 생략, 랭킹 stage = 스테이지 + 6.
+- 배경: 원경을 좌우 반전 이어 붙여 천천히 스크롤(SKY_SPEED), 테마별 속도감 입자(MOTES).
+
 ## 탄막 디자인
 - 원형/부채꼴/나선/조준/교차/웨이브/링/분열 등 시각적 규칙. 색·크기·속도로 위험도 구분. 수백 발 동시 존재 대응(Object Pooling 필수).
 

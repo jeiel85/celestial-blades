@@ -1,21 +1,22 @@
 import Phaser from 'phaser';
-import { HEIGHT, MAX_BOMBS, UI_FONT, WIDTH, parseDifficulty } from '../GameConfig';
+import { HEIGHT, MAX_BOMBS, MAX_LOOP, UI_FONT, WIDTH, parseDifficulty, presetFor } from '../GameConfig';
 import type {
   BossLike,
   Difficulty,
+  DifficultyPreset,
   EnemySpawnOpts,
   IGameWorld,
   ItemType,
   PlayerBulletSpawn,
   TargetRef,
 } from '../GameConfig';
-import { DIFFICULTY_PRESETS } from '../GameConfig';
 // Boss.ts (3단계) 계약:
 // createBoss(scene: GameScene, world: IGameWorld, bossId: string): Boss
 // class Boss: x/y/active, getHpRatio(): number, getDisplayName(): string,
 //   takeDamage(dmg: number): void, update(dtMs: number): void, destroy(): void,
 //   isDefeated: boolean, getHitRadius(): number, onDefeated 콜백은 GameScene이 폴링(isDefeated)로 처리
 import { createBoss } from '../entities/Boss';
+import { BOSS_DEFS } from '../data/bossPatterns';
 import { Bullet } from '../entities/Bullet';
 import { Enemy } from '../entities/Enemy';
 import { Item } from '../items/Item';
@@ -28,7 +29,9 @@ import { ScoreSystem } from '../systems/ScoreSystem';
 import { AudioSystem } from '../systems/AudioSystem';
 import { SaveSystem } from '../systems/SaveSystem';
 import { Effects } from '../effects/Effects';
-import { clampCharIndex } from '../data/characters';
+import { clampCharIndex, getCharacter } from '../data/characters';
+import { BOSS_TALK } from '../data/bossTalk';
+import { BossTalkPanel } from '../effects/BossTalkPanel';
 
 export interface GameSceneData {
   stageIndex?: number;
@@ -39,9 +42,17 @@ export interface GameSceneData {
   charIndex?: number;
   difficulty?: Difficulty;
   maxCombo?: number;
+  /** 주차(1 또는 2). 2주차는 presetFor로 더 어려워지고 스토리 컷신을 건너뛴다. */
+  loop?: number;
+  /** 지금까지 쓴 컨티뉴 횟수(점수 끝자리에 남는다) */
+  continues?: number;
 }
 
-type BossPhase = 'none' | 'warning' | 'active' | 'dying' | 'done';
+type BossPhase = 'none' | 'warning' | 'talk' | 'active' | 'dying' | 'done';
+/** 컨티뉴 카운트다운 (초) */
+const CONTINUE_SECONDS = 10;
+/** 금화 연출은 이 개수까지만 그린다(점수는 탄 전부 계산) */
+const MAX_COIN_FX = 90;
 
 const MAX_PLAYER_BULLETS = 240;
 const MAX_ENEMY_BULLETS = 700;
@@ -69,6 +80,12 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
 
   private stageIndex = 0;
   private difficulty: Difficulty = 'NORMAL';
+  private loop = 1;
+  private continues = 0;
+  /** 컨티뉴 화면(목숨 0 뒤): 남은 시간(ms), 표시 요소 */
+  private continueLeft = 0;
+  private continueLayer: Phaser.GameObjects.Container | null = null;
+  private continueCount: Phaser.GameObjects.Text | null = null;
   private carriedMaxCombo = 0;
   private initPower = 0;
 
@@ -87,6 +104,7 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
   private bossBar: Phaser.GameObjects.Container | null = null;
   private bossFill: Phaser.GameObjects.Rectangle | null = null;
   private bossNameText: Phaser.GameObjects.Text | null = null;
+  private talk: BossTalkPanel | null = null;
 
   private noMiss = true;
   private stageKills = 0;
@@ -118,6 +136,8 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
     const raw = data ?? {};
     this.stageIndex = Math.max(0, Math.min(STAGES.length - 1, Math.floor(raw.stageIndex ?? 0)));
     this.difficulty = parseDifficulty(raw.difficulty);
+    this.loop = raw.loop === MAX_LOOP ? MAX_LOOP : 1;
+    this.continues = Math.max(0, Math.floor(raw.continues ?? 0));
     this.carriedMaxCombo = Math.max(0, Math.floor(raw.maxCombo ?? 0));
     this.initPower = Math.max(0, Math.min(3, Math.floor(raw.power ?? 0)));
     // lives/bombs는 create()에서 프리셋 기본값과 합친다
@@ -152,6 +172,10 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
     this.stageKills = 0;
     this.boss = null;
     this.bossState = 'none';
+    this.talk = null;
+    this.continueLeft = 0;
+    this.continueLayer = null;
+    this.continueCount = null;
     this.clearShown = false;
     this.advanced = false;
     this.gameOverPending = false;
@@ -172,7 +196,7 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
     this.spawner = new EnemySpawner(this, this, stage);
 
     // -- 플레이어 --
-    const preset = DIFFICULTY_PRESETS[this.difficulty];
+    const preset = this.getPreset();
     const carryLives = this.registry.get('carryLives') as number;
     const carryBombs = this.registry.get('carryBombs') as number;
     const charIndex = this.registry.get('carryChar') as number;
@@ -295,8 +319,20 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
       if (_time >= this.clearReadyAt && this.inputSys.attackJustPressed) this.advanceStage();
       return;
     }
+    if (this.continueLayer) {
+      this.parallax.update(dt);
+      this.updateContinue(dt);
+      return;
+    }
     if (this.gameOverPending) {
       this.parallax.update(dt);
+      return;
+    }
+    // 보스전 직전 대화: 전투를 멈추고 대화창만 진행한다(보스 등장 트윈은 계속 재생).
+    if (this.bossState === 'talk') {
+      this.parallax.update(dt);
+      this.talk?.update(dt, this.inputSys.attackJustPressed, this.inputSys.bombJustPressed);
+      this.refreshHud();
       return;
     }
 
@@ -422,6 +458,10 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
     return this.difficulty;
   }
 
+  getPreset(): DifficultyPreset {
+    return presetFor(this.difficulty, this.loop);
+  }
+
   isPlayerAlive(): boolean {
     return this.player.isAlive();
   }
@@ -526,11 +566,75 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
         this.setScrollSpeed(1);
         return;
       }
-      this.bossState = 'active';
-      this.showBossName(this.boss.getDisplayName());
-      this.showBossBar(this.boss.getDisplayName());
-      this.audio.playSfx('bossWarn');
+      const begin = (): void => {
+        if (!this.boss || this.gameOverPending) return;
+        this.talk = null;
+        this.bossState = 'active';
+        this.showBossName(this.boss.getDisplayName());
+        this.showBossBar(this.boss.getDisplayName());
+        this.audio.playSfx('bossWarn');
+      };
+      const talk = BOSS_TALK[bossId];
+      if (!talk) {
+        begin();
+        return;
+      }
+      // 텐가이식 보스전 직전 대사: 보스 → 천명사(캐릭터별) → 보스
+      const pilot = getCharacter(this.player.getCharIndex());
+      this.bossState = 'talk';
+      this.talk = new BossTalkPanel(
+        this,
+        [
+          { speaker: talk.name, text: talk.open, side: 'boss' },
+          { speaker: pilot.nameKor, text: talk.reply[pilot.id], side: 'pilot' },
+          { speaker: talk.name, text: talk.close, side: 'boss' },
+        ],
+        pilot.portrait,
+        BOSS_DEFS[bossId]?.tex ?? 'fx_glow',
+        begin,
+      );
     });
+  }
+
+  /**
+   * 화면의 적탄을 금화로 바꾼다. 금화는 잠깐 튀었다가 플레이어에게 빨려 들어가고,
+   * 다 모이면 탄 수 × perBullet 점을 한 번에 더한다.
+   */
+  convertEnemyBulletsToCoins(perBullet: number): void {
+    const live = this.enemyBullets.filter((b) => b.active);
+    if (live.length === 0) return;
+    const total = live.length * perBullet;
+    let drawn = 0;
+    for (const b of live) {
+      const x = b.x;
+      const y = b.y;
+      b.kill();
+      if (drawn >= MAX_COIN_FX) continue;
+      const k = drawn;
+      drawn += 1;
+      const coin = this.add.image(x, y, 'item_g').setScale(0.55).setDepth(205);
+      this.tweens.add({
+        targets: coin,
+        y: y - 18,
+        duration: 220,
+        ease: 'Cubic.easeOut',
+        onComplete: () => {
+          this.tweens.add({
+            targets: coin,
+            x: this.player.x,
+            y: this.player.y,
+            scale: 0.3,
+            duration: 380,
+            delay: k * 3,
+            ease: 'Cubic.easeIn',
+            onComplete: () => coin.destroy(),
+          });
+        },
+      });
+    }
+    this.addScore(total);
+    this.audio.playSfx('item');
+    this.fx.floatingText(this.player.x, this.player.y - 46, `+${total}`, '#ffd75e', 22);
   }
 
   getBoss(): BossLike | null {
@@ -601,25 +705,91 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
   }
 
   /** 목숨 0 → 1.5초 후 Result 씬 */
+  /** 목숨 0 → (이어 하기가 되는 난이도면) 10초 컨티뉴 화면, 아니면 1.5초 후 Result */
   private onPlayerDeath(): void {
     if (this.gameOverPending) return;
     this.gameOverPending = true;
     this.noMiss = false;
     this.clearEnemyBullets();
     this.audio.stopMusic();
-    this.time.delayedCall(1500, () => {
+    this.scoreSys.checkAndSaveHiScore();
+    this.time.delayedCall(1200, () => {
       if (!this.scene.isActive()) return;
-      this.scoreSys.checkAndSaveHiScore();
-      this.scene.start('Result', {
-        gameOver: true,
-        score: this.scoreSys.currentScore,
-        charIndex: this.player.getCharIndex(),
-        difficulty: this.difficulty,
-        stageIndex: this.stageIndex,
-        stageStartScore: this.registry.get('carryScore') as number,
-        power: this.player.getPower(),
-      });
+      if (this.getPreset().stageRetry) this.showContinue();
+      else this.goResult();
     });
+  }
+
+  private goResult(): void {
+    this.scene.start('Result', {
+      gameOver: true,
+      score: this.scoreSys.currentScore,
+      charIndex: this.player.getCharIndex(),
+      difficulty: this.difficulty,
+      stageIndex: this.stageIndex,
+      stageStartScore: this.registry.get('carryScore') as number,
+      power: this.player.getPower(),
+      loop: this.loop,
+    });
+  }
+
+  /** 텐가이식 컨티뉴: 10초 안에 공격키면 그 자리에서 이어 하고, 필살키·시간 초과면 게임 오버. */
+  private showContinue(): void {
+    const dim = this.add.rectangle(0, 0, WIDTH, HEIGHT, 0x05040f, 0.6).setOrigin(0);
+    const title = this.add
+      .text(WIDTH / 2, 250, 'CONTINUE?', { fontFamily: FONT, fontSize: '64px', color: '#ffd75e', fontStyle: 'bold', stroke: '#2a1404', strokeThickness: 8 })
+      .setOrigin(0.5);
+    const count = this.add
+      .text(WIDTH / 2, 360, `${CONTINUE_SECONDS}`, { fontFamily: FONT, fontSize: '110px', color: '#ffffff', fontStyle: 'bold', stroke: '#05040f', strokeThickness: 10 })
+      .setOrigin(0.5);
+    const hint = this.add
+      .text(WIDTH / 2, 470, 'Z · 클릭 이어 하기     X 포기', { fontFamily: FONT, fontSize: '22px', color: '#8fd3ff' })
+      .setOrigin(0.5);
+    const note = this.add
+      .text(WIDTH / 2, 510, '이어 하면 점수는 0부터 다시 셉니다 (끝자리 = 이어 한 횟수)', { fontFamily: FONT, fontSize: '16px', color: '#8fa4b8' })
+      .setOrigin(0.5);
+    this.continueLayer = this.add.container(0, 0, [dim, title, count, hint, note]).setDepth(940).setScrollFactor(0);
+    this.continueCount = count;
+    this.continueLeft = CONTINUE_SECONDS * 1000;
+    dim.setInteractive().on('pointerdown', () => this.doContinue());
+    this.audio.playSfx('bossWarn');
+  }
+
+  private updateContinue(dt: number): void {
+    if (this.inputSys.attackJustPressed) {
+      this.doContinue();
+      return;
+    }
+    const before = Math.ceil(this.continueLeft / 1000);
+    // 필살키는 카운트를 1초씩 빨리 넘긴다(아케이드 관례), 0이 되면 게임 오버
+    this.continueLeft -= this.inputSys.bombJustPressed ? 1000 : dt;
+    const now = Math.max(0, Math.ceil(this.continueLeft / 1000));
+    if (now !== before) {
+      this.continueCount?.setText(`${now}`);
+      this.audio.playSfx('menu');
+    }
+    if (this.continueLeft <= 0) {
+      this.continueLayer?.destroy();
+      this.continueLayer = null;
+      this.goResult();
+    }
+  }
+
+  private doContinue(): void {
+    if (!this.continueLayer) return;
+    this.continueLayer.destroy();
+    this.continueLayer = null;
+    this.continues += 1;
+    // 아케이드 관례: 점수는 0부터, 끝자리에 이어 한 횟수를 남긴다(랭킹 공정성).
+    this.scoreSys.resetRun();
+    this.scoreSys.addRaw(Math.min(9, this.continues));
+    this.registry.set('carryScore', Math.min(9, this.continues));
+    const preset = this.getPreset();
+    this.clearEnemyBullets();
+    this.player.revive(preset.lives, Math.max(1, preset.startBombs), this.player.x, this.player.y);
+    this.gameOverPending = false;
+    this.audio.startMusic(this.bossState === 'active' || this.bossState === 'talk' ? 'boss' : STAGES[this.stageIndex].music);
+    this.fx.floatingText(this.player.x, this.player.y - 40, 'CONTINUE', '#ffd75e', 22);
   }
 
   // -- 보스 흐름 ------------------------------------------------------------------
@@ -628,7 +798,7 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
     const boss = this.boss;
     if (!boss || this.bossState !== 'active') return;
     this.bossState = 'dying';
-    this.clearEnemyBullets();
+    this.convertEnemyBulletsToCoins(this.bossId.startsWith('midboss') ? 50 : 100);
     const bx = boss.x;
     const by = boss.y;
     for (let i = 0; i < 8; i += 1) {
@@ -732,6 +902,11 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
         charIndex: this.player.getCharIndex(),
         score: this.scoreSys.currentScore,
         difficulty: this.difficulty,
+        loop: this.loop,
+        lives: this.player.getLives(),
+        bombs: this.player.getBombs(),
+        power: this.player.getPower(),
+        continues: this.continues,
       });
       return;
     }
@@ -740,19 +915,24 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
       stageIndex: this.stageIndex + 1,
       score: this.scoreSys.currentScore,
       lives: this.player.getLives(),
-      bombs: Math.max(DIFFICULTY_PRESETS[this.difficulty].startBombs, this.player.getBombs()),
+      bombs: Math.max(this.getPreset().startBombs, this.player.getBombs()),
       power: this.player.getPower(),
       charIndex: this.player.getCharIndex(),
       difficulty: this.difficulty,
       maxCombo: Math.max(this.carriedMaxCombo, this.scoreSys.bestCombo),
+      loop: this.loop,
+      continues: this.continues,
     };
-    this.scene.start('Story', { chapter: this.stageIndex + 1, next });
+    // 2주차는 이야기를 이미 봤으므로 컷신 없이 바로 이어 간다.
+    if (this.loop >= MAX_LOOP) this.scene.restart(next);
+    else this.scene.start('Story', { chapter: this.stageIndex + 1, next });
   }
 
   // -- 연출 ------------------------------------------------------------------
 
   private showTitleCard(nameEng: string, nameKor: string): void {
-    const stageNo = this.stageIndex >= STAGES.length - 1 ? 'FINAL' : `STAGE ${this.stageIndex + 1}`;
+    const base = this.stageIndex >= STAGES.length - 1 ? 'FINAL' : `STAGE ${this.stageIndex + 1}`;
+    const stageNo = this.loop >= MAX_LOOP ? `2주차 ${base}` : base;
     const t1 = this.add
       .text(WIDTH / 2, 300, `${stageNo} — ${nameKor}`, {
         fontFamily: FONT,

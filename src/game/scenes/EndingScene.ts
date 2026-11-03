@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { HEIGHT, UI_FONT, WIDTH } from '../GameConfig';
-import { parseDifficulty } from '../GameConfig';
+import { MAX_LOOP, parseDifficulty, presetFor } from '../GameConfig';
 import type { Difficulty } from '../GameConfig';
 import { clampCharIndex, getCharacter } from '../data/characters';
 import { STAGES } from '../data/stages';
@@ -17,6 +17,12 @@ export interface EndingSceneData {
   replay?: boolean;
   /** 다시보기 목록에서 돌아갈 위치 */
   cursor?: number;
+  /** 주차와 이월 상태(1주차 엔딩 뒤 2주차로 이어 갈 때 쓴다) */
+  loop?: number;
+  lives?: number;
+  bombs?: number;
+  power?: number;
+  continues?: number;
 }
 
 const EPILOGUES: string[][] = [
@@ -63,6 +69,11 @@ export class EndingScene extends Phaser.Scene {
   private difficulty: Difficulty = 'NORMAL';
   private replay = false;
   private cursor = 0;
+  private loop = 1;
+  private carry = { lives: 0, bombs: 0, power: 0, continues: 0 };
+  /** 1주차 엔딩 끝: 2주차 도전 여부를 묻는 중 / 거절함 */
+  private asking = false;
+  private declined = false;
   private save!: SaveSystem;
   private audio!: AudioSystem;
 
@@ -87,6 +98,15 @@ export class EndingScene extends Phaser.Scene {
     this.difficulty = parseDifficulty(d.difficulty);
     this.replay = d.replay === true;
     this.cursor = Math.max(0, Math.floor(d.cursor ?? 0));
+    this.loop = d.loop === MAX_LOOP ? MAX_LOOP : 1;
+    this.carry = {
+      lives: Math.max(1, Math.floor(d.lives ?? 1)),
+      bombs: Math.max(0, Math.floor(d.bombs ?? 0)),
+      power: Math.max(0, Math.min(3, Math.floor(d.power ?? 0))),
+      continues: Math.max(0, Math.floor(d.continues ?? 0)),
+    };
+    this.asking = false;
+    this.declined = false;
   }
 
   create(): void {
@@ -145,6 +165,19 @@ export class EndingScene extends Phaser.Scene {
     if (this.done) return;
     const dt = Math.min(100, Math.max(1, delta));
     const kb = this.input.keyboard;
+    if (this.asking) {
+      if (!kb) return;
+      const J = Phaser.Input.Keyboard.JustDown;
+      const K = Phaser.Input.Keyboard.KeyCodes;
+      if (J(kb.addKey(K.Z)) || J(kb.addKey(K.SPACE)) || J(kb.addKey(K.ENTER))) this.startSecondLoop();
+      else if (J(kb.addKey(K.X)) || J(kb.addKey(K.ESC))) {
+        this.audio.playSfx('menu');
+        this.asking = false;
+        this.declined = true;
+        this.finish();
+      }
+      return;
+    }
     let held = false;
     if (kb) {
       const z = kb.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
@@ -270,7 +303,7 @@ export class EndingScene extends Phaser.Scene {
         150,
         `SCORE  ${this.score.toString().padStart(8, '0')}\nHI-SCORE  ${this.save.hiscore.toString().padStart(8, '0')}${
           isHigh ? '\n★ NEW HIGH SCORE ★' : ''
-        }\n${this.difficulty} CLEAR`,
+        }\n${this.difficulty}${this.loop >= MAX_LOOP ? ' 2주차' : ''} CLEAR`,
         { fontFamily: FONT, fontSize: '24px', color: '#ffe9a0', align: 'center', lineSpacing: 10, fontStyle: 'bold', stroke: '#05040f', strokeThickness: 6 },
       )
       .setOrigin(0.5)
@@ -297,8 +330,56 @@ export class EndingScene extends Phaser.Scene {
     this.time.delayedCall(5000, () => this.finish());
   }
 
+  /** 2주차 도전(Z) / 기록 등록(X) 선택 */
+  private askSecondLoop(): void {
+    this.asking = true;
+    this.step = 4;
+    const box = this.add.rectangle(WIDTH / 2, HEIGHT / 2, 620, 200, 0x05040f, 0.9).setStrokeStyle(2, 0xffd75e, 0.8).setDepth(20);
+    const t1 = this.add
+      .text(WIDTH / 2, HEIGHT / 2 - 50, '하늘은 아직 끝나지 않았다', { fontFamily: FONT, fontSize: '28px', color: '#ffd75e', fontStyle: 'bold' })
+      .setOrigin(0.5)
+      .setDepth(21);
+    const t2 = this.add
+      .text(WIDTH / 2, HEIGHT / 2 + 4, '더 빠르고 촘촘한 2주차에 도전하시겠습니까?', { fontFamily: FONT, fontSize: '20px', color: '#ffffff' })
+      .setOrigin(0.5)
+      .setDepth(21);
+    const t3 = this.add
+      .text(WIDTH / 2, HEIGHT / 2 + 56, 'Z · 클릭  2주차 도전     X  기록 등록', { fontFamily: FONT, fontSize: '18px', color: '#8fd3ff' })
+      .setOrigin(0.5)
+      .setDepth(21);
+    for (const o of [box, t1, t2, t3]) o.setAlpha(0);
+    this.tweens.add({ targets: [box, t1, t2, t3], alpha: 1, duration: 300 });
+    box.setInteractive().on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, e: Phaser.Types.Input.EventData) => {
+      e.stopPropagation();
+      this.startSecondLoop();
+    });
+  }
+
+  private startSecondLoop(): void {
+    if (this.done) return;
+    this.done = true;
+    try {
+      this.audio.stopMusic();
+    } catch {
+      // 무시
+    }
+    const preset = presetFor(this.difficulty, MAX_LOOP);
+    this.scene.start('Game', {
+      stageIndex: 0,
+      score: this.score,
+      lives: Math.max(preset.lives, this.carry.lives),
+      bombs: Math.max(preset.startBombs, this.carry.bombs),
+      power: this.carry.power,
+      charIndex: this.charIndex,
+      difficulty: this.difficulty,
+      loop: MAX_LOOP,
+      continues: this.carry.continues,
+    });
+  }
+
   private skipStep(): void {
     if (this.done || !this.scene.isActive()) return;
+    if (this.asking) return;
     this.audio.playSfx('menu');
     if (this.step === 0) {
       this.tweens.killTweensOf([this.rift, this.riftGlow, this.bright]);
@@ -322,6 +403,12 @@ export class EndingScene extends Phaser.Scene {
 
   private finish(): void {
     if (this.done) return;
+    // 1주차를 끝내면 텐가이처럼 2주차로 이어 갈지 묻는다(다시보기·2주차 엔딩은 묻지 않음).
+    if (!this.replay && this.loop < MAX_LOOP && !this.declined) {
+      if (this.asking) return;
+      this.askSecondLoop();
+      return;
+    }
     this.done = true;
     try {
       this.audio.stopMusic();
@@ -338,7 +425,7 @@ export class EndingScene extends Phaser.Scene {
         score: this.score,
         pilot: getCharacter(this.charIndex).id,
         difficulty: this.difficulty,
-        stage: STAGES.length,
+        stage: STAGES.length * this.loop,
         cleared: true,
       },
     });

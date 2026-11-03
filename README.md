@@ -10,7 +10,7 @@
 
 <a href="https://jeiel85.github.io/celestial-blades/"><img src="https://img.shields.io/badge/%E2%96%B6%20%EC%A7%80%EA%B8%88%20%ED%94%8C%EB%A0%88%EC%9D%B4-PLAY%20NOW-ffd75e?style=for-the-badge&labelColor=2a1404" alt="지금 플레이"></a>
 
-<img src="https://img.shields.io/badge/version-1.7.0-a06bff?style=flat-square" alt="version">
+<img src="https://img.shields.io/badge/version-1.8.0-a06bff?style=flat-square" alt="version">
 <img src="https://img.shields.io/badge/Phaser-3.80-8fd3ff?style=flat-square" alt="Phaser">
 <img src="https://img.shields.io/badge/TypeScript-strict-3178c6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript">
 <img src="https://img.shields.io/badge/Vite-5-646cff?style=flat-square&logo=vite&logoColor=white" alt="Vite">
@@ -119,6 +119,11 @@
   5. **백귀야시** — 구름 위 요괴들의 밤시장 (중간보스: 구미호, 보스: 등롱귀왕 — 등롱 부속)
   6. **천문** — 하늘의 균열 (최종 보스: 무명천 — 인간형 → 거대 신수형 2페이즈)
 - **스토리 컷신**: 서장과 각 스테이지 사이 6장, Z로 넘기고 X/ESC로 건너뛰기
+- **식신**: 천명사마다 따라다니며 함께 쏘는 수호 식신 — 검령(윤)·화조(려화)·그림자 고양이(무영)·옥매(소율)·종이 인형(해랑). 집중 중엔 앞으로 붙는다
+- **보스전 대사**: 보스 등장 직후 보스 ↔ 천명사가 세 마디를 주고받는다(천명사마다 다른 대사, Z 넘기기·X 건너뛰기)
+- **탄 소거 → 금화**: 보스 형태가 바뀌거나 쓰러지면 화면의 적탄이 금화로 바뀌어 점수가 된다
+- **컨티뉴**: 목숨을 다 잃으면 10초 카운트다운 — 이어 하면 그 자리에서 부활, 점수는 0부터(끝자리 = 이어 한 횟수). EXTREME은 컨티뉴 없음
+- **2주차**: 1주차 엔딩 뒤 더 빠르고 촘촘한 2주차에 도전(탄속 1.15배·밀도 1.3배·격파탄, 컷신 생략). 랭킹에 `2주`로 표시
 - **스토리 다시보기**: 타이틀 `STORY`에서 본 장과 클리어한 천명사의 엔딩을 다시 보기(장은 대사를 들을 천명사를 ←→로 바꿀 수 있음)
 - **차지 공격**: 공격 버튼 홀드 1.2초로 최대 차지, 캐릭터 주위 이펙트로 표시
 - **파워**: P 아이템으로 최대 4단계 — 단계마다 투사체 수/형태 변화, 피격 시 1단계 하락
