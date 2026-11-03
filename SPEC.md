@@ -15,7 +15,8 @@
 ## 게임 흐름 (씬)
 Boot → Title → CharacterSelect → Story(서장) → Game(stage 1) → (중간보스→보스→StageClear) → Story(1장) → Game(stage 2) → … → Story(5장) → Game(final) → Ending
 - Game Over 시 Result 씬: RETRY / TITLE. NEW HIGH SCORE 표시.
-- 씬 키: `'Boot' | 'Title' | 'CharacterSelect' | 'Story' | 'Game' | 'Result' | 'Ending' | 'Ranking'`
+- 씬 키: `'Boot' | 'Title' | 'CharacterSelect' | 'Story' | 'Game' | 'Result' | 'Ending' | 'Ranking' | 'Archive'`
+- 스토리 다시보기(Archive): 타이틀 `STORY`. 게임 중 본 장(`story.chapters`)과 엔딩을 본 천명사(`story.endings`)만 열린다(SaveSystem). Story/Ending을 `replay: true`로 열면 기록·점수·랭킹 없이 끝난 뒤 Archive로 돌아온다.
 - Story 씬 데이터 `{chapter, next}`: chapter장 컷신(data/story.ts)을 보여 준 뒤 `next`로 Game을 시작한다. 장 번호 = 다음 스테이지 번호.
 - 씬 전달 데이터: CharacterSelect→Game `{charIndex, difficulty}`; Game→Result `{stageIndex, score, lives, bombs, power, charIndex, difficulty, cleared: boolean, gameOver: boolean}`; Result→Game(다음 스테이지, 상태 이월) / Result→Title / Result→Ending(스테이지 3 보스 격파 후).
 - Ending 후 Title 복귀.
@@ -105,7 +106,7 @@ Boot → Title → CharacterSelect → Story(서장) → Game(stage 1) → (중�
 - 무료 플랜 일시정지 방지: `.github/workflows/supabase-keepalive.yml`이 사흘마다 조회.
 
 ## 저장 (SaveSystem, localStorage key `celestial-blades-save`)
-- hiscore, settings(masterVol, sfxVol, shake, difficulty), lastChar. 새로고침 후 유지.
+- hiscore, settings(masterVol, sfxVol, musicVol, shake, difficulty, lastChar), story(본 장 번호 chapters, 엔딩을 본 천명사 endings). 새로고침 후 유지. story가 없는 구버전 저장은 빈 기록으로 읽는다.
 
 ## 코드 구조 (이 구조 준수)
 ```

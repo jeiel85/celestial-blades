@@ -13,6 +13,10 @@ export interface EndingSceneData {
   charIndex?: number;
   score?: number;
   difficulty?: Difficulty;
+  /** 스토리 다시보기에서 연 경우: 점수·랭킹 없이 후일담까지만 보고 Archive로 돌아간다 */
+  replay?: boolean;
+  /** 다시보기 목록에서 돌아갈 위치 */
+  cursor?: number;
 }
 
 const EPILOGUES: string[][] = [
@@ -57,6 +61,8 @@ export class EndingScene extends Phaser.Scene {
   private charIndex = 0;
   private score = 0;
   private difficulty: Difficulty = 'NORMAL';
+  private replay = false;
+  private cursor = 0;
   private save!: SaveSystem;
   private audio!: AudioSystem;
 
@@ -79,6 +85,8 @@ export class EndingScene extends Phaser.Scene {
     this.charIndex = clampCharIndex(d.charIndex);
     this.score = Math.max(0, Math.floor(d.score ?? 0));
     this.difficulty = parseDifficulty(d.difficulty);
+    this.replay = d.replay === true;
+    this.cursor = Math.max(0, Math.floor(d.cursor ?? 0));
   }
 
   create(): void {
@@ -96,7 +104,10 @@ export class EndingScene extends Phaser.Scene {
       // 무시
     }
 
-    this.save.submitScore(this.score);
+    if (!this.replay) {
+      this.save.submitScore(this.score);
+      this.save.markEndingSeen(getCharacter(this.charIndex).id);
+    }
     this.step = 0;
     this.holdMs = 0;
     this.done = false;
@@ -234,7 +245,7 @@ export class EndingScene extends Phaser.Scene {
         if (li >= lines.length) {
           this.typingTimer?.remove(false);
           this.typingTimer = null;
-          this.time.delayedCall(2500, () => this.playScore());
+          this.time.delayedCall(2500, () => (this.replay ? this.finish() : this.playScore()));
           return;
         }
         ci += 1;
@@ -300,7 +311,8 @@ export class EndingScene extends Phaser.Scene {
         this.typingTimer.remove(false);
         this.typingTimer = null;
       }
-      this.playScore();
+      if (this.replay) this.finish();
+      else this.playScore();
     } else if (this.step === 2) {
       this.playThanks();
     } else {
@@ -315,6 +327,10 @@ export class EndingScene extends Phaser.Scene {
       this.audio.stopMusic();
     } catch {
       // 무시
+    }
+    if (this.replay) {
+      this.scene.start('Archive', { cursor: this.cursor, charIndex: this.charIndex });
+      return;
     }
     // 클리어 기록은 랭킹 등록으로 이어진다(건너뛰기 가능).
     this.scene.start('Ranking', {

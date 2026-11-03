@@ -16,8 +16,10 @@ const PANEL_Y = 500;
 
 export interface StorySceneData {
   chapter?: number;
-  /** 컷신이 끝나면 이 데이터로 Game을 시작한다 */
+  /** 컷신이 끝나면 이 데이터로 Game을 시작한다(대사 화자는 next.charIndex) */
   next?: GameSceneData;
+  /** 스토리 다시보기에서 연 경우: 끝나면 Archive로 돌아간다 */
+  replay?: boolean;
 }
 
 /**
@@ -27,6 +29,7 @@ export interface StorySceneData {
 export class StoryScene extends Phaser.Scene {
   private chapter = 0;
   private next: GameSceneData = {};
+  private replay = false;
   private lines: StoryLine[] = [];
   private lineIndex = 0;
   private charCount = 0;
@@ -48,6 +51,7 @@ export class StoryScene extends Phaser.Scene {
     const d = raw ?? {};
     this.chapter = Math.max(0, Math.min(STORY.length - 1, Math.floor(d.chapter ?? 0)));
     this.next = d.next ?? {};
+    this.replay = d.replay === true;
   }
 
   create(): void {
@@ -57,6 +61,7 @@ export class StoryScene extends Phaser.Scene {
     this.typeAcc = 0;
 
     const save = new SaveSystem();
+    if (!this.replay) save.markChapterSeen(this.chapter);
     this.audio = new AudioSystem();
     this.audio.setMasterVolume(save.settings.masterVol);
     this.audio.setSfxVolume(save.settings.sfxVol);
@@ -186,7 +191,8 @@ export class StoryScene extends Phaser.Scene {
     this.done = true;
     this.cameras.main.fadeOut(450, 5, 4, 15);
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
-      this.scene.start('Game', this.next);
+      if (this.replay) this.scene.start('Archive', { cursor: this.chapter, charIndex: this.next.charIndex });
+      else this.scene.start('Game', this.next);
     });
   }
 }
