@@ -18,7 +18,7 @@ const REQUIRED_TEXTURES = [
   ...CHARACTERS.flatMap((c) => [c.texture, c.portrait, c.select, c.familiar, c.ending, c.cutin]),
   ...STORY.map((ch) => ch.image),
   'player_core',
-  'shot_ki', 'shot_crescent', 'shot_flame', 'shot_seeker', 'shot_kunai', 'shot_arrow', 'shot_talisman',
+  'shot_ki', 'shot_crescent', 'shot_flame', 'shot_seeker', 'shot_kunai', 'shot_arrow', 'shot_talisman', 'shot_ring', 'shot_foxfire', 'shot_claw',
   'eb_small', 'eb_mid', 'eb_big', 'eb_shard',
   'enemy_small', 'enemy_bat', 'enemy_rusher', 'enemy_turret', 'enemy_shield', 'enemy_spawner', 'enemy_elite',
   'enemy_fish', 'enemy_wisp',

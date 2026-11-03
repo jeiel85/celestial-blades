@@ -1,8 +1,10 @@
 /**
  * 플레이어 캐릭터 정의. 캐릭터 선택 UI가 이 문구를 그대로 표시한다.
+ * 숨겨진 캐릭터(hidden)는 반드시 목록 끝에 둔다 — 해금 전에는 앞쪽 일반 캐릭터만 잘라 쓰므로
+ * 선택 인덱스가 해금 여부와 관계없이 같은 캐릭터를 가리킨다.
  */
 
-export type CharacterId = 'yun' | 'ryeohwa' | 'mooyoung' | 'soyul' | 'haerang';
+export type CharacterId = 'yun' | 'ryeohwa' | 'mooyoung' | 'soyul' | 'haerang' | 'hyegak' | 'seori';
 
 export interface CharacterStats {
   /** 공격력 1~5 */
@@ -47,6 +49,12 @@ export interface CharacterDef {
   /** 필살기 이름(컷인에 표시) */
   bombName: string;
   bombNameEng: string;
+  /** 숨겨진 캐릭터: 1회 클리어하거나 선택 화면 비밀 커맨드로 해금된다 */
+  hidden?: boolean;
+  /** 피격 판정 원 반지름(기본 6). 숨겨진 캐릭터의 약점으로 키운다. */
+  hitRadius?: number;
+  /** 지닐 수 있는 필살기 수 상한(기본 MAX_BOMBS) */
+  maxBombs?: number;
 }
 
 export const CHARACTERS: CharacterDef[] = [
@@ -175,7 +183,69 @@ export const CHARACTERS: CharacterDef[] = [
     bombName: '사신결계',
     bombNameEng: 'FOUR GUARDIANS WARD',
   },
+  {
+    id: 'hyegak',
+    index: 5,
+    nameKor: '혜각',
+    nameEng: 'HYEGAK',
+    title: '금강의 파계승',
+    color: 0xe8a33d,
+    desc: '천명각을 떠나 요괴를 쫓던 파계승. 법륜의 위력은 누구보다 강하지만 멀리 닿지 않고, 몸이 무거워 느리다.',
+    stats: { power: 5, speed: 1, range: 1 },
+    chargeDesc: '차지: 금강장 — 적탄을 부수며 나아가는 거대 법륜, 사거리는 짧다',
+    specialDesc: '기본 공격: 적을 꿰뚫는 법륜, 화면 절반쯤에서 사라진다. 파워가 오르면 법륜이 늘어난다',
+    bombDesc: '필살: 금강항마진 — 주변을 연거푸 내리치는 금강의 충격파, 가까울수록 강하다',
+    shotIntervalMs: 150,
+    damageMult: 1.75,
+    texture: 'player_hyegak',
+    portrait: 'portrait_hyegak',
+    select: 'select_hyegak',
+    familiar: 'familiar_hyegak',
+    familiarName: '금강저',
+    shotTexture: 'shot_ring',
+    ending: 'ending_hyegak',
+    cutin: 'cutin_hyegak',
+    bombName: '금강항마진',
+    bombNameEng: 'VAJRA DEMON-SUBDUING ARRAY',
+    hidden: true,
+  },
+  {
+    id: 'seori',
+    index: 6,
+    nameKor: '서리',
+    nameEng: 'SEORI',
+    title: '야생의 반요',
+    color: 0xff6b8b,
+    desc: '산을 태운 요괴를 쫓아온 반요 여우. 여우불은 끝까지 쫓아가 박히지만, 몸이 커 맞기 쉽고 필살기를 2개까지만 지닌다.',
+    stats: { power: 4, speed: 5, range: 5 },
+    chargeDesc: '차지: 월광조 — 적탄을 찢는 세 줄기 손톱 참격',
+    specialDesc: '기본 공격: 적을 끈질기게 쫓는 여우불, 파워가 오르면 여우불이 늘어난다',
+    bombDesc: '필살: 구미호염 — 아홉 꼬리 여우불이 흩어졌다 적에게 꽂힌다',
+    shotIntervalMs: 120,
+    damageMult: 1.2,
+    texture: 'player_seori',
+    portrait: 'portrait_seori',
+    select: 'select_seori',
+    familiar: 'familiar_seori',
+    familiarName: '아기 여우',
+    shotTexture: 'shot_foxfire',
+    ending: 'ending_seori',
+    cutin: 'cutin_seori',
+    bombName: '구미호염',
+    bombNameEng: 'NINE-TAILED FOXFIRE',
+    hidden: true,
+    hitRadius: 9,
+    maxBombs: 2,
+  },
 ];
+
+/** 일반 캐릭터 수. 숨겨진 캐릭터는 이 뒤에 온다. */
+export const BASE_CHARACTER_COUNT = CHARACTERS.filter((c) => !c.hidden).length;
+
+/** 선택 화면·다시보기에 보이는 캐릭터 목록(숨겨진 캐릭터는 해금 후에만) */
+export function pilotRoster(hiddenUnlocked: boolean): CharacterDef[] {
+  return hiddenUnlocked ? CHARACTERS : CHARACTERS.slice(0, BASE_CHARACTER_COUNT);
+}
 
 /** 저장값·씬 데이터에서 온 캐릭터 번호를 범위 안으로 맞춘다. */
 export function clampCharIndex(index: unknown): number {
