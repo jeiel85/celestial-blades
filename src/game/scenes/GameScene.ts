@@ -61,6 +61,8 @@ const MAX_ITEMS = 48;
 const FONT = UI_FONT;
 const RESPAWN_X = 200;
 const RESPAWN_Y = 360;
+/** 물리 한 번에 진행하는 최대 시간(ms). 이보다 긴 프레임은 나눠 진행해 빠른 탄이 판정을 건너뛰지 않게 한다. */
+const PHYSICS_MAX_STEP_MS = 1000 / 60;
 
 /**
  * 게임플레이 씬 (키 'Game'). IGameWorld를 구조적으로 구현한다.
@@ -129,7 +131,9 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
   private hudCache = '';
 
   constructor() {
-    super('Game');
+    // Arcade 기본값(60Hz 고정 간격)은 144Hz 화면에서 탄이 두세 프레임 멈췄다 한 번에 뛰어 끊겨 보인다.
+    // 물리는 update()가 화면 프레임마다 직접 진행한다(stepPhysics).
+    super({ key: 'Game', physics: { arcade: { fixedStep: false, customUpdate: true } } });
   }
 
   init(data: GameSceneData): void {
@@ -271,6 +275,7 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
 
   update(_time: number, delta: number): void {
     const dt = Math.min(100, Math.max(1, delta));
+    this.stepPhysics(dt * this.timeFactor);
     // 게임패드 엣지 검출을 위해 매 프레임 반드시 호출
     this.inputSys.update();
 
@@ -308,7 +313,7 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
       this.slowLeftMs -= dt;
       if (this.slowLeftMs <= 0) this.applyTimeFactor(1);
     }
-    // 이 아래 게임 진행은 배속이 적용된 시간으로 돈다(물리·타이머는 applyTimeFactor가 맞춘다).
+    // 이 아래 게임 진행은 배속이 적용된 시간으로 돈다(물리는 stepPhysics, 타이머는 applyTimeFactor가 맞춘다).
     const wdt = dt * this.timeFactor;
 
     // 클리어 패널: 4초 자동 진행 + 공격키 스킵
@@ -504,9 +509,21 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
 
   private applyTimeFactor(f: number): void {
     this.timeFactor = f;
-    // Arcade 물리 timeScale은 값이 클수록 느리다(2.0 = 절반 속도). Clock.timeScale은 작을수록 느리다.
-    this.physics.world.timeScale = 1 / f;
+    // 물리는 stepPhysics가 이 배속을 곱한 시간만큼 진행한다. Clock.timeScale은 작을수록 느리다.
     this.time.timeScale = f;
+  }
+
+  /**
+   * 물리를 이번 프레임의 게임 시간(ms)만큼 진행한다. 위치 동기화는 씬의 POST_UPDATE(world.postUpdate)가 한다.
+   * 1/60초보다 긴 프레임은 같은 길이로 나눠 여러 번 판정한다(Arcade 고정 간격 모드의 추가 step과 같은 방식).
+   */
+  private stepPhysics(ms: number): void {
+    const world = this.physics.world;
+    if (world.isPaused || ms <= 0) return;
+    const n = Math.ceil(ms / PHYSICS_MAX_STEP_MS - 1e-6);
+    const part = ms / n;
+    world.update(this.time.now, part);
+    for (let i = 1; i < n; i += 1) world.step(part / 1000);
   }
 
   findTarget(x: number, y: number, maxDist = 800): TargetRef | null {
