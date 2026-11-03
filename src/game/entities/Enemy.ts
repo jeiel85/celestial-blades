@@ -72,7 +72,7 @@ export class Enemy extends Phaser.Physics.Arcade.Image implements EnemyAgent {
     this.typeId = ENEMY_TYPES[typeId] !== undefined ? typeId : 'small';
 
     const preset = DIFFICULTY_PRESETS[this.world.getDifficulty()];
-    const hpMult = this.world.getDifficulty() === 'HARD' ? 1.3 : this.world.getDifficulty() === 'EASY' ? 0.9 : 1;
+    const hpMult = preset.enemyHp;
     this.maxHp = Math.max(1, Math.round(def.hp * (opts?.hpScale ?? 1) * hpMult));
     this.hp = this.maxHp;
     this.radius = def.radius;
@@ -84,7 +84,7 @@ export class Enemy extends Phaser.Physics.Arcade.Image implements EnemyAgent {
     else this.clearTint();
     // 충돌 반경은 밸런스 값 그대로 유지하고, 화면에서만 조금 키운다.
     // 소형 적도 얼굴과 실루엣이 읽혀야 웨이브의 존재감이 생긴다.
-    const visualBoost = this.typeId === 'small' || this.typeId === 'bat' || this.typeId === 'rusher' ? 1.2 : 1.1;
+    const visualBoost = ['small', 'bat', 'rusher', 'fish', 'wisp'].includes(this.typeId) ? 1.2 : 1.1;
     this.setScale((opts?.scale ?? 1) * visualBoost);
     this.setAlpha(1);
     this.aura
@@ -228,7 +228,26 @@ export class Enemy extends Phaser.Physics.Arcade.Image implements EnemyAgent {
     this.world.fx.explosion(x, y, Math.max(0.6, this.radius / 22), this.baseTint ?? 0xffb347);
     this.world.audio.playSfx('explode');
     this.rollDrops(x, y);
+    this.revengeShot(x, y);
     this.release();
+  }
+
+  /**
+   * 격파탄(EXTREME): 죽은 자리에서 플레이어를 향한 조준탄과, 몸집에 비례한 원형탄을 남긴다.
+   * 원형탄은 한 칸을 비우고 조준탄과 엇갈리게 놓아 빠져나갈 틈을 남긴다.
+   * 플레이어 바로 앞(140px 이내)에서 죽은 적은 남기지 않는다(피할 시간이 없는 탄은 만들지 않는다).
+   */
+  private revengeShot(x: number, y: number): void {
+    const world = this.world;
+    if (!DIFFICULTY_PRESETS[world.getDifficulty()].revenge || !world.isPlayerAlive()) return;
+    const p = world.getPlayerPos();
+    if (Math.hypot(p.x - x, p.y - y) < 140) return;
+    const aim = Math.atan2(p.y - y, p.x - x);
+    world.spawnEnemyBullet(x, y, aim, 230, 'eb_small', 0xff4d6d);
+    const ring = this.radius >= 26 ? 12 : this.radius >= 20 ? 8 : 0;
+    for (let i = 1; i < ring; i += 1) {
+      world.spawnEnemyBullet(x, y, aim + Math.PI / ring + (i / ring) * Math.PI * 2, 150, 'eb_mid', 0xff8fb3);
+    }
   }
 
   private rollDrops(x: number, y: number): void {
@@ -242,8 +261,10 @@ export class Enemy extends Phaser.Physics.Arcade.Image implements EnemyAgent {
     const biasL = this.def.dropBias?.L ?? 0;
     const biasG = this.def.dropBias?.G ?? 0;
     const roll = Math.random();
-    let acc = DROP_RATE_L + biasL;
-    if (roll < acc) {
+    // EXTREME은 목숨 아이템이 나오지 않는다(그 몫은 그대로 다음 아이템 확률로 넘어가지 않고 비운다).
+    const lifeRate = DIFFICULTY_PRESETS[this.world.getDifficulty()].lifeDrops ? DROP_RATE_L + biasL : 0;
+    let acc = lifeRate;
+    if (lifeRate > 0 && roll < acc) {
       this.world.spawnItem('L', x, y);
       return;
     }

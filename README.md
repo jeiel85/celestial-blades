@@ -8,7 +8,7 @@
 
 <a href="https://jeiel85.github.io/celestial-blades/"><img src="https://img.shields.io/badge/%E2%96%B6%20%EC%A7%80%EA%B8%88%20%ED%94%8C%EB%A0%88%EC%9D%B4-PLAY%20NOW-ffd75e?style=for-the-badge&labelColor=2a1404" alt="지금 플레이"></a>
 
-<img src="https://img.shields.io/badge/version-1.3.0-a06bff?style=flat-square" alt="version">
+<img src="https://img.shields.io/badge/version-1.4.0-a06bff?style=flat-square" alt="version">
 <img src="https://img.shields.io/badge/Phaser-3.80-8fd3ff?style=flat-square" alt="Phaser">
 <img src="https://img.shields.io/badge/TypeScript-strict-3178c6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript">
 <img src="https://img.shields.io/badge/Vite-5-646cff?style=flat-square&logo=vite&logoColor=white" alt="Vite">
@@ -35,6 +35,16 @@
 <td><b>기본</b> 3갈래 화염탄<br><b>차지</b> 자동 추적 화염조 5~7기<br><b>필살</b> 홍련화재 — 불기둥 연발</td>
 <td><b>기본</b> 초고속 직선 수리검<br><b>차지</b> 전방 돌진 — 경로 대미지 + 순간 무적<br><b>필살</b> 백귀야행 — 잔상이 화면을 가로지름</td>
 </tr>
+<tr>
+<td align="center"><img src="src/assets/sprites/portrait_soyul.png" width="220" alt="소율"><br><b>소율 · SOYUL</b><br><sub>관통의 궁수 · 줄지은 적 관통</sub></td>
+<td align="center"><img src="src/assets/sprites/portrait_haerang.png" width="220" alt="해랑"><br><b>해랑 · HAERANG</b><br><sub>결계의 술사 · 방어형</sub></td>
+<td></td>
+</tr>
+<tr>
+<td><b>기본</b> 적을 꿰뚫는 화살<br><b>차지</b> 천궁일시 — 화면 끝까지 꿰뚫는 거대 화살<br><b>필살</b> 유성시우 — 3초간 화살비</td>
+<td><b>기본</b> 약하게 유도되는 부적 + 뒤쪽 견제 부적<br><b>차지</b> 호신결계 — 1.6초간 주변 적탄 소거<br><b>필살</b> 사신결계 — 네 수호신의 결계로 화면 정화</td>
+<td></td>
+</tr>
 </table>
 
 ## 스테이지
@@ -45,7 +55,11 @@
 <td width="50%"><img src="src/assets/backgrounds/bg_city.jpg" alt="붉은 기계도시"><br><b>2 · 붉은 기계도시</b> <sub>CRIMSON MACHINE CITY</sub><br><sub>보스 <b>홍련기관왕</b> — 외장 파괴 후 코어 노출</sub></td>
 </tr>
 <tr>
-<td><img src="src/assets/backgrounds/bg_fortress.jpg" alt="천공성"><br><b>3 · 천공성</b> <sub>SKY FORTRESS</sub><br><sub>보스 <b>백야천녀</b> — 순간이동·분신, 화면 암전</sub></td>
+<td><img src="src/assets/backgrounds/bg_palace.jpg" alt="수몰용궁"><br><b>3 · 수몰용궁</b> <sub>SUNKEN DRAGON PALACE</sub><br><sub>보스 <b>해룡비 청린</b> — 물결 장막·소용돌이·돌진</sub></td>
+<td><img src="src/assets/backgrounds/bg_fortress.jpg" alt="천공성"><br><b>4 · 천공성</b> <sub>SKY FORTRESS</sub><br><sub>보스 <b>백야천녀</b> — 순간이동·분신, 화면 암전</sub></td>
+</tr>
+<tr>
+<td><img src="src/assets/backgrounds/bg_market.jpg" alt="백귀야시"><br><b>5 · 백귀야시</b> <sub>HUNDRED-GHOST NIGHT MARKET</sub><br><sub>보스 <b>등롱귀왕 야명</b> — 등롱 4개가 돌며 사격</sub></td>
 <td><img src="src/assets/backgrounds/bg_rift.jpg" alt="천문"><br><b>FINAL · 천문</b> <sub>CELESTIAL RIFT</sub><br><sub>최종 보스 <b>무명천</b> — 인간형 → 거대 신수형</sub></td>
 </tr>
 </table>
@@ -53,10 +67,24 @@
 <p align="center">
 <img src="src/assets/sprites/boss_iron.png" height="90" alt="철갑귀 장군">
 <img src="src/assets/sprites/boss_engine.png" height="90" alt="홍련기관왕">
+<img src="src/assets/sprites/boss_dragon.png" height="90" alt="해룡비 청린">
 <img src="src/assets/sprites/boss_maiden.png" height="90" alt="백야천녀">
+<img src="src/assets/sprites/boss_lantern.png" height="90" alt="등롱귀왕 야명">
 <img src="src/assets/sprites/final_human.png" height="90" alt="무명천 인간형">
 <img src="src/assets/sprites/final_beast.png" height="90" alt="무명천 신수형">
 </p>
+
+## 이야기
+
+스테이지 사이마다 일러스트 컷신으로 이야기가 이어집니다. 고른 천명사에 따라 대사가 달라집니다.
+
+<table>
+<tr>
+<td width="33%"><img src="src/assets/backgrounds/story_0.jpg" alt="서장"><br><sub><b>서장</b> 갈라진 하늘</sub></td>
+<td width="33%"><img src="src/assets/backgrounds/story_3.jpg" alt="제3장"><br><sub><b>제3장</b> 용궁의 증언</sub></td>
+<td width="33%"><img src="src/assets/backgrounds/story_4.jpg" alt="제4장"><br><sub><b>제4장</b> 백야의 눈</sub></td>
+</tr>
+</table>
 
 ---
 
@@ -81,18 +109,22 @@
 
 ## 게임 시스템
 
-- **스테이지**: 3개 메인 스테이지 + 최종 보스전 (첫 클리어 약 20~35분)
+- **스테이지**: 5개 메인 스테이지 + 최종 보스전 (첫 클리어 약 30~45분, 동방 시리즈의 6스테이지 구성을 참고)
   1. **청운계곡** — 튜토리얼 리듬의 산맥 (보스: 철갑귀 장군)
   2. **붉은 기계도시** — 기계 문명 도시 (보스: 홍련기관왕 — 외장 파괴 후 코어 노출)
-  3. **천공성** — 구름 위의 부유 성 (보스: 백야천녀 — 순간이동·분신, 체력↓ 시 화면 암전)
-  4. **천문** — 하늘의 균열 (최종 보스: 무명천 — 인간형 → 거대 신수형 2페이즈)
+  3. **수몰용궁** — 폭풍의 바다에 잠긴 용궁 (중간보스: 달해파리, 보스: 해룡비 청린)
+  4. **천공성** — 구름 위의 부유 성 (보스: 백야천녀 — 순간이동·분신, 체력↓ 시 화면 암전)
+  5. **백귀야시** — 구름 위 요괴들의 밤시장 (중간보스: 구미호, 보스: 등롱귀왕 — 등롱 부속)
+  6. **천문** — 하늘의 균열 (최종 보스: 무명천 — 인간형 → 거대 신수형 2페이즈)
+- **스토리 컷신**: 서장과 각 스테이지 사이 6장, Z로 넘기고 X/ESC로 건너뛰기
 - **차지 공격**: 공격 버튼 홀드 1.2초로 최대 차지, 캐릭터 주위 이펙트로 표시
 - **파워**: P 아이템으로 최대 4단계 — 단계마다 투사체 수/형태 변화, 피격 시 1단계 하락
 - **필살기**: 최대 4개 보유, 사용 시 대미지 + 적탄 소거 + 1.5초 무적
 - **목숨**: 기본 3, 피격 시 -1 (2초 무적), L 아이템으로 +1
 - **콤보**: 빠른 연속 처치로 배율 증가(최대 x3.0), 피격/3초 무처치 시 초기화
 - **아이템**: P(파워) / B(필살기) / L(목숨) / G(점수) — 적 처치 시 확률 드롭
-- **난이도**: EASY(탄속·밀도 감소) / NORMAL / HARD(탄속·패턴·조합 강화)
+- **난이도**: EASY(탄속·밀도 감소) / NORMAL / HARD(탄속·패턴·조합 강화) / **EXTREME**
+  - EXTREME: 목숨 1·필살기 0으로 시작, 목숨 아이템 없음, 탄속 1.45배·탄 수 최대 2.4배, 보스 HP 1.6배·공격 빈도 1.35배, 원형 탄막 빈틈 1발분, 적이 죽을 때 격파탄을 남김, 게임오버 시 1스테이지부터 다시. 모든 패턴의 안전 경로는 유지됩니다.
 - **점수**: 처치·보스 타격·아이템·콤보·노미스·클리어 보너스, 최고 점수는 localStorage 저장
 - **온라인 랭킹**: 게임오버·엔딩 뒤 닉네임으로 등록, 타이틀 `RANKING`에서 난이도별 TOP 20 확인
 - **필살기 컷인**: 발동 순간 캐릭터 일러스트 컷인이 화면을 가로지르고 공격이 터짐
@@ -115,12 +147,13 @@ src/
     scenes/
       BootScene.ts             # 그림·글꼴 로드
       TitleScene.ts            # 로고·메뉴·설정·하이스코어
-      CharacterSelectScene.ts  # 캐릭터 3인 카드 + 난이도 선택
+      CharacterSelectScene.ts  # 캐릭터 5인 카드 + 난이도 선택
+      StoryScene.ts            # 스테이지 사이 스토리 컷신
       GameScene.ts             # 게임플레이 심장 (충돌·HUD·보스 흐름·클리어)
       ResultScene.ts           # 게임 오버 / 리트라이
       EndingScene.ts           # 균열 봉합 + 캐릭터별 후일담
     entities/
-      Player.ts                # 3캐릭터 이동·공격·차지·필살·피격
+      Player.ts                # 5캐릭터 이동·공격·차지·필살·피격
       Enemy.ts                 # 풀링 적 엔티티
       Boss.ts                  # 데이터 기반 보스 (페이즈·패턴·연출)
       Bullet.ts                # 플레이어탄/적탄 공용 풀링 탄
@@ -136,8 +169,9 @@ src/
     data/
       characters.ts            # 캐릭터 스탯/문구
       stages.ts                # 스테이지 웨이브 타임라인 (데이터 기반)
-      enemyPatterns.ts         # 적 7종 이동/발사 패턴
-      bossPatterns.ts          # 보스 7종 정의 + 공격 함수 레지스트리
+      story.ts                 # 스토리 컷신 대본 (캐릭터별 대사 포함)
+      enemyPatterns.ts         # 적 9종 이동/발사 패턴
+      bossPatterns.ts          # 보스 11종 정의 + 공격 함수 레지스트리
     utils/Pool.ts
 ```
 

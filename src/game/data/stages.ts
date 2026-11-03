@@ -1,6 +1,6 @@
 import type { MusicKind } from '../systems/AudioSystem';
 
-export type ParallaxTheme = 'valley' | 'city' | 'fortress' | 'rift';
+export type ParallaxTheme = 'valley' | 'city' | 'palace' | 'fortress' | 'market' | 'rift';
 
 export type GroupPattern = 'line' | 'v' | 'arc' | 'stream';
 
@@ -221,7 +221,91 @@ export const STAGES: StageDef[] = [
       { t: 200, actions: [{ type: 'boss', bossId: 'boss_engine' }] },
     ],
   },
-  // -- Stage 3 천공성 (fortress, ~4.5분, 보스 t=225) --------------------------------
+  // -- Stage 3 수몰용궁 (palace, ~3.8분, 보스 t=215) --------------------------------
+  {
+    id: 'palace',
+    nameKor: '수몰용궁',
+    nameEng: 'SUNKEN DRAGON PALACE',
+    theme: 'palace',
+    music: 'stage4',
+    waves: [
+      { t: 1, actions: [{ type: 'scroll', speed: 1 }] },
+      { t: 2, actions: [{ type: 'group', typeId: 'fish', count: 5, pattern: 'arc', x: R, y: 360, gap: 80 }] },
+      { t: 10, actions: [
+        { type: 'group', typeId: 'fish', count: 4, pattern: 'stream', x: R, y: 220, interval: 500 },
+        { type: 'group', typeId: 'fish', count: 4, pattern: 'stream', x: R, y: 500, interval: 500 },
+      ] },
+      { t: 19, actions: [
+        { type: 'spawn', typeId: 'turret', x: 1150, y: 260, opts: { hpScale: 1.15, tint: 0xa0f0e0 } },
+        { type: 'group', typeId: 'small', count: 5, pattern: 'v', x: R, y: 430, gap: 75, opts: { tint: 0x9fe8ff } },
+      ] },
+      { t: 29, actions: [
+        { type: 'spawn', typeId: 'shield', x: R, y: 360, opts: { hpScale: 1.2, tint: 0xa0f0e0 } },
+        { type: 'group', typeId: 'fish', count: 6, pattern: 'line', x: R + 150, y: 200, gap: 70 },
+      ] },
+      { t: 39, actions: [
+        { type: 'spawn', typeId: 'rusher', x: R, y: 250, opts: { hpScale: 1.15 } },
+        { type: 'spawn', typeId: 'rusher', x: R, y: 470, opts: { hpScale: 1.15 } },
+        { type: 'group', typeId: 'fish', count: 4, pattern: 'v', x: R + 200, y: 360, gap: 80 },
+      ] },
+      { t: 49, actions: [{ type: 'pause', dur: 3 }] },
+      { t: 52, actions: [{ type: 'spawn', typeId: 'elite', x: R, y: 360, opts: { hpScale: 1.15, tint: 0xc0f8f0 } }] },
+      { t: 60, actions: [
+        { type: 'spawn', typeId: 'spawner', x: R, y: 250, opts: { hpScale: 1.1 } },
+        { type: 'group', typeId: 'fish', count: 5, pattern: 'stream', x: R, y: 480, interval: 450 },
+      ] },
+      { t: 71, actions: [
+        { type: 'group', typeId: 'fish', count: 7, pattern: 'arc', x: R, y: 360, gap: 70, opts: { speedScale: 1.1 } },
+        { type: 'spawn', typeId: 'turret', x: 1180, y: 520, opts: { hpScale: 1.2, tint: 0xa0f0e0 } },
+      ] },
+      { t: 82, actions: [
+        { type: 'spawn', typeId: 'shield', x: R, y: 240, opts: { hpScale: 1.25, tint: 0xa0f0e0 } },
+        { type: 'spawn', typeId: 'shield', x: R + 120, y: 480, opts: { hpScale: 1.25, tint: 0xa0f0e0 } },
+      ] },
+      { t: 92, actions: [
+        { type: 'group', typeId: 'bat', count: 5, pattern: 'v', x: R, y: 360, gap: 80, opts: { tint: 0x9fe8ff } },
+        { type: 'spawn', typeId: 'rusher', x: R + 220, y: 300, opts: { hpScale: 1.2 } },
+      ] },
+      { t: 103, actions: [{ type: 'scroll', speed: 0.25 }] },
+      { t: 106, actions: [{ type: 'midboss', bossId: 'midboss_jelly' }] },
+      { t: 110, actions: [{ type: 'scroll', speed: 1 }] },
+      { t: 114, actions: [
+        { type: 'group', typeId: 'fish', count: 6, pattern: 'line', x: R, y: 300, gap: 70, opts: { hpScale: 1.2 } },
+        { type: 'group', typeId: 'fish', count: 6, pattern: 'line', x: R + 120, y: 440, gap: 70, opts: { hpScale: 1.2 } },
+      ] },
+      { t: 125, actions: [
+        { type: 'spawn', typeId: 'elite', x: R, y: 260, opts: { hpScale: 1.2, tint: 0xc0f8f0 } },
+        { type: 'spawn', typeId: 'turret', x: 1160, y: 500, opts: { hpScale: 1.25, tint: 0xa0f0e0 } },
+      ] },
+      { t: 137, actions: [
+        { type: 'spawn', typeId: 'spawner', x: R, y: 360, opts: { hpScale: 1.2 } },
+        { type: 'group', typeId: 'fish', count: 5, pattern: 'stream', x: R + 100, y: 200, interval: 420 },
+        { type: 'group', typeId: 'fish', count: 5, pattern: 'stream', x: R + 100, y: 520, interval: 420 },
+      ] },
+      { t: 150, actions: [
+        { type: 'spawn', typeId: 'rusher', x: R, y: 200, opts: { hpScale: 1.25, speedScale: 1.1 } },
+        { type: 'spawn', typeId: 'rusher', x: R, y: 520, opts: { hpScale: 1.25, speedScale: 1.1 } },
+        { type: 'spawn', typeId: 'shield', x: R + 150, y: 360, opts: { hpScale: 1.3, tint: 0xa0f0e0 } },
+      ] },
+      { t: 162, actions: [{ type: 'pause', dur: 3 }] },
+      { t: 165, actions: [
+        { type: 'group', typeId: 'fish', count: 8, pattern: 'arc', x: R, y: 360, gap: 65, opts: { hpScale: 1.25, speedScale: 1.15 } },
+        { type: 'spawn', typeId: 'elite', x: R + 250, y: 360, opts: { hpScale: 1.25, tint: 0xc0f8f0 } },
+      ] },
+      { t: 178, actions: [
+        { type: 'spawn', typeId: 'turret', x: 1140, y: 220, opts: { hpScale: 1.3, tint: 0xa0f0e0 } },
+        { type: 'spawn', typeId: 'turret', x: 1200, y: 520, opts: { hpScale: 1.3, tint: 0xa0f0e0 } },
+        { type: 'group', typeId: 'bat', count: 4, pattern: 'line', x: R + 100, y: 370, gap: 85, opts: { tint: 0x9fe8ff } },
+      ] },
+      { t: 192, actions: [
+        { type: 'group', typeId: 'fish', count: 6, pattern: 'v', x: R, y: 360, gap: 70, opts: { hpScale: 1.3, speedScale: 1.15 } },
+      ] },
+      { t: 202, actions: [{ type: 'pause', dur: 3 }] },
+      { t: 208, actions: [{ type: 'scroll', speed: 0.25 }] },
+      { t: 212, actions: [{ type: 'boss', bossId: 'boss_dragon' }] },
+    ],
+  },
+  // -- Stage 4 천공성 (fortress, ~4.5분, 보스 t=225) --------------------------------
   {
     id: 'stage3',
     nameKor: '천공성',
@@ -310,6 +394,90 @@ export const STAGES: StageDef[] = [
       { t: 216, actions: [{ type: 'pause', dur: 3 }] },
       { t: 219, actions: [{ type: 'scroll', speed: 0.25 }] },
       { t: 225, actions: [{ type: 'boss', bossId: 'boss_maiden' }] },
+    ],
+  },
+  // -- Stage 5 백귀야시 (market, ~4분, 보스 t=225) ----------------------------------
+  {
+    id: 'market',
+    nameKor: '백귀야시',
+    nameEng: 'HUNDRED-GHOST NIGHT MARKET',
+    theme: 'market',
+    music: 'stage5',
+    waves: [
+      { t: 1, actions: [{ type: 'scroll', speed: 1 }] },
+      { t: 2, actions: [
+        { type: 'group', typeId: 'wisp', count: 6, pattern: 'v', x: R, y: 360, gap: 70, opts: { hpScale: 1.3 } },
+      ] },
+      { t: 10, actions: [
+        { type: 'group', typeId: 'wisp', count: 5, pattern: 'stream', x: R, y: 200, interval: 380, opts: { hpScale: 1.3, speedScale: 1.1 } },
+        { type: 'group', typeId: 'wisp', count: 5, pattern: 'stream', x: R, y: 520, interval: 380, opts: { hpScale: 1.3, speedScale: 1.1 } },
+      ] },
+      { t: 20, actions: [
+        { type: 'spawn', typeId: 'elite', x: R, y: 300, opts: { hpScale: 1.3, tint: 0xffc8a0 } },
+        { type: 'group', typeId: 'bat', count: 4, pattern: 'line', x: R + 200, y: 500, gap: 85, opts: { hpScale: 1.3, tint: 0xffb0b0 } },
+      ] },
+      { t: 31, actions: [
+        { type: 'spawn', typeId: 'spawner', x: R, y: 250, opts: { hpScale: 1.35, tint: 0xffc8a0 } },
+        { type: 'spawn', typeId: 'turret', x: 1170, y: 500, opts: { hpScale: 1.35, tint: 0xffb080 } },
+      ] },
+      { t: 42, actions: [
+        { type: 'group', typeId: 'wisp', count: 8, pattern: 'arc', x: R, y: 360, gap: 65, opts: { hpScale: 1.35, speedScale: 1.1 } },
+        { type: 'spawn', typeId: 'rusher', x: R + 220, y: 220, opts: { hpScale: 1.3, speedScale: 1.15 } },
+      ] },
+      { t: 53, actions: [{ type: 'pause', dur: 3 }] },
+      { t: 56, actions: [
+        { type: 'spawn', typeId: 'shield', x: R, y: 300, opts: { hpScale: 1.4, tint: 0xffc8a0 } },
+        { type: 'spawn', typeId: 'shield', x: R + 120, y: 460, opts: { hpScale: 1.4, tint: 0xffc8a0 } },
+        { type: 'group', typeId: 'wisp', count: 5, pattern: 'stream', x: R + 200, y: 360, interval: 400, opts: { hpScale: 1.3 } },
+      ] },
+      { t: 68, actions: [
+        { type: 'spawn', typeId: 'elite', x: R, y: 220, opts: { hpScale: 1.35, tint: 0xffc8a0 } },
+        { type: 'spawn', typeId: 'elite', x: R + 220, y: 500, opts: { hpScale: 1.35, tint: 0xffc8a0 } },
+      ] },
+      { t: 81, actions: [
+        { type: 'group', typeId: 'wisp', count: 7, pattern: 'line', x: R, y: 260, gap: 65, opts: { hpScale: 1.35 } },
+        { type: 'group', typeId: 'wisp', count: 7, pattern: 'line', x: R + 120, y: 460, gap: 65, opts: { hpScale: 1.35 } },
+        { type: 'spawn', typeId: 'turret', x: 1180, y: 360, opts: { hpScale: 1.4, tint: 0xffb080 } },
+      ] },
+      { t: 94, actions: [
+        { type: 'spawn', typeId: 'rusher', x: R, y: 220, opts: { hpScale: 1.35, speedScale: 1.15 } },
+        { type: 'spawn', typeId: 'rusher', x: R, y: 500, opts: { hpScale: 1.35, speedScale: 1.15 } },
+        { type: 'spawn', typeId: 'spawner', x: R + 200, y: 360, opts: { hpScale: 1.4, tint: 0xffc8a0 } },
+      ] },
+      { t: 106, actions: [{ type: 'pause', dur: 3 }] },
+      { t: 112, actions: [{ type: 'scroll', speed: 0.25 }] },
+      { t: 115, actions: [{ type: 'midboss', bossId: 'midboss_fox' }] },
+      { t: 119, actions: [{ type: 'scroll', speed: 1 }] },
+      { t: 123, actions: [
+        { type: 'group', typeId: 'wisp', count: 8, pattern: 'v', x: R, y: 360, gap: 62, opts: { hpScale: 1.4, speedScale: 1.15 } },
+        { type: 'group', typeId: 'bat', count: 5, pattern: 'arc', x: R + 250, y: 360, gap: 75, opts: { hpScale: 1.4, tint: 0xffb0b0 } },
+      ] },
+      { t: 136, actions: [
+        { type: 'spawn', typeId: 'elite', x: R, y: 360, opts: { hpScale: 1.4, tint: 0xffc8a0 } },
+        { type: 'spawn', typeId: 'turret', x: 1140, y: 200, opts: { hpScale: 1.45, tint: 0xffb080 } },
+        { type: 'spawn', typeId: 'turret', x: 1200, y: 540, opts: { hpScale: 1.45, tint: 0xffb080 } },
+      ] },
+      { t: 150, actions: [
+        { type: 'spawn', typeId: 'shield', x: R, y: 360, opts: { hpScale: 1.45, tint: 0xffc8a0 } },
+        { type: 'group', typeId: 'wisp', count: 6, pattern: 'stream', x: R + 100, y: 200, interval: 360, opts: { hpScale: 1.4 } },
+        { type: 'group', typeId: 'wisp', count: 6, pattern: 'stream', x: R + 100, y: 520, interval: 360, opts: { hpScale: 1.4 } },
+      ] },
+      { t: 164, actions: [
+        { type: 'spawn', typeId: 'spawner', x: R, y: 260, opts: { hpScale: 1.45, tint: 0xffc8a0 } },
+        { type: 'spawn', typeId: 'rusher', x: R + 150, y: 470, opts: { hpScale: 1.4, speedScale: 1.2 } },
+        { type: 'spawn', typeId: 'elite', x: R + 260, y: 360, opts: { hpScale: 1.4, tint: 0xffc8a0 } },
+      ] },
+      { t: 178, actions: [
+        { type: 'group', typeId: 'wisp', count: 9, pattern: 'arc', x: R, y: 360, gap: 60, opts: { hpScale: 1.45, speedScale: 1.2 } },
+      ] },
+      { t: 190, actions: [
+        { type: 'spawn', typeId: 'shield', x: R, y: 250, opts: { hpScale: 1.5, tint: 0xffc8a0 } },
+        { type: 'spawn', typeId: 'shield', x: R + 120, y: 470, opts: { hpScale: 1.5, tint: 0xffc8a0 } },
+        { type: 'spawn', typeId: 'turret', x: 1170, y: 360, opts: { hpScale: 1.5, tint: 0xffb080 } },
+      ] },
+      { t: 204, actions: [{ type: 'pause', dur: 3 }] },
+      { t: 210, actions: [{ type: 'scroll', speed: 0.25 }] },
+      { t: 214, actions: [{ type: 'boss', bossId: 'boss_lantern' }] },
     ],
   },
   // -- Final 천문 (rift, ~3분, 보스 t=135) -------------------------------------------

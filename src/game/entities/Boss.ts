@@ -61,6 +61,8 @@ export class Boss implements BossLike, BossAttackContext {
   private phaseIndex = 0;
   private phaseTime = 0;
   private timers: AttackTimer[] = [];
+  /** 공격 빈도 배율(난이도) */
+  private readonly attackRate: number;
 
   private dashing = false;
   private teleporting = false;
@@ -71,7 +73,7 @@ export class Boss implements BossLike, BossAttackContext {
   private trail: Array<{ x: number; y: number }> = [];
   private trailAcc = 0;
 
-  // 기관왕 분리 부품
+  // 주위를 도는 부속 (BossDef.parts)
   private parts: Part[] = [];
 
   // 천녀 분신
@@ -84,8 +86,9 @@ export class Boss implements BossLike, BossAttackContext {
     this.world = world;
     this.def = def;
 
-    const mult = world.getDifficulty() === 'HARD' ? 1.25 : world.getDifficulty() === 'EASY' ? 0.85 : 1;
-    this.maxHp = Math.round(def.hp * mult);
+    const preset = DIFFICULTY_PRESETS[world.getDifficulty()];
+    this.maxHp = Math.round(def.hp * preset.bossHp);
+    this.attackRate = preset.bossRate;
     this.hp = this.maxHp;
     this.baseScale = def.scale;
 
@@ -131,8 +134,11 @@ export class Boss implements BossLike, BossAttackContext {
   }
 
   getDisplayName(): string {
-    if (this.def.id === 'final_moo' && this.phaseIndex >= 2) return '무명천 — 신수형';
-    return this.def.displayName;
+    let name = this.def.displayName;
+    for (const [phase, n] of Object.entries(this.def.phaseNames ?? {})) {
+      if (this.phaseIndex >= Number(phase)) name = n;
+    }
+    return name;
   }
 
   getHitRadius(): number {
@@ -222,7 +228,7 @@ export class Boss implements BossLike, BossAttackContext {
         const spec = phase.attacks[i];
         const tm = this.timers[i];
         if (!tm) continue;
-        tm.elapsed += dt;
+        tm.elapsed += dt * this.attackRate;
         if (tm.elapsed >= spec.interval) {
           tm.elapsed = 0;
           if (spec.telegraph) this.telegraph(spec.telegraph);
@@ -536,14 +542,12 @@ export class Boss implements BossLike, BossAttackContext {
   }
 
   private ensureParts(): void {
-    if (this.parts.length > 0) return;
-    for (let i = 0; i < 3; i += 1) {
+    const def = this.def.parts;
+    if (!def || this.parts.length > 0) return;
+    for (let i = 0; i < def.count; i += 1) {
       try {
-        const img = this.scene.add
-          .image(this.sprite.x, this.sprite.y, 'boss_engine_core')
-          .setScale(0.375)
-          .setDepth(59);
-        this.parts.push({ img, angle: (i / 3) * Math.PI * 2, fireT: 1200 + i * 700 });
+        const img = this.scene.add.image(this.sprite.x, this.sprite.y, def.tex).setScale(def.scale).setDepth(59);
+        this.parts.push({ img, angle: (i / def.count) * Math.PI * 2, fireT: 1200 + i * 700 });
       } catch {
         // 무시
       }
@@ -551,24 +555,24 @@ export class Boss implements BossLike, BossAttackContext {
   }
 
   private updateParts(dt: number): void {
-    if (this.def.id !== 'boss_engine') return;
-    if (this.phaseIndex >= 1) this.ensureParts();
+    const def = this.def.parts;
+    if (!def) return;
+    if (this.phaseIndex >= def.fromPhase) this.ensureParts();
     if (this.parts.length === 0) return;
-    const R = 120;
     for (const p of this.parts) {
       p.angle += (dt / 1000) * 1.1;
-      const px = this.sprite.x + Math.cos(p.angle) * R;
-      const py = this.sprite.y + Math.sin(p.angle) * R * 0.7;
+      const px = this.sprite.x + Math.cos(p.angle) * def.radiusX;
+      const py = this.sprite.y + Math.sin(p.angle) * def.radiusY;
       p.img.setPosition(px, py);
       p.img.setRotation(p.img.rotation + dt * 0.003);
       p.fireT -= dt;
       if (p.fireT <= 0 && !this.isDefeated && this.world.isPlayerAlive()) {
-        p.fireT = 2400;
+        p.fireT = def.fireMs / this.attackRate;
         const pl = this.world.getPlayerPos();
         const a = Math.atan2(pl.y - py, pl.x - px);
-        const sp = 190 * DIFFICULTY_PRESETS[this.world.getDifficulty()].bulletSpeed;
+        const sp = def.speed * DIFFICULTY_PRESETS[this.world.getDifficulty()].bulletSpeed;
         for (let k = -1; k <= 1; k += 1) {
-          this.world.spawnEnemyBullet(px, py, a + k * 0.18, sp, 'eb_small', 0xffd75e);
+          this.world.spawnEnemyBullet(px, py, a + k * 0.18, sp, 'eb_small', def.tint);
         }
       }
     }

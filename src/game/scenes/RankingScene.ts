@@ -1,8 +1,10 @@
 import Phaser from 'phaser';
-import { HEIGHT, UI_FONT, WIDTH } from '../GameConfig';
+import { DIFFICULTIES, HEIGHT, UI_FONT, WIDTH } from '../GameConfig';
 import type { Difficulty } from '../GameConfig';
 import { AudioSystem } from '../systems/AudioSystem';
 import { SaveSystem } from '../systems/SaveSystem';
+import { CHARACTERS } from '../data/characters';
+import { STAGES } from '../data/stages';
 import {
   NICKNAME_RULE,
   errorMessage,
@@ -14,10 +16,10 @@ import {
 import type { PilotId, RankRow, ScoreEntry } from '../systems/RankingService';
 
 const FONT = UI_FONT;
-const DIFFS: Difficulty[] = ['EASY', 'NORMAL', 'HARD'];
+const DIFFS: Difficulty[] = DIFFICULTIES;
 const TOP = 20;
-const PILOT_NAME: Record<PilotId, string> = { yun: '윤', ryeohwa: '려화', mooyoung: '무영' };
-const STAGE_NAME = ['청운계곡', '기계도시', '천공성', '천문'];
+const PILOT_NAME = Object.fromEntries(CHARACTERS.map((c) => [c.id, c.nameKor])) as Record<PilotId, string>;
+const STAGE_NAME = STAGES.map((st) => st.nameKor);
 /** 닉네임 칸 폭(px). 한글 12자는 20px 글꼴로 약 240px라 넘치면 줄인다. */
 const NICK_MAX_W = 140;
 
@@ -87,7 +89,7 @@ export class RankingScene extends Phaser.Scene {
 
     DIFFS.forEach((d, i) => {
       const t = this.add
-        .text(WIDTH / 2 + (i - 1) * 170, 148, d, { fontFamily: FONT, fontSize: '24px', color: '#e8f2ff', fontStyle: 'bold' })
+        .text(WIDTH / 2 + (i - (DIFFS.length - 1) / 2) * 170, 148, d, { fontFamily: FONT, fontSize: '24px', color: '#e8f2ff', fontStyle: 'bold' })
         .setOrigin(0.5)
         .setInteractive({ useHandCursor: true });
       t.on('pointerdown', () => this.selectDiff(i));

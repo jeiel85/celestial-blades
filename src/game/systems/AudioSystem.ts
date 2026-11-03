@@ -18,7 +18,7 @@ export type SfxName =
   | 'bossDie'
   | 'menu';
 
-export type MusicKind = 'stage1' | 'stage2' | 'stage3' | 'boss' | 'final' | 'ending';
+export type MusicKind = 'stage1' | 'stage2' | 'stage3' | 'stage4' | 'stage5' | 'boss' | 'final' | 'ending' | 'story';
 
 interface MusicStyle {
   bpm: number;
@@ -32,9 +32,12 @@ const MUSIC_STYLES: Record<MusicKind, MusicStyle> = {
   stage1: { bpm: 132, scale: [0, 2, 4, 7, 9], bass: [0, -5, -3, -7], wave: 'square', bassWave: 'triangle' },
   stage2: { bpm: 148, scale: [0, 3, 5, 7, 10], bass: [0, 0, -4, -2], wave: 'sawtooth', bassWave: 'square' },
   stage3: { bpm: 160, scale: [0, 2, 3, 7, 8], bass: [0, -2, -5, -4], wave: 'sawtooth', bassWave: 'triangle' },
+  stage4: { bpm: 140, scale: [0, 2, 3, 7, 9], bass: [0, -4, -2, -5], wave: 'triangle', bassWave: 'triangle' },
+  stage5: { bpm: 156, scale: [0, 1, 5, 7, 8], bass: [0, -3, 0, -6], wave: 'square', bassWave: 'sawtooth' },
   boss: { bpm: 172, scale: [0, 1, 5, 6, 10], bass: [0, 0, 1, 0], wave: 'sawtooth', bassWave: 'sawtooth' },
   final: { bpm: 150, scale: [0, 2, 5, 7, 11], bass: [0, -7, -5, -3], wave: 'triangle', bassWave: 'sine' },
   ending: { bpm: 96, scale: [0, 4, 7, 11, 12], bass: [0, -5, -7, -4], wave: 'sine', bassWave: 'sine' },
+  story: { bpm: 84, scale: [0, 3, 7, 10, 12], bass: [0, -4, -5, -2], wave: 'sine', bassWave: 'triangle' },
 };
 
 const BASE_FREQ = 220;

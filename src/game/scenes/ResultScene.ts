@@ -1,9 +1,10 @@
 import Phaser from 'phaser';
-import { DIFFICULTY_PRESETS, HEIGHT, UI_FONT, WIDTH } from '../GameConfig';
+import { DIFFICULTY_PRESETS, HEIGHT, UI_FONT, WIDTH, parseDifficulty } from '../GameConfig';
 import type { Difficulty } from '../GameConfig';
 import { AudioSystem } from '../systems/AudioSystem';
 import { SaveSystem } from '../systems/SaveSystem';
-import { getCharacter } from '../data/characters';
+import { clampCharIndex, getCharacter } from '../data/characters';
+import { STAGES } from '../data/stages';
 
 const FONT = UI_FONT;
 
@@ -40,12 +41,12 @@ export class ResultScene extends Phaser.Scene {
 
   init(raw: ResultSceneData): void {
     const d = raw ?? {};
-    const difficulty: Difficulty = d.difficulty === 'EASY' || d.difficulty === 'HARD' ? d.difficulty : 'NORMAL';
+    const difficulty: Difficulty = parseDifficulty(d.difficulty);
     this.result = {
       difficulty,
       score: Math.max(0, Math.floor(d.score ?? 0)),
-      charIndex: Math.min(2, Math.max(0, Math.floor(d.charIndex ?? 0))),
-      stageIndex: Math.max(0, Math.min(3, Math.floor(d.stageIndex ?? 0))),
+      charIndex: clampCharIndex(d.charIndex),
+      stageIndex: Math.max(0, Math.min(STAGES.length - 1, Math.floor(d.stageIndex ?? 0))),
       stageStartScore: Math.max(0, Math.floor(d.stageStartScore ?? 0)),
       power: Math.max(0, Math.min(3, Math.floor(d.power ?? 0))),
     };
@@ -193,13 +194,16 @@ export class ResultScene extends Phaser.Scene {
   private confirm(): void {
     this.audio.playSfx('menu');
     if (this.menuIndex === 0) {
-      // 같은 스테이지 재시작: 점수는 스테이지 시작값으로, 목숨은 프리셋, 파워 유지
+      // 같은 스테이지 재시작: 점수는 스테이지 시작값으로, 목숨은 프리셋, 파워 유지.
+      // 이어 하기가 없는 난이도(EXTREME)는 1스테이지·0점부터 다시 시작한다.
+      const preset = DIFFICULTY_PRESETS[this.result.difficulty];
+      const fromStart = !preset.stageRetry;
       this.scene.start('Game', {
-        stageIndex: this.result.stageIndex,
-        score: this.result.stageStartScore,
-        lives: DIFFICULTY_PRESETS[this.result.difficulty].lives,
-        bombs: 2,
-        power: this.result.power,
+        stageIndex: fromStart ? 0 : this.result.stageIndex,
+        score: fromStart ? 0 : this.result.stageStartScore,
+        lives: preset.lives,
+        bombs: preset.startBombs,
+        power: fromStart ? 0 : this.result.power,
         charIndex: this.result.charIndex,
         difficulty: this.result.difficulty,
       });

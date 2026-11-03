@@ -2,7 +2,7 @@
  * 플레이어 캐릭터 정의. 캐릭터 선택 UI가 이 문구를 그대로 표시한다.
  */
 
-export type CharacterId = 'yun' | 'ryeohwa' | 'mooyoung';
+export type CharacterId = 'yun' | 'ryeohwa' | 'mooyoung' | 'soyul' | 'haerang';
 
 export interface CharacterStats {
   /** 공격력 1~5 */
@@ -15,7 +15,7 @@ export interface CharacterStats {
 
 export interface CharacterDef {
   id: CharacterId;
-  /** 캐릭터 선택 인덱스 (0..2) */
+  /** 캐릭터 선택 인덱스 (0..CHARACTERS.length-1) */
   index: number;
   nameKor: string;
   nameEng: string;
@@ -106,9 +106,56 @@ export const CHARACTERS: CharacterDef[] = [
     bombName: '백귀야행',
     bombNameEng: 'NIGHT PARADE OF A HUNDRED GHOSTS',
   },
+  {
+    id: 'soyul',
+    index: 3,
+    nameKor: '소율',
+    nameEng: 'SOYUL',
+    title: '관통의 궁수',
+    color: 0x53e0b0,
+    desc: '적을 꿰뚫고 지나가는 화살로 줄지어 오는 적을 한 번에 꿰는 궁수. 연사는 느리지만 한 발이 무겁다.',
+    stats: { power: 4, speed: 2, range: 3 },
+    chargeDesc: '차지: 천궁일시 — 화면 끝까지 꿰뚫는 거대 화살, 적탄을 가르며 나간다',
+    specialDesc: '기본 공격: 관통 화살, 파워가 오르면 화살 수와 관통 수가 늘어난다',
+    bombDesc: '필살: 유성시우 — 하늘에서 화살비가 3초간 쏟아진다',
+    shotIntervalMs: 160,
+    damageMult: 1.35,
+    texture: 'player_soyul',
+    portrait: 'portrait_soyul',
+    ending: 'ending_soyul',
+    cutin: 'cutin_soyul',
+    bombName: '유성시우',
+    bombNameEng: 'METEOR ARROW RAIN',
+  },
+  {
+    id: 'haerang',
+    index: 4,
+    nameKor: '해랑',
+    nameEng: 'HAERANG',
+    title: '결계의 술사',
+    color: 0xffe08a,
+    desc: '부적을 앞뒤로 흩뿌리며 결계로 몸을 지키는 술사. 화력은 가장 낮지만 실수를 덮어 주는 힘이 있다.',
+    stats: { power: 2, speed: 3, range: 4 },
+    chargeDesc: '차지: 호신결계 — 1.6초간 주변 적탄을 지우는 결계를 두른다',
+    specialDesc: '기본 공격: 앞으로 퍼지는 부적 + 뒤쪽 견제 부적, 파워가 오르면 부적이 늘어난다',
+    bombDesc: '필살: 사신결계 — 네 수호신의 결계가 퍼지며 화면을 정화한다',
+    shotIntervalMs: 130,
+    damageMult: 0.8,
+    texture: 'player_haerang',
+    portrait: 'portrait_haerang',
+    ending: 'ending_haerang',
+    cutin: 'cutin_haerang',
+    bombName: '사신결계',
+    bombNameEng: 'FOUR GUARDIANS WARD',
+  },
 ];
 
+/** 저장값·씬 데이터에서 온 캐릭터 번호를 범위 안으로 맞춘다. */
+export function clampCharIndex(index: unknown): number {
+  const n = typeof index === 'number' && Number.isFinite(index) ? Math.floor(index) : 0;
+  return Math.min(CHARACTERS.length - 1, Math.max(0, n));
+}
+
 export function getCharacter(index: number): CharacterDef {
-  const clamped = Math.min(CHARACTERS.length - 1, Math.max(0, Math.floor(index)));
-  return CHARACTERS[clamped];
+  return CHARACTERS[clampCharIndex(index)];
 }

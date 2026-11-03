@@ -1,4 +1,6 @@
+import { parseDifficulty } from '../GameConfig';
 import type { Difficulty } from '../GameConfig';
+import { clampCharIndex } from '../data/characters';
 
 export const SAVE_KEY = 'celestial-blades-save';
 
@@ -51,12 +53,8 @@ function sanitize(raw: unknown): SaveData {
     if (typeof ps.sfxVol === 'number') out.settings.sfxVol = clamp01(ps.sfxVol);
     if (typeof ps.musicVol === 'number') out.settings.musicVol = clamp01(ps.musicVol);
     if (typeof ps.shake === 'boolean') out.settings.shake = ps.shake;
-    if (ps.difficulty === 'EASY' || ps.difficulty === 'NORMAL' || ps.difficulty === 'HARD') {
-      out.settings.difficulty = ps.difficulty;
-    }
-    if (typeof ps.lastChar === 'number' && Number.isFinite(ps.lastChar)) {
-      out.settings.lastChar = Math.min(2, Math.max(0, Math.floor(ps.lastChar)));
-    }
+    if (ps.difficulty !== undefined) out.settings.difficulty = parseDifficulty(ps.difficulty);
+    if (ps.lastChar !== undefined) out.settings.lastChar = clampCharIndex(ps.lastChar);
   }
   return out;
 }
@@ -108,12 +106,8 @@ export class SaveSystem {
     if (patch.sfxVol !== undefined) next.sfxVol = clamp01(patch.sfxVol);
     if (patch.musicVol !== undefined) next.musicVol = clamp01(patch.musicVol);
     if (patch.shake !== undefined) next.shake = patch.shake;
-    if (patch.difficulty === 'EASY' || patch.difficulty === 'NORMAL' || patch.difficulty === 'HARD') {
-      next.difficulty = patch.difficulty;
-    }
-    if (patch.lastChar !== undefined && Number.isFinite(patch.lastChar)) {
-      next.lastChar = Math.min(2, Math.max(0, Math.floor(patch.lastChar)));
-    }
+    if (patch.difficulty !== undefined) next.difficulty = parseDifficulty(patch.difficulty);
+    if (patch.lastChar !== undefined) next.lastChar = clampCharIndex(patch.lastChar);
     this.data = { hiscore: this.data.hiscore, settings: next };
     this.save();
     return this.get();

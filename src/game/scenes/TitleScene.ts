@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { HEIGHT, LOGO_FONT, LOGO_TEXT, UI_FONT, WIDTH } from '../GameConfig';
+import { DIFFICULTIES } from '../GameConfig';
 import type { Difficulty } from '../GameConfig';
 import { AudioSystem } from '../systems/AudioSystem';
 import { SaveSystem } from '../systems/SaveSystem';
@@ -423,7 +424,7 @@ export class TitleScene extends Phaser.Scene {
         this.save.updateSettings({ shake: !s.shake });
         break;
       case 4: {
-        const order: Difficulty[] = ['EASY', 'NORMAL', 'HARD'];
+        const order: Difficulty[] = DIFFICULTIES;
         const next = order[(order.indexOf(s.difficulty) + (dir > 0 ? 1 : order.length - 1)) % order.length];
         this.save.updateSettings({ difficulty: next });
         break;

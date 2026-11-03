@@ -10,6 +10,7 @@ import { GameScene } from './game/scenes/GameScene';
 import { ResultScene } from './game/scenes/ResultScene';
 import { EndingScene } from './game/scenes/EndingScene';
 import { RankingScene } from './game/scenes/RankingScene';
+import { StoryScene } from './game/scenes/StoryScene';
 
 function removeLoading(): void {
   try {
@@ -56,7 +57,7 @@ const game = new Phaser.Game({
   fps: {
     target: 60,
   },
-  scene: [BootScene, TitleScene, CharacterSelectScene, GameScene, ResultScene, EndingScene, RankingScene],
+  scene: [BootScene, TitleScene, CharacterSelectScene, StoryScene, GameScene, ResultScene, EndingScene, RankingScene],
 });
 
 // 디버그/테스트용 노출(일반 사용자 UI에는 노출되지 않음)

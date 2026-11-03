@@ -1,16 +1,19 @@
 import Phaser from 'phaser';
-import { DIFFICULTY_PRESETS, HEIGHT, START_BOMBS, UI_FONT, WIDTH } from '../GameConfig';
+import { DIFFICULTIES, DIFFICULTY_PRESETS, HEIGHT, UI_FONT, WIDTH } from '../GameConfig';
 import type { Difficulty } from '../GameConfig';
-import { CHARACTERS } from '../data/characters';
+import { CHARACTERS, clampCharIndex } from '../data/characters';
 import { AudioSystem } from '../systems/AudioSystem';
 import { SaveSystem } from '../systems/SaveSystem';
 
 const FONT = UI_FONT;
-const DIFFS: Difficulty[] = ['EASY', 'NORMAL', 'HARD'];
+const DIFFS: Difficulty[] = DIFFICULTIES;
+/** 카드 폭·간격 (5장이 1280px 안에 들어가게) */
+const CARD_W = 232;
+const CARD_GAP = 246;
 
 /**
  * 캐릭터 선택 씬 (키 'CharacterSelect').
- * 3장 카드 + 하단 난이도. ←→ 카드, ↑↓ 포커스 전환, Z/Enter 확정.
+ * 캐릭터 카드 + 하단 난이도. ←→ 카드, ↑↓ 포커스 전환, Z/Enter 확정.
  */
 export class CharacterSelectScene extends Phaser.Scene {
   private save!: SaveSystem;
@@ -43,7 +46,7 @@ export class CharacterSelectScene extends Phaser.Scene {
       // 무시
     }
 
-    this.charIndex = Math.min(2, Math.max(0, s.lastChar));
+    this.charIndex = clampCharIndex(s.lastChar);
     this.difficulty = s.difficulty;
     this.focus = 0;
     this.cards = [];
@@ -111,25 +114,24 @@ export class CharacterSelectScene extends Phaser.Scene {
   // -- 카드 -------------------------------------------------------------------
 
   private buildCards(): void {
-    const xs = [300, 640, 980];
     CHARACTERS.forEach((ch, i) => {
-      const c = this.add.container(xs[i], 352);
-      const frame = this.add.rectangle(0, 0, 300, 488, 0x0d1424, 1).setStrokeStyle(2, 0x3d4d5e, 1);
+      const c = this.add.container(WIDTH / 2 + (i - (CHARACTERS.length - 1) / 2) * CARD_GAP, 352);
+      const frame = this.add.rectangle(0, 0, CARD_W, 488, 0x0d1424, 1).setStrokeStyle(2, 0x3d4d5e, 1);
       const name = this.add
-        .text(0, -216, `${ch.nameKor} · ${ch.nameEng}`, { fontFamily: FONT, fontSize: '26px', color: '#ffffff', fontStyle: 'bold' })
+        .text(0, -216, `${ch.nameKor} · ${ch.nameEng}`, { fontFamily: FONT, fontSize: '22px', color: '#ffffff', fontStyle: 'bold' })
         .setOrigin(0.5);
       const title = this.add
         .text(0, -186, ch.title, { fontFamily: FONT, fontSize: '15px', color: '#8fd3ff' })
         .setOrigin(0.5);
-      // 제목(-186) 아래, 설명(-18) 위 공간에 맞춘 220x150 초상화
-      const portrait = this.add.image(0, -100, ch.portrait);
+      // 제목(-186) 아래, 설명(-18) 위 공간에 맞춘 초상화(220x150을 카드 폭에 맞춰 줄임)
+      const portrait = this.add.image(0, -100, ch.portrait).setScale(0.95);
       const desc = this.add
         .text(0, -18, ch.desc, {
           fontFamily: FONT,
           fontSize: '14px',
           color: '#c9d4e0',
           align: 'center',
-          wordWrap: { width: 264 },
+          wordWrap: { width: CARD_W - 24 },
         })
         .setOrigin(0.5, 0);
       // 스탯 바
@@ -142,9 +144,9 @@ export class CharacterSelectScene extends Phaser.Scene {
       const statObjs: Phaser.GameObjects.GameObject[] = [];
       stats.forEach(([label, v], r) => {
         const y = statY + r * 26;
-        statObjs.push(this.add.text(-128, y, label, { fontFamily: FONT, fontSize: '14px', color: '#8fd3ff' }).setOrigin(0, 0.5));
-        statObjs.push(this.add.rectangle(-70, y, 130, 10, 0x1a2530, 1).setOrigin(0, 0.5));
-        statObjs.push(this.add.rectangle(-70, y, Math.max(8, (v / 5) * 130), 10, 0xffd75e, 1).setOrigin(0, 0.5));
+        statObjs.push(this.add.text(-96, y, label, { fontFamily: FONT, fontSize: '14px', color: '#8fd3ff' }).setOrigin(0, 0.5));
+        statObjs.push(this.add.rectangle(-46, y, 130, 10, 0x1a2530, 1).setOrigin(0, 0.5));
+        statObjs.push(this.add.rectangle(-46, y, Math.max(8, (v / 5) * 130), 10, 0xffd75e, 1).setOrigin(0, 0.5));
       });
       const charge = this.add
         .text(0, 212, `${ch.chargeDesc}\n${ch.bombDesc}`, {
@@ -152,8 +154,8 @@ export class CharacterSelectScene extends Phaser.Scene {
           fontSize: '12px',
           color: '#9fb4c8',
           align: 'center',
-          wordWrap: { width: 270 },
-          lineSpacing: 4,
+          wordWrap: { width: CARD_W - 18 },
+          lineSpacing: 3,
         })
         .setOrigin(0.5, 0.5);
       c.add([frame, name, title, portrait, desc, ...statObjs, charge]);
@@ -184,7 +186,7 @@ export class CharacterSelectScene extends Phaser.Scene {
       .setOrigin(0.5);
     DIFFS.forEach((d, i) => {
       const t = this.add
-        .text(WIDTH / 2 - 180 + i * 180, 650, d, { fontFamily: FONT, fontSize: '24px', color: '#e8f2ff', fontStyle: 'bold' })
+        .text(WIDTH / 2 + (i - (DIFFS.length - 1) / 2) * 190, 650, d, { fontFamily: FONT, fontSize: '24px', color: '#e8f2ff', fontStyle: 'bold' })
         .setOrigin(0.5)
         .setInteractive({ useHandCursor: true });
       t.on('pointerdown', () => {
@@ -239,14 +241,18 @@ export class CharacterSelectScene extends Phaser.Scene {
   private confirm(): void {
     this.audio.playSfx('menu');
     this.save.updateSettings({ difficulty: this.difficulty, lastChar: this.charIndex });
-    this.scene.start('Game', {
-      stageIndex: 0,
-      charIndex: this.charIndex,
-      difficulty: this.difficulty,
-      score: 0,
-      lives: DIFFICULTY_PRESETS[this.difficulty].lives,
-      bombs: START_BOMBS,
-      power: 0,
+    // 프롤로그 컷신을 거쳐 1스테이지로
+    this.scene.start('Story', {
+      chapter: 0,
+      next: {
+        stageIndex: 0,
+        charIndex: this.charIndex,
+        difficulty: this.difficulty,
+        score: 0,
+        lives: DIFFICULTY_PRESETS[this.difficulty].lives,
+        bombs: DIFFICULTY_PRESETS[this.difficulty].startBombs,
+        power: 0,
+      },
     });
   }
 }
