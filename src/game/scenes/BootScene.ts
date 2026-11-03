@@ -28,7 +28,7 @@ const REQUIRED_TEXTURES = [
   'item_p', 'item_b', 'item_l', 'item_g',
   'fx_spark', 'fx_smoke', 'fx_ring', 'fx_glow', 'fx_star',
   ...STAGES.flatMap((st) => [`bg_${st.theme}`, `layer_${st.theme}`]),
-  'title_bg', 'gear',
+  'title_bg', 'title_logo', 'ui_menu_plate', 'ui_cursor', 'gear',
   'touch_stick_base', 'touch_stick_knob', 'touch_btn_attack', 'touch_btn_bomb', 'fx_warn_line',
 ];
 

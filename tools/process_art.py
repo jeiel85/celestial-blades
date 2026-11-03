@@ -84,6 +84,10 @@ SPRITE_SIZES = {
     "touch_btn_bomb": (84, 84),
     # 레이저 경고선: 흰색 균일 빛줄기, 런타임에 길이·색을 바꿔 쓴다(엔딩 균열 기둥에도 사용)
     "fx_warn_line": (512, 32),
+    # 타이틀 화면: 로고 글자 그림(약 560px 폭으로 표시, 고해상도 화면을 위해 여유 있게), 메뉴 명판·커서
+    "title_logo": (720, 277),
+    "ui_menu_plate": (480, 84),
+    "ui_cursor": (64, 64),
 }
 BACKGROUND_KEYS = [
     "bg_valley", "bg_city", "bg_fortress", "bg_rift", "title_bg",
