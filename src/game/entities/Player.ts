@@ -33,6 +33,13 @@ const ARROW_RAIN_TIME = 3000;
 /** 해랑 필살기 사신결계 */
 const WARD_TIME = 1500;
 const WARD_COLORS = [0x4db2ff, 0xf2f2f2, 0xff4d3d, 0x6a5acd];
+/** 혜각: 법륜은 이 시간 뒤 사라진다(약 화면 절반 사거리) */
+const RING_LIFE = 560;
+/** 혜각 필살기 금강항마진: 반경 안을 일정 간격으로 내리친다 */
+const VAJRA_TIME = 1800;
+const VAJRA_RADIUS = 360;
+/** 판정 원 기본 반지름 */
+const HIT_RADIUS = 6;
 /** 식신이 머무는 자리(플레이어 기준, 집중 중이면 앞쪽으로 붙는다) */
 const FAMILIAR_OFFSET = { x: -46, y: -50 };
 const FAMILIAR_FOCUS_OFFSET = { x: 36, y: -34 };
@@ -79,6 +86,10 @@ export class Player {
   private arrowRainTick = 0;
   private wardLeft = 0;
   private wardTick = 0;
+  private vajraLeft = 0;
+  private vajraTick = 0;
+  /** 이 캐릭터가 지닐 수 있는 필살기 수 */
+  private readonly maxBombs: number;
 
   /** 식신(텐가이식 옵션): 플레이어를 늦게 따라오며 공격키를 누르는 동안 함께 쏜다 */
   private readonly familiar: Phaser.GameObjects.Image;
@@ -99,7 +110,8 @@ export class Player {
     this.def = def;
 
     this.lives = Math.max(1, lives);
-    this.bombs = Math.min(MAX_BOMBS, Math.max(0, bombs));
+    this.maxBombs = def.maxBombs ?? MAX_BOMBS;
+    this.bombs = Math.min(this.maxBombs, Math.max(0, bombs));
 
     this.sprite = scene.physics.add.sprite(200, 360, def.texture).setScale(1.15);
     this.sprite.setDepth(100);
@@ -118,11 +130,16 @@ export class Player {
       // 공정 피격 판정: 본체보다 작은 원
       const w = Math.max(8, this.sprite.width);
       const h = Math.max(8, this.sprite.height);
-      const r = 6;
+      const r = def.hitRadius ?? HIT_RADIUS;
       body.setCircle(r, w / 2 - r, h / 2 - r);
     }
 
-    this.core = scene.add.image(this.sprite.x, this.sprite.y, 'player_core').setDepth(101).setVisible(false);
+    // 집중 중 보이는 판정 표시도 실제 판정 크기에 맞춘다.
+    this.core = scene.add
+      .image(this.sprite.x, this.sprite.y, 'player_core')
+      .setDepth(101)
+      .setScale((def.hitRadius ?? HIT_RADIUS) / HIT_RADIUS)
+      .setVisible(false);
     this.familiar = scene.add
       .image(this.sprite.x + FAMILIAR_OFFSET.x, this.sprite.y + FAMILIAR_OFFSET.y, def.familiar)
       .setDepth(100);
@@ -188,7 +205,7 @@ export class Player {
   }
 
   addBomb(n = 1): void {
-    this.bombs = Math.min(MAX_BOMBS, this.bombs + n);
+    this.bombs = Math.min(this.maxBombs, this.bombs + n);
   }
 
   addPower(n = 1): void {
@@ -266,6 +283,7 @@ export class Player {
     this.updateBarrier(dtMs);
     this.updateArrowRain(dtMs);
     this.updateWard(dtMs);
+    this.updateVajra(dtMs);
     this.updateFamiliar(dtMs, focused, input.attackDown);
 
     // 기본 공격 + 차지
@@ -389,6 +407,51 @@ export class Player {
         });
       }
       w.audio.playSfx('shoot');
+    } else if (def.id === 'hyegak') {
+      // 혜각: 적을 꿰뚫는 법륜, 짧은 사거리(RING_LIFE) 대신 한 발이 무겁다
+      const SPEED = 620;
+      const rows: Array<[number, number]> =
+        this.power <= 0
+          ? [[0, 0]]
+          : this.power === 1
+            ? [[-12, 0], [12, 0]]
+            : this.power === 2
+              ? [[0, 0], [-18, -40], [18, 40]]
+              : [[-8, 0], [8, 0], [-26, -60], [26, 60]];
+      for (const [dy, vy] of rows) {
+        w.spawnPlayerBullet({
+          texture: 'shot_ring',
+          x,
+          y: y + dy,
+          vx: SPEED,
+          vy,
+          damage: dmg(1),
+          scale: 1.1,
+          pierce: 2,
+          distinct: true,
+          life: RING_LIFE,
+        });
+      }
+      w.audio.playSfx('shoot');
+    } else if (def.id === 'seori') {
+      // 서리: 끈질기게 쫓아가는 여우불
+      const SPEED = 700;
+      const count = [2, 3, 4, 6][this.power] ?? 2;
+      for (let i = 0; i < count; i += 1) {
+        const a = (i / (count - 1) - 0.5) * 0.5;
+        w.spawnPlayerBullet({
+          texture: 'shot_foxfire',
+          x,
+          y: y + (i - (count - 1) / 2) * 6,
+          vx: Math.cos(a) * SPEED,
+          vy: Math.sin(a) * SPEED,
+          damage: dmg(0.8),
+          homing: true,
+          homingTurn: 4.5,
+          life: 1700,
+        });
+      }
+      w.audio.playSfx('shoot');
     } else {
       // 무영: 초고속 직선 수리검 (좁은 범위, 고DPS)
       const SPEED = 1150;
@@ -469,6 +532,39 @@ export class Player {
       // 해랑: 1.6초간 주변 적탄을 지우는 호신결계
       this.barrierLeft = BARRIER_TIME;
       w.fx.explosion(this.sprite.x, this.sprite.y, 0.8, this.def.color);
+      w.audio.playSfx('chargeShot');
+    } else if (id === 'hyegak') {
+      // 혜각: 적탄을 부수며 나아가는 거대 법륜(금강장), 사거리는 짧다
+      w.spawnPlayerBullet({
+        texture: 'shot_ring',
+        x,
+        y,
+        vx: 640,
+        vy: 0,
+        damage: 16,
+        scale: 3.2,
+        pierce: 99,
+        clearsBullets: true,
+        life: 750,
+      });
+      w.clearEnemyBulletsNear(x + 60, y, 110);
+      w.fx.explosion(x, y, 0.9, this.def.color);
+      w.audio.playSfx('chargeShot');
+    } else if (id === 'seori') {
+      // 서리: 세 줄기 손톱 참격(월광조), 적탄을 찢으며 나간다
+      for (const a of [-0.22, 0, 0.22]) {
+        w.spawnPlayerBullet({
+          texture: 'shot_claw',
+          x,
+          y,
+          vx: Math.cos(a) * 900,
+          vy: Math.sin(a) * 900,
+          damage: 7,
+          pierce: 99,
+          clearsBullets: true,
+        });
+      }
+      w.fx.explosion(x, y, 0.7, this.def.color);
       w.audio.playSfx('chargeShot');
     } else {
       // 무영: 전방 돌진 (420px, 경로 대미지, 0.25초 무적, 잔상)
@@ -587,6 +683,34 @@ export class Player {
           // 무시
         }
       });
+    } else if (id === 'hyegak') {
+      // 혜각: 1.8초간 주변을 연거푸 내리치는 금강의 충격파(가까운 적일수록 많이 맞는다)
+      this.vajraLeft = VAJRA_TIME;
+      this.vajraTick = 0;
+      w.fx.explosion(x, y, 1.6, this.def.color);
+    } else if (id === 'seori') {
+      // 서리: 아홉 꼬리 여우불이 부채꼴로 흩어졌다가 적을 쫓아 꽂힌다
+      for (let i = 0; i < 9; i += 1) {
+        const a = (i / 8 - 0.5) * Math.PI * 1.1;
+        this.scene.time.delayedCall(i * 60, () => {
+          if (!this.alive || !this.scene.scene.isActive()) return;
+          w.spawnPlayerBullet({
+            texture: 'shot_foxfire',
+            x: this.sprite.x,
+            y: this.sprite.y,
+            vx: Math.cos(a) * 420,
+            vy: Math.sin(a) * 420,
+            damage: 6,
+            scale: 2.6,
+            pierce: 10,
+            clearsBullets: true,
+            homing: true,
+            homingTurn: 3.5,
+            life: 2600,
+          });
+        });
+      }
+      w.fx.explosion(x, y, 1.3, this.def.color);
     } else {
       // 무영: 잔상 다수가 화면을 가로지르기
       for (let i = 0; i < 6; i += 1) {
@@ -658,6 +782,16 @@ export class Player {
         w.spawnPlayerBullet({ texture: 'shot_arrow', x, y, vx: 1000, vy: 0, damage: dmg(1.2), pierce: 2, distinct: true });
         this.familiarTimer = 420;
         break;
+      case 'hyegak':
+        // 금강저: 본체처럼 짧게 닿는 작은 법륜
+        w.spawnPlayerBullet({ texture: 'shot_ring', x, y, vx: 620, vy: 0, damage: dmg(1.3), scale: 0.7, pierce: 2, distinct: true, life: RING_LIFE });
+        this.familiarTimer = 320;
+        break;
+      case 'seori':
+        // 아기 여우: 적을 쫓는 작은 여우불
+        w.spawnPlayerBullet({ texture: 'shot_foxfire', x, y, vx: 640, vy: 0, damage: dmg(0.8), homing: true, homingTurn: 4, life: 1600 });
+        this.familiarTimer = 280;
+        break;
       default:
         // 종이 인형(해랑): 약하게 유도되는 부적
         w.spawnPlayerBullet({ texture: 'shot_talisman', x, y, vx: 680, vy: 0, damage: dmg(0.7), homing: true, homingTurn: 2, life: 1600 });
@@ -726,6 +860,34 @@ export class Player {
     if (w.dealDamageInRadius) w.dealDamageInRadius(this.sprite.x, this.sprite.y, 1500, 4);
   }
 
+  /** 혜각 필살기: 반경 안의 적탄을 지우며 0.15초마다 충격파를 내리친다 */
+  private updateVajra(dtMs: number): void {
+    if (this.vajraLeft <= 0) return;
+    this.vajraLeft -= dtMs;
+    this.vajraTick -= dtMs;
+    if (this.vajraTick > 0) return;
+    this.vajraTick += 150;
+    const w = this.world;
+    const { x, y } = this.sprite;
+    w.clearEnemyBulletsNear(x, y, VAJRA_RADIUS);
+    if (w.dealDamageInRadius) w.dealDamageInRadius(x, y, VAJRA_RADIUS, 10);
+    try {
+      // 실제 타격 반경까지 퍼지는 금빛 고리(fx_ring 64px 기준)
+      const ring = this.scene.add.image(x, y, 'fx_ring').setDepth(98).setTint(this.def.color).setAlpha(0.85).setScale(0.5);
+      this.scene.tweens.add({
+        targets: ring,
+        scale: (VAJRA_RADIUS * 2) / 64,
+        alpha: 0,
+        duration: 420,
+        ease: 'Cubic.easeOut',
+        onComplete: () => ring.destroy(),
+      });
+    } catch {
+      // 무시
+    }
+    w.shake(0.004, 120);
+  }
+
   private spawnBombSword(): void {
     const w = this.world;
     const y = this.sprite.y;
@@ -785,7 +947,7 @@ export class Player {
   revive(lives: number, bombs: number, x: number, y: number): void {
     this.alive = true;
     this.lives = Math.max(1, lives);
-    this.bombs = Math.min(MAX_BOMBS, Math.max(0, bombs));
+    this.bombs = Math.min(this.maxBombs, Math.max(0, bombs));
     this.sprite.enableBody(true, x, y, true, true);
     this.sprite.setVisible(true).setAlpha(1);
     this.familiar.setVisible(true).setPosition(x + FAMILIAR_OFFSET.x, y + FAMILIAR_OFFSET.y);

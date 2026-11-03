@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { HEIGHT, LOGO_FONT, UI_FONT, WIDTH } from '../GameConfig';
-import { CHARACTERS, clampCharIndex } from '../data/characters';
+import { clampCharIndex, pilotRoster } from '../data/characters';
+import type { CharacterDef } from '../data/characters';
 import { STORY } from '../data/story';
 import { AudioSystem } from '../systems/AudioSystem';
 import { InputSystem } from '../systems/InputSystem';
@@ -36,6 +37,8 @@ export interface ArchiveSceneData {
  */
 export class ArchiveScene extends Phaser.Scene {
   private entries: Entry[] = [];
+  /** 대사를 고를 수 있는 천명사(숨겨진 천명사는 해금 후에만 목록·엔딩에 나온다) */
+  private roster: CharacterDef[] = [];
   private cursor = 0;
   private charIndex = 0;
   private audio!: AudioSystem;
@@ -64,6 +67,8 @@ export class ArchiveScene extends Phaser.Scene {
     this.axisPrev = 0;
     const save = new SaveSystem();
     const seen = save.story;
+    this.roster = pilotRoster(save.hiddenPilotsUnlocked);
+    if (this.charIndex >= this.roster.length) this.charIndex = 0;
     this.audio = new AudioSystem();
     this.audio.setMasterVolume(save.settings.masterVol);
     this.audio.setSfxVolume(save.settings.sfxVol);
@@ -89,7 +94,7 @@ export class ArchiveScene extends Phaser.Scene {
         unlocked: seen.chapters.includes(i),
         lockHint: '아직 이 장에 이르지 못했습니다',
       })),
-      ...CHARACTERS.map((c, i) => ({
+      ...this.roster.map((c, i) => ({
         label: `종장 — ${c.nameKor}의 하늘`,
         image: c.ending,
         chapter: null,
@@ -194,7 +199,7 @@ export class ArchiveScene extends Phaser.Scene {
   private cyclePilot(dir: number): void {
     const e = this.entries[this.cursor];
     if (e.chapter === null) return;
-    this.charIndex = (this.charIndex + dir + CHARACTERS.length) % CHARACTERS.length;
+    this.charIndex = (this.charIndex + dir + this.roster.length) % this.roster.length;
     this.audio.playSfx('menu');
     this.refresh();
   }
@@ -212,8 +217,8 @@ export class ArchiveScene extends Phaser.Scene {
     this.lockText.setText(e.unlocked ? '' : `잠김\n\n${e.lockHint}`);
     this.titleText.setText(e.unlocked ? e.label : '？？？');
     if (!e.unlocked) this.pilotText.setText('');
-    else if (e.chapter !== null) this.pilotText.setText(`대사: ◀ ${CHARACTERS[this.charIndex].nameKor} ▶`);
-    else this.pilotText.setText(`${CHARACTERS[e.charIndex ?? 0].nameKor} · ${CHARACTERS[e.charIndex ?? 0].title}`);
+    else if (e.chapter !== null) this.pilotText.setText(`대사: ◀ ${this.roster[this.charIndex].nameKor} ▶`);
+    else this.pilotText.setText(`${this.roster[e.charIndex ?? 0].nameKor} · ${this.roster[e.charIndex ?? 0].title}`);
   }
 
   private play(): void {

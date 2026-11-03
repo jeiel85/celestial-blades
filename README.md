@@ -10,7 +10,7 @@
 
 <a href="https://jeiel85.github.io/celestial-blades/"><img src="https://img.shields.io/badge/%E2%96%B6%20%EC%A7%80%EA%B8%88%20%ED%94%8C%EB%A0%88%EC%9D%B4-PLAY%20NOW-ffd75e?style=for-the-badge&labelColor=2a1404" alt="지금 플레이"></a>
 
-<img src="https://img.shields.io/badge/version-1.8.1-a06bff?style=flat-square" alt="version">
+<img src="https://img.shields.io/badge/version-1.9.0-a06bff?style=flat-square" alt="version">
 <img src="https://img.shields.io/badge/Phaser-3.80-8fd3ff?style=flat-square" alt="Phaser">
 <img src="https://img.shields.io/badge/TypeScript-strict-3178c6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript">
 <img src="https://img.shields.io/badge/Vite-5-646cff?style=flat-square&logo=vite&logoColor=white" alt="Vite">
@@ -48,6 +48,8 @@
 <td></td>
 </tr>
 </table>
+
+**숨겨진 천명사** — 한 번 클리어하면 강하지만 뚜렷한 약점이 있는 천명사 두 명이 선택 화면에 나타납니다. 캐릭터 선택 화면에 숨겨진 커맨드도 있습니다.
 
 ## 스테이지
 

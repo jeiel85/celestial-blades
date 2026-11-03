@@ -24,12 +24,16 @@ SPRITE_SIZES = {
     "player_mooyoung": (88, 72),
     "player_soyul": (88, 72),
     "player_haerang": (88, 72),
+    "player_hyegak": (88, 72),
+    "player_seori": (88, 72),
     # 식신(옵션): 게임에서 약 56px로 보인다
     "familiar_yun": (56, 56),
     "familiar_ryeohwa": (56, 56),
     "familiar_mooyoung": (56, 56),
     "familiar_soyul": (56, 56),
     "familiar_haerang": (56, 56),
+    "familiar_hyegak": (56, 56),
+    "familiar_seori": (56, 56),
     "enemy_small": (40, 36),
     "enemy_bat": (44, 32),
     "enemy_rusher": (48, 40),
@@ -62,6 +66,9 @@ SPRITE_SIZES = {
     "shot_kunai": (26, 8),
     "shot_arrow": (40, 10),
     "shot_talisman": (22, 14),
+    "shot_ring": (30, 30),
+    "shot_foxfire": (26, 18),
+    "shot_claw": (96, 48),
     # 적탄·이펙트는 흰색 바탕 그림이고 게임에서 setTint로 색을 입힌다.
     "eb_small": (12, 12),
     "eb_mid": (18, 18),
@@ -83,6 +90,8 @@ SPRITE_SIZES = {
     "portrait_mooyoung": (220, 150),
     "portrait_soyul": (220, 150),
     "portrait_haerang": (220, 150),
+    "portrait_hyegak": (220, 150),
+    "portrait_seori": (220, 150),
     # 모바일 터치 조작 UI
     "touch_stick_base": (140, 140),
     "touch_stick_knob": (64, 64),
@@ -98,6 +107,7 @@ SPRITE_SIZES = {
 BACKGROUND_KEYS = [
     "bg_valley", "bg_city", "bg_fortress", "bg_rift", "title_bg",
     "ending_yun", "ending_ryeohwa", "ending_mooyoung", "ending_soyul", "ending_haerang",
+    "ending_hyegak", "ending_seori",
     "bg_palace", "bg_market",
     "story_0", "story_1", "story_2", "story_3", "story_4", "story_5",
 ]
@@ -105,7 +115,7 @@ BG_SIZE = (1280, 720)
 # 캐릭터 선택 화면 기체(select_<id>)
 SELECT_SIZE = (220, 170)
 # 필살기 컷인 띠(가로로 아주 긴 일러스트)
-CUTIN_KEYS = ["cutin_yun", "cutin_ryeohwa", "cutin_mooyoung", "cutin_soyul", "cutin_haerang"]
+CUTIN_KEYS = ["cutin_yun", "cutin_ryeohwa", "cutin_mooyoung", "cutin_soyul", "cutin_haerang", "cutin_hyegak", "cutin_seori"]
 CUTIN_SIZE = (1280, 360)
 # 가로로 반복되는 전경 레이어(투명 PNG). 높이를 화면 높이에 맞추고 좌우 끝을 투명하게 비워 이음매를 없앤다.
 LAYER_KEYS = ["layer_valley", "layer_city", "layer_palace", "layer_fortress", "layer_market", "layer_rift"]

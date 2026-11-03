@@ -25,11 +25,14 @@ export interface SaveData {
   hiscore: number;
   settings: SaveSettings;
   story: StoryProgress;
+  /** 캐릭터 선택 화면 비밀 커맨드로 숨겨진 천명사를 연 적이 있다 */
+  secretPilots: boolean;
 }
 
 const DEFAULTS: SaveData = {
   hiscore: 0,
   story: { chapters: [], endings: [] },
+  secretPilots: false,
   settings: {
     masterVol: 0.8,
     sfxVol: 0.9,
@@ -52,6 +55,7 @@ function sanitize(raw: unknown): SaveData {
     hiscore: typeof r.hiscore === 'number' && Number.isFinite(r.hiscore) && r.hiscore > 0 ? Math.floor(r.hiscore) : 0,
     settings: { ...DEFAULTS.settings },
     story: sanitizeStory(r.story),
+    secretPilots: r.secretPilots === true,
   };
   const s = r.settings;
   if (typeof s === 'object' && s !== null) {
@@ -75,6 +79,7 @@ function copy(d: SaveData): SaveData {
     hiscore: d.hiscore,
     settings: { ...d.settings },
     story: { chapters: [...d.story.chapters], endings: [...d.story.endings] },
+    secretPilots: d.secretPilots,
   };
 }
 
@@ -137,6 +142,18 @@ export class SaveSystem {
     if (this.data.story.endings.includes(id)) return;
     this.data = copy(this.data);
     this.data.story.endings = [...this.data.story.endings, id];
+    this.save();
+  }
+
+  /** 숨겨진 천명사 해금: 아무 천명사로나 한 번 클리어(엔딩을 봄)했거나 비밀 커맨드를 입력했다 */
+  get hiddenPilotsUnlocked(): boolean {
+    return this.data.secretPilots || this.data.story.endings.length > 0;
+  }
+
+  /** 비밀 커맨드 입력 기록 */
+  unlockHiddenPilots(): void {
+    if (this.data.secretPilots) return;
+    this.data = { ...copy(this.data), secretPilots: true };
     this.save();
   }
 
