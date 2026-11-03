@@ -33,10 +33,44 @@ const STAT_BAR_W = 250;
 /** 막대의 만점: 모든 천명사 중 가장 높은 값 */
 const MAX_BOSS_DPS = Math.max(...CHARACTERS.map((c) => c.measured.bossDps));
 const MAX_SPEED_SCALE = Math.max(...CHARACTERS.map((c) => speedScale(c)));
+/** 천명사를 바꿀 때 새 일러스트를 드러내는 천명사 색 판: 쓸고 지나가는 시간·판 폭 */
+const WIPE_MS = 420;
+const WIPE_BAND_W = 180;
+/**
+ * 새 일러스트가 드러나며 제 크기로 가라앉기 전의 배율. 옆으로 밀어 넣으면 가장자리에 옛 그림이 비치므로
+ * 띠를 늘 덮도록 확대에서 줄인다(쓸기와 같은 시간에 끝나 마스크를 벗긴 뒤 띠 밖으로 넘치지 않는다).
+ */
+const WIPE_ZOOM = 1.06;
+/** 이름 자모를 하나씩 조립하는 간격(ms) */
+const TYPE_STEP_MS = 40;
+/** 이름 패널 오른쪽 글·능력치가 차례로 밀려 들어오는 거리와 줄 사이 지연 */
+const SLIDE_IN_X = 18;
+const STAGGER_MS = 45;
+const CHO = 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ';
+
+/** 한글을 자모를 하나씩 더해 가는 단계로 펼친다: '방상' → ㅂ, 바, 방, 방ㅅ, 방사, 방상 */
+function hangulTypingSteps(text: string): string[] {
+  const steps: string[] = [];
+  let done = '';
+  for (const ch of text) {
+    const code = ch.charCodeAt(0) - 0xac00;
+    if (code >= 0 && code < 11172) {
+      const cho = Math.floor(code / 588);
+      steps.push(done + CHO[cho]);
+      // 받침이 있으면 받침 없는 글자를 한 번 거친다
+      if (code % 28 !== 0) steps.push(done + String.fromCharCode(0xac00 + code - (code % 28)));
+    }
+    done += ch;
+    steps.push(done);
+  }
+  return steps;
+}
 
 /**
  * 캐릭터 선택 씬 (키 'CharacterSelect'). 텐가이식: 아래 줄의 인게임 기체 중에서 고르고,
  * 고른 천명사의 필살기 일러스트가 위쪽을 가득 채운다. 고른 기체는 떠올라 기본 공격을 쏴 보인다.
+ * 천명사를 바꾸면 그 천명사 색의 판이 일러스트를 쓸고 지나가며 새 그림을 드러내고, 이름은 자모 단위로
+ * 조립되며 나머지 글·능력치는 차례로 밀려 들어온다.
  * ←→ 기체(또는 난이도), ↑↓ 기체 줄/난이도 줄 전환, Z/Enter/패드 A 출격. 클릭·터치 가능.
  * 숨겨진 천명사는 1회 클리어하거나 SECRET 커맨드를 넣으면 기체 줄 끝에 나타난다.
  */
@@ -60,6 +94,11 @@ export class CharacterSelectScene extends Phaser.Scene {
   private leaving = false;
 
   private banner: Phaser.GameObjects.Image | null = null;
+  /** 진행 중인 일러스트 쓸어 넘기기를 바로 끝내는 함수(다음 천명사로 넘어가면 부른다) */
+  private finishWipe: (() => void) | null = null;
+  private typeTimer: Phaser.Time.TimerEvent | null = null;
+  /** 이름 패널 왼쪽의 천명사 색 세로 띠 */
+  private accent!: Phaser.GameObjects.Rectangle;
   private nameText!: Phaser.GameObjects.Text;
   private subText!: Phaser.GameObjects.Text;
   private bombText!: Phaser.GameObjects.Text;
@@ -67,6 +106,8 @@ export class CharacterSelectScene extends Phaser.Scene {
   private statFills: Phaser.GameObjects.Rectangle[] = [];
   private statValues: Phaser.GameObjects.Text[] = [];
   private statNote!: Phaser.GameObjects.Text;
+  /** 천명사를 바꿀 때 차례로 밀려 들어오는 글과 그 제자리 x(부제는 이름 폭에 따라 달라 따로 다룬다) */
+  private slideRows: { obj: Phaser.GameObjects.Text; x: number }[] = [];
   private sprites: Phaser.GameObjects.Image[] = [];
   private glows: Phaser.GameObjects.Image[] = [];
   private names: Phaser.GameObjects.Text[] = [];
@@ -106,8 +147,11 @@ export class CharacterSelectScene extends Phaser.Scene {
     this.axisPrev = 0;
     this.leaving = false;
     this.banner = null;
+    this.finishWipe = null;
+    this.typeTimer = null;
     this.statFills = [];
     this.statValues = [];
+    this.slideRows = [];
     this.sprites = [];
     this.glows = [];
     this.names = [];
@@ -118,11 +162,13 @@ export class CharacterSelectScene extends Phaser.Scene {
     this.buildInfo();
     this.buildRow();
     this.buildDifficulty();
-    this.showPilot(false);
+    this.showPilot();
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       try {
         this.shotTimer?.remove(false);
+        // 마스크용 그래픽은 화면 목록 밖에 있어 씬과 함께 지워지지 않는다
+        this.finishWipe?.();
         this.audio.stopMusic();
         this.audio.dispose();
       } catch {
@@ -183,8 +229,23 @@ export class CharacterSelectScene extends Phaser.Scene {
     fade.fillGradientStyle(0x05040f, 0x05040f, 0x05040f, 0x05040f, 0, 0, 1, 1);
     fade.fillRect(0, BANNER_Y + BANNER_H - 110, WIDTH, 110);
 
+    // 일러스트 위로 먼지 같은 빛 알갱이가 천천히 떠오른다
+    this.add
+      .particles(0, 0, 'fx_spark', {
+        x: { min: 0, max: WIDTH },
+        y: { min: BANNER_Y + 60, max: BANNER_Y + BANNER_H + 40 },
+        speedX: { min: -6, max: 12 },
+        speedY: { min: -24, max: -6 },
+        lifespan: { min: 3500, max: 7000 },
+        scale: { min: 0.2, max: 0.55 },
+        alpha: { start: 0.65, end: 0, ease: 'Quad.easeIn' },
+        frequency: 110,
+      })
+      .setDepth(2.5);
+
     // 이름 패널(일러스트 오른쪽 아래)
     this.add.rectangle(760, 262, 490, 110, 0x05040f, 0.72).setOrigin(0).setDepth(3);
+    this.accent = this.add.rectangle(760, 262, 4, 110, 0xffffff).setOrigin(0).setDepth(4);
     this.nameText = this.add.text(782, 268, '', { fontFamily: LOGO_FONT, fontSize: '52px', color: '#ffffff' }).setDepth(4);
     this.subText = this.add.text(782, 268, '', { fontFamily: FONT, fontSize: '20px', color: '#e8f2ff', fontStyle: 'bold' }).setDepth(4);
     this.bombText = this.add.text(784, 338, '', { fontFamily: FONT, fontSize: '18px', color: '#ffe9a0', fontStyle: 'bold' }).setDepth(4);
@@ -197,7 +258,8 @@ export class CharacterSelectScene extends Phaser.Scene {
       const y = STAT_Y + r * STAT_GAP;
       this.add.text(820, y, label, { fontFamily: FONT, fontSize: '14px', color: '#8fd3ff' }).setOrigin(0, 0.5).setDepth(4);
       this.add.rectangle(870, y, STAT_BAR_W, 9, 0x1a2530).setOrigin(0, 0.5).setDepth(4);
-      this.statFills.push(this.add.rectangle(870, y, STAT_BAR_W, 9, 0xffd75e).setOrigin(0, 0.5).setDepth(4));
+      // 처음 들어올 때 막대가 0에서 차오르도록 폭 0으로 시작한다
+      this.statFills.push(this.add.rectangle(870, y, STAT_BAR_W, 9, 0xffd75e).setOrigin(0, 0.5).setScale(0, 1).setDepth(4));
       this.statValues.push(
         this.add.text(870 + STAT_BAR_W + 12, y, '', { fontFamily: FONT, fontSize: '14px', color: '#e8f2ff' }).setOrigin(0, 0.5).setDepth(4),
       );
@@ -205,6 +267,7 @@ export class CharacterSelectScene extends Phaser.Scene {
     this.statNote = this.add
       .text(820, STAT_Y + 3 * STAT_GAP - 8, '', { fontFamily: FONT, fontSize: '13px', color: '#c9d4e0' })
       .setDepth(4);
+    this.slideRows = [this.bombText, this.infoText, ...this.statValues, this.statNote].map((obj) => ({ obj, x: obj.x }));
   }
 
   /** 한 줄에 놓을 기체 간격과 크기(숨겨진 천명사가 열리면 7기가 화면 폭에 맞게 줄어든다) */
@@ -236,13 +299,13 @@ export class CharacterSelectScene extends Phaser.Scene {
           this.charIndex = i;
           this.focus = 0;
           this.audio.playSfx('menu');
-          this.showPilot(true);
+          this.showPilot();
         }
       });
       hit.on('pointerdown', () => {
         this.charIndex = i;
         this.focus = 0;
-        this.showPilot(true);
+        this.showPilot();
         this.confirm();
       });
       this.sprites.push(sprite);
@@ -283,7 +346,7 @@ export class CharacterSelectScene extends Phaser.Scene {
     this.charIndex = BASE_CHARACTER_COUNT;
     this.focus = 0;
     this.buildRow();
-    this.showPilot(true);
+    this.showPilot();
     this.audio.playSfx('chargeFull');
     this.cameras.main.flash(500, 255, 240, 200);
     const note = this.add
@@ -325,7 +388,7 @@ export class CharacterSelectScene extends Phaser.Scene {
     if (this.focus === 0) {
       this.charIndex = (this.charIndex + dir + this.roster.length) % this.roster.length;
       this.audio.playSfx('menu');
-      this.showPilot(true);
+      this.showPilot();
       return;
     }
     const next = DIFFS[(DIFFS.indexOf(this.difficulty) + (dir > 0 ? 1 : DIFFS.length - 1)) % DIFFS.length];
@@ -335,35 +398,11 @@ export class CharacterSelectScene extends Phaser.Scene {
     this.refreshFocus();
   }
 
-  /** 고른 천명사로 일러스트·이름·설명·기체 줄을 바꾼다. animate면 일러스트가 오른쪽에서 미끄러져 들어온다. */
-  private showPilot(animate: boolean): void {
+  /** 고른 천명사로 일러스트·이름·설명·기체 줄을 바꾼다(처음 들어올 때도 같은 연출로 드러난다). */
+  private showPilot(): void {
     const ch = this.roster[this.charIndex];
-    const old = this.banner;
-    const banner = this.add.image(0, BANNER_Y, ch.cutin).setOrigin(0).setDisplaySize(WIDTH, BANNER_H).setDepth(1);
-    this.banner = banner;
-    if (old) {
-      this.tweens.killTweensOf(old);
-      this.tweens.add({ targets: old, alpha: 0, duration: 200, onComplete: () => old.destroy() });
-    }
-    if (animate) {
-      banner.setAlpha(0).setX(90);
-      this.tweens.add({ targets: banner, x: 0, alpha: 1, duration: 260, ease: 'Cubic.easeOut' });
-    }
-
-    this.nameText.setText(ch.nameKor).setColor(`#${ch.color.toString(16).padStart(6, '0')}`);
-    this.subText.setText(`${ch.nameEng} · ${ch.title}`).setX(this.nameText.x + this.nameText.width + 24).setY(296);
-    this.bombText.setText(`필살  ${ch.bombName}${ch.hidden ? '   · 숨겨진 천명사' : ''}`);
-    this.infoText.setText(`${ch.desc}\n${ch.specialDesc}\n${ch.chargeDesc}`);
-    const speed = speedScale(ch);
-    [ch.measured.bossDps / MAX_BOSS_DPS, speed / MAX_SPEED_SCALE, ch.stats.range / 5].forEach((v, r) => {
-      this.statFills[r].setDisplaySize(Math.max(8, v * STAT_BAR_W), 9);
-    });
-    this.statValues[0].setText(`보스 ${ch.measured.bossDps}/초`);
-    this.statValues[1].setText(`${Math.round(PLAYER_SPEED * speed)}px/초`);
-    this.statValues[2].setText(`${ch.stats.range} / 5`);
-    this.statNote.setText(
-      `판정 ${ch.hitRadius ?? 6}px · 필살 1회 약 ${ch.measured.bombDamage} · 필살 중 무적 ${(bombInvulnMs(ch.id) / 1000).toFixed(1)}초 · 필살 최대 ${ch.maxBombs ?? MAX_BOMBS}개`,
-    );
+    this.wipeBanner(ch);
+    this.revealInfo(ch);
 
     const { scale } = this.rowLayout();
     this.sprites.forEach((sp, i) => {
@@ -384,6 +423,108 @@ export class CharacterSelectScene extends Phaser.Scene {
     this.marker.setX(this.sprites[this.charIndex].x);
     this.startShotPreview();
     this.refreshFocus();
+  }
+
+  /**
+   * 새 일러스트를 왼쪽부터 드러낸다. 드러나는 경계를 천명사 색의 판이 앞장서 쓸고 지나가고,
+   * 판 뒤로 새 일러스트가 살짝 확대된 채 나타나 제 크기로 가라앉는다. 옛 일러스트는 다 덮일 때까지 그대로 둔다.
+   * 쓸고 있는 도중에 또 바꾸면 앞의 것을 바로 끝내고 새로 쓴다.
+   */
+  private wipeBanner(ch: CharacterDef): void {
+    this.finishWipe?.();
+    const old = this.banner;
+    const banner = this.add.image(WIDTH / 2, BANNER_Y + BANNER_H / 2, ch.cutin).setDisplaySize(WIDTH, BANNER_H).setDepth(1);
+    const fitX = banner.scaleX;
+    const fitY = banner.scaleY;
+    banner.setScale(fitX * WIPE_ZOOM, fitY * WIPE_ZOOM);
+    this.banner = banner;
+    const shape = this.make.graphics({}, false);
+    banner.setMask(shape.createGeometryMask());
+    const band = this.add.graphics().setDepth(1.5);
+    // 판의 앞쪽은 단색, 뒤쪽은 새 일러스트 위로 옅어진다
+    const solidW = WIPE_BAND_W * 0.55;
+    const wipe = { edge: 0 };
+    const draw = (): void => {
+      const e = wipe.edge;
+      shape.clear().fillStyle(0xffffff).fillRect(0, BANNER_Y, Math.max(0, e - solidW), BANNER_H);
+      band.clear();
+      band.fillGradientStyle(ch.color, ch.color, ch.color, ch.color, 0, 1, 0, 1).fillRect(e - WIPE_BAND_W, BANNER_Y, WIPE_BAND_W - solidW, BANNER_H);
+      band.fillStyle(ch.color, 1).fillRect(e - solidW, BANNER_Y, solidW, BANNER_H);
+      band.fillStyle(0xffffff, 0.85).fillRect(e - 3, BANNER_Y, 3, BANNER_H);
+    };
+    draw();
+    let done = false;
+    const finish = (): void => {
+      if (done) return;
+      done = true;
+      banner.clearMask(true);
+      shape.destroy();
+      band.destroy();
+      if (old) {
+        this.tweens.killTweensOf(old);
+        old.destroy();
+      }
+    };
+    const tween = this.tweens.add({
+      targets: wipe,
+      edge: WIDTH + WIPE_BAND_W,
+      duration: WIPE_MS,
+      ease: 'Cubic.easeInOut',
+      onUpdate: draw,
+      onComplete: finish,
+    });
+    const settle = this.tweens.add({ targets: banner, scaleX: fitX, scaleY: fitY, duration: WIPE_MS, ease: 'Cubic.easeOut' });
+    this.finishWipe = () => {
+      tween.stop();
+      settle.stop();
+      banner.setScale(fitX, fitY);
+      finish();
+    };
+  }
+
+  /** 이름은 자모를 하나씩 조립해 쓰고, 나머지 글과 능력치 막대는 위에서부터 차례로 밀려 들어온다. */
+  private revealInfo(ch: CharacterDef): void {
+    const color = `#${ch.color.toString(16).padStart(6, '0')}`;
+    // 부제 자리는 완성된 이름 폭으로 정한다
+    this.nameText.setText(ch.nameKor).setColor(color);
+    const subX = this.nameText.x + this.nameText.width + 24;
+    const steps = hangulTypingSteps(ch.nameKor);
+    this.typeTimer?.remove(false);
+    this.typeTimer = null;
+    this.nameText.setText(steps[0]);
+    if (steps.length > 1) {
+      let n = 0;
+      this.typeTimer = this.time.addEvent({
+        delay: TYPE_STEP_MS,
+        repeat: steps.length - 2,
+        callback: () => this.nameText.setText(steps[++n]),
+      });
+    }
+    this.tweens.killTweensOf(this.accent);
+    this.accent.setFillStyle(ch.color).setScale(1, 0);
+    this.tweens.add({ targets: this.accent, scaleY: 1, duration: 300, ease: 'Cubic.easeOut' });
+
+    this.subText.setText(`${ch.nameEng} · ${ch.title}`).setY(296);
+    this.bombText.setText(`필살  ${ch.bombName}${ch.hidden ? '   · 숨겨진 천명사' : ''}`);
+    this.infoText.setText(`${ch.desc}\n${ch.specialDesc}\n${ch.chargeDesc}`);
+    const speed = speedScale(ch);
+    this.statValues[0].setText(`보스 ${ch.measured.bossDps}/초`);
+    this.statValues[1].setText(`${Math.round(PLAYER_SPEED * speed)}px/초`);
+    this.statValues[2].setText(`${ch.stats.range} / 5`);
+    this.statNote.setText(
+      `판정 ${ch.hitRadius ?? 6}px · 필살 1회 약 ${ch.measured.bombDamage} · 필살 중 무적 ${(bombInvulnMs(ch.id) / 1000).toFixed(1)}초 · 필살 최대 ${ch.maxBombs ?? MAX_BOMBS}개`,
+    );
+    [{ obj: this.subText, x: subX }, ...this.slideRows].forEach(({ obj, x }, k) => {
+      this.tweens.killTweensOf(obj);
+      obj.setX(x - SLIDE_IN_X).setAlpha(0);
+      this.tweens.add({ targets: obj, x, alpha: 1, delay: 60 + k * STAGGER_MS, duration: 260, ease: 'Cubic.easeOut' });
+    });
+    // 막대는 앞 천명사 값에서 새 값으로 늘거나 준다
+    [ch.measured.bossDps / MAX_BOSS_DPS, speed / MAX_SPEED_SCALE, ch.stats.range / 5].forEach((v, r) => {
+      const fill = this.statFills[r];
+      this.tweens.killTweensOf(fill);
+      this.tweens.add({ targets: fill, scaleX: Math.max(8, v * STAT_BAR_W) / STAT_BAR_W, delay: 80 + r * STAGGER_MS, duration: 380, ease: 'Cubic.easeOut' });
+    });
   }
 
   /** 고른 기체가 기본 공격 탄을 짧게 쏘아 보인다(실제 탄 그림, 판정 없음). */
