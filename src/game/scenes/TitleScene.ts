@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { HEIGHT, LOGO_FONT, LOGO_TEXT, UI_FONT, WIDTH } from '../GameConfig';
+import { HEIGHT, UI_FONT, WIDTH } from '../GameConfig';
 import { DIFFICULTIES } from '../GameConfig';
 import type { Difficulty } from '../GameConfig';
 import { AudioSystem } from '../systems/AudioSystem';
@@ -7,6 +7,12 @@ import { SaveSystem } from '../systems/SaveSystem';
 
 const FONT = UI_FONT;
 const MENU = ['START GAME', 'RANKING', 'STORY', 'HOW TO PLAY', 'SETTINGS'] as const;
+/** 왼쪽 단(로고·메뉴)의 가운데 x. 키 아트는 오른쪽에 인물을, 왼쪽을 비워 그렸다. */
+const COL_X = 244;
+const MENU_Y = 352;
+const MENU_GAP = 56;
+/** 로고 그림(720px)을 약 470px 폭으로 */
+const LOGO_SCALE = 0.66;
 
 interface Star {
   img: Phaser.GameObjects.Image;
@@ -15,7 +21,7 @@ interface Star {
 
 /**
  * 타이틀 씬 (키 'Title').
- * 로고 + 메뉴(START/RANKING/HOWTO/SETTINGS) + HI-SCORE. 키보드/마우스/터치 지원.
+ * 왼쪽 단에 로고(Codex 그림)·HI-SCORE·메뉴, 오른쪽은 키 아트. 키보드/마우스/터치 지원.
  */
 export class TitleScene extends Phaser.Scene {
   private save!: SaveSystem;
@@ -23,6 +29,8 @@ export class TitleScene extends Phaser.Scene {
   private menuIndex = 0;
   private menuTexts: Phaser.GameObjects.Text[] = [];
   private hiText!: Phaser.GameObjects.Text;
+  private menuPlate!: Phaser.GameObjects.Image;
+  private menuCursor!: Phaser.GameObjects.Image;
   private overlay: 'howto' | 'settings' | null = null;
   private overlayBox: Phaser.GameObjects.Container | null = null;
   private settingsRowsBox: Phaser.GameObjects.Container | null = null;
@@ -111,18 +119,21 @@ export class TitleScene extends Phaser.Scene {
   // -- 배경/로고/메뉴 ----------------------------------------------------------
 
   private buildBackground(): void {
-    // 키 아트(균열을 향해 나는 세 조종사). 로고·메뉴 가독성을 위해 살짝 어둡게 덮는다.
+    // 키 아트(균열을 향해 나는 다섯 천명사, 균열 속 무명천의 가면). 왼쪽 단만 어둡게 받쳐 글자를 읽히게 한다.
     this.add.image(0, 0, 'title_bg').setOrigin(0).setDisplaySize(WIDTH, HEIGHT).setDepth(-10);
-    this.add.rectangle(0, 0, WIDTH, HEIGHT, 0x05070d, 0.45).setOrigin(0).setDepth(-9);
-    // 별 파티클
-    for (let i = 0; i < 70; i += 1) {
+    const shade = this.add.graphics().setDepth(-9);
+    shade.fillGradientStyle(0x05040f, 0x05040f, 0x05040f, 0x05040f, 0.78, 0, 0.78, 0);
+    shade.fillRect(0, 0, 720, HEIGHT);
+    shade.fillStyle(0x05040f, 0.35).fillRect(0, HEIGHT - 70, WIDTH, 70);
+    // 별 파티클(왼쪽 밤하늘에 몰리도록)
+    for (let i = 0; i < 45; i += 1) {
       try {
         const img = this.add
-          .image(Math.random() * WIDTH, Math.random() * HEIGHT, 'fx_star')
-          .setScale(0.3 + Math.random() * 0.8)
-          .setAlpha(0.35 + Math.random() * 0.55)
+          .image(Math.random() * WIDTH * 0.6, Math.random() * HEIGHT, 'fx_star')
+          .setScale(0.25 + Math.random() * 0.6)
+          .setAlpha(0.3 + Math.random() * 0.5)
           .setDepth(-8);
-        this.stars.push({ img, speed: 12 + Math.random() * 46 });
+        this.stars.push({ img, speed: 10 + Math.random() * 30 });
       } catch {
         // 무시
       }
@@ -130,51 +141,47 @@ export class TitleScene extends Phaser.Scene {
   }
 
   private buildLogo(): void {
-    const cx = WIDTH / 2;
-    const logo = this.add
-      .text(cx, 148, LOGO_TEXT, {
-        fontFamily: LOGO_FONT,
-        fontSize: '104px',
-        color: '#ffd75e',
-        stroke: '#2a1404',
-        strokeThickness: 8,
-        padding: { x: 16, y: 12 },
-        shadow: { offsetX: 0, offsetY: 4, color: '#000000', blur: 14, fill: true, stroke: true },
-      })
-      .setOrigin(0.5)
-      .setLetterSpacing(6);
-    // 금박 느낌: 위는 밝은 금, 아래는 짙은 금으로 세로 그라데이션
-    const logoCtx = logo.context;
-    const grad = logoCtx.createLinearGradient(0, 0, 0, logo.height);
-    grad.addColorStop(0.2, '#fff4c2');
-    grad.addColorStop(0.55, '#ffd75e');
-    grad.addColorStop(0.9, '#c8861e');
-    logo.setFill(grad);
-    this.add
-      .text(cx, 224, 'CELESTIAL BLADES', { fontFamily: FONT, fontSize: '30px', color: '#8fd3ff', fontStyle: 'bold' })
-      .setOrigin(0.5);
-    this.add
-      .text(cx, 262, '— 동방 탄막 슈팅 —', { fontFamily: FONT, fontSize: '18px', color: '#5e7a8f' })
-      .setOrigin(0.5);
+    // 로고 글자는 Codex가 그린 그림(천명비행록 + CELESTIAL BLADES). 천천히 떠오르며 나타난 뒤 살짝 부유한다.
+    const logo = this.add.image(COL_X, 168, 'title_logo').setAlpha(0).setScale(LOGO_SCALE * 0.92);
+    const glow = this.add.image(COL_X, 168, 'fx_glow').setScale(7.6, 2.8).setTint(0xffc860).setAlpha(0).setDepth(-1);
+    this.tweens.add({ targets: logo, alpha: 1, scale: LOGO_SCALE, duration: 900, ease: 'Cubic.easeOut' });
+    this.tweens.add({ targets: glow, alpha: 0.18, duration: 1400, ease: 'Sine.easeOut' });
+    this.tweens.add({ targets: [logo, glow], y: 162, duration: 2600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut', delay: 900 });
     this.hiText = this.add
-      .text(cx, 306, `HI-SCORE  ${this.save.hiscore.toString().padStart(8, '0')}`, {
+      .text(COL_X, 296, `HI-SCORE  ${this.save.hiscore.toString().padStart(8, '0')}`, {
         fontFamily: FONT,
-        fontSize: '22px',
+        fontSize: '20px',
         color: '#ffe9a0',
         fontStyle: 'bold',
+        stroke: '#05040f',
+        strokeThickness: 4,
       })
       .setOrigin(0.5);
   }
 
   private buildMenu(): void {
-    const cx = WIDTH / 2;
     this.menuTexts = [];
+    // 선택 항목 뒤 옻칠 명판과 금빛 커서(둘 다 Codex 그림). 선택이 바뀌면 그 줄로 미끄러진다.
+    this.menuPlate = this.add.image(COL_X, MENU_Y, 'ui_menu_plate').setDisplaySize(330, 60).setAlpha(0.95);
+    this.menuCursor = this.add.image(COL_X - 186, MENU_Y, 'ui_cursor').setDisplaySize(40, 40);
+    this.tweens.add({ targets: this.menuCursor, x: COL_X - 178, duration: 520, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     MENU.forEach((label, i) => {
-      const y = 376 + i * 48;
+      const y = MENU_Y + i * MENU_GAP;
       const t = this.add
-        .text(cx, y, label, { fontFamily: FONT, fontSize: '28px', color: '#e8f2ff', fontStyle: 'bold' })
+        .text(COL_X, y, label, {
+          fontFamily: FONT,
+          fontSize: '26px',
+          color: '#e8f2ff',
+          fontStyle: 'bold',
+          stroke: '#05040f',
+          strokeThickness: 4,
+        })
         .setOrigin(0.5)
+        .setAlpha(0)
         .setInteractive({ useHandCursor: true });
+      // 왼쪽에서 차례로 미끄러져 들어온다
+      t.x = COL_X - 40;
+      this.tweens.add({ targets: t, x: COL_X, alpha: 1, duration: 420, delay: 500 + i * 80, ease: 'Cubic.easeOut' });
       t.on('pointerover', () => {
         if (this.menuIndex !== i) {
           this.menuIndex = i;
@@ -189,23 +196,27 @@ export class TitleScene extends Phaser.Scene {
       });
       this.menuTexts.push(t);
     });
-    this.refreshMenu();
+    this.refreshMenu(true);
     this.add
-      .text(cx, 620, '↑↓ 선택 · Z/Enter 결정 · M 음소거', { fontFamily: FONT, fontSize: '16px', color: '#5e7a8f' })
+      .text(COL_X, HEIGHT - 50, '↑↓ 선택 · Z/Enter 결정 · M 음소거', { fontFamily: FONT, fontSize: '15px', color: '#8fa4b8' })
       .setOrigin(0.5);
     this.add
-      .text(cx, 648, `DIFFICULTY: ${this.save.settings.difficulty}`, { fontFamily: FONT, fontSize: '16px', color: '#8fd3ff' })
+      .text(COL_X, HEIGHT - 26, `DIFFICULTY: ${this.save.settings.difficulty}`, { fontFamily: FONT, fontSize: '15px', color: '#8fd3ff' })
       .setOrigin(0.5);
   }
 
-  private refreshMenu(): void {
+  private refreshMenu(instant = false): void {
     this.menuTexts.forEach((t, i) => {
-      if (i === this.menuIndex) {
-        t.setColor('#ffd75e').setScale(1.12);
-      } else {
-        t.setColor('#e8f2ff').setScale(1);
-      }
+      t.setColor(i === this.menuIndex ? '#ffe9a0' : '#c9d4e0');
     });
+    const y = MENU_Y + this.menuIndex * MENU_GAP;
+    this.tweens.killTweensOf(this.menuPlate);
+    if (instant) {
+      this.menuPlate.setY(y);
+    } else {
+      this.tweens.add({ targets: this.menuPlate, y, duration: 140, ease: 'Cubic.easeOut' });
+    }
+    this.menuCursor.setY(y);
   }
 
   // -- 메뉴 입력 ---------------------------------------------------------------

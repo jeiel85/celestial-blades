@@ -97,7 +97,7 @@ Boot → Title → CharacterSelect → Story(서장) → Game(stage 1) → (중�
 - 스테이지 시작 타이틀 카드("STAGE 1 — 청운계곡"), Stage Clear(Enemy/Combo/NoMiss/Remaining Bonus 합산, 3~5초 후 자동 진행 + 스킵 가능).
 
 ## 타이틀 화면
-- 로고, START GAME, HOW TO PLAY, SETTINGS, HI-SCORE 표시. SETTINGS: Master/SFX Volume, Screen Shake, Difficulty, Fullscreen.
+- 왼쪽 단: 로고 그림(`title_logo`, 글자까지 Codex 생성), HI-SCORE, 메뉴 START GAME / RANKING / STORY / HOW TO PLAY / SETTINGS(선택 줄 뒤 `ui_menu_plate` 명판, 왼쪽 `ui_cursor`). 오른쪽: 다섯 천명사 키 아트(`title_bg`, 왼쪽을 비워 그림). SETTINGS: Master/SFX Volume, Screen Shake, Difficulty, Fullscreen.
 
 ## 온라인 랭킹 (RankingService · RankingScene, Supabase `public.scores`)
 - 등록: 게임오버 화면 `랭킹 등록`, 엔딩 종료 후 자동 진입(건너뛰기 가능). 닉네임 2~12자(한글·영문·숫자·_·-), 마지막 닉네임은 localStorage에 기억.
