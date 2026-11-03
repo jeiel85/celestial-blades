@@ -106,8 +106,22 @@ export class ArchiveScene extends Phaser.Scene {
     const total = this.entries.length;
     const open = this.entries.filter((e) => e.unlocked).length;
     this.add
-      .text(WIDTH - 64, 76, `${open} / ${total}`, { fontFamily: FONT, fontSize: '20px', color: '#8fd3ff' })
-      .setOrigin(1, 0.5);
+      .text(LIST_X + 300, 82, `${open} / ${total}`, { fontFamily: FONT, fontSize: '20px', color: '#8fd3ff' })
+      .setOrigin(0, 0.5);
+    // 터치·마우스만 쓰는 플레이어도 나갈 수 있게 버튼으로 둔다.
+    const backBtn = this.add
+      .text(WIDTH - 64, 82, '◀ 타이틀로', {
+        fontFamily: FONT,
+        fontSize: '20px',
+        color: '#e8f2ff',
+        backgroundColor: '#1a2433',
+        padding: { x: 16, y: 8 },
+      })
+      .setOrigin(1, 0.5)
+      .setInteractive({ useHandCursor: true });
+    backBtn.on('pointerover', () => backBtn.setColor('#ffd75e'));
+    backBtn.on('pointerout', () => backBtn.setColor('#e8f2ff'));
+    backBtn.on('pointerdown', () => this.back());
 
     this.rows = this.entries.map((e, i) => {
       const t = this.add
