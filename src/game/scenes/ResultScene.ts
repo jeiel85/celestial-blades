@@ -20,6 +20,8 @@ export interface ResultSceneData {
   power?: number;
   /** 주차(1/2) */
   loop?: number;
+  /** 지금까지 쓴 컨티뉴 횟수(같은 스테이지 RETRY에도 이어 간다) */
+  continues?: number;
 }
 
 /**
@@ -30,6 +32,7 @@ export class ResultScene extends Phaser.Scene {
   private result!: Required<Pick<ResultSceneData, 'score' | 'charIndex' | 'stageIndex' | 'stageStartScore' | 'power'>> & {
     difficulty: Difficulty;
     loop: number;
+    continues: number;
   };
 
   private save!: SaveSystem;
@@ -53,6 +56,7 @@ export class ResultScene extends Phaser.Scene {
       stageStartScore: Math.max(0, Math.floor(d.stageStartScore ?? 0)),
       power: Math.max(0, Math.min(3, Math.floor(d.power ?? 0))),
       loop: d.loop === MAX_LOOP ? MAX_LOOP : 1,
+      continues: Math.max(0, Math.floor(d.continues ?? 0)),
     };
   }
 
@@ -212,6 +216,7 @@ export class ResultScene extends Phaser.Scene {
         difficulty: this.result.difficulty,
         // 1스테이지부터 다시 하는 난이도는 1주차부터, 아니면 지금 주차 그대로
         loop: fromStart ? 1 : this.result.loop,
+        continues: fromStart ? 0 : this.result.continues,
       });
     } else if (this.menuIndex === 1) {
       this.scene.start('Ranking', {

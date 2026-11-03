@@ -5,6 +5,7 @@ import type { Difficulty } from '../GameConfig';
 import { clampCharIndex, getCharacter } from '../data/characters';
 import { STAGES } from '../data/stages';
 import { AudioSystem } from '../systems/AudioSystem';
+import { InputSystem } from '../systems/InputSystem';
 import { SaveSystem } from '../systems/SaveSystem';
 
 const FONT = UI_FONT;
@@ -75,6 +76,8 @@ export class EndingScene extends Phaser.Scene {
   private asking = false;
   private declined = false;
   private save!: SaveSystem;
+  /** 2주차 질문을 게임패드로도 답하게 한다 */
+  private inputSys!: InputSystem;
   private audio!: AudioSystem;
 
   private step = 0;
@@ -111,6 +114,7 @@ export class EndingScene extends Phaser.Scene {
 
   create(): void {
     this.save = new SaveSystem();
+    this.inputSys = new InputSystem(this);
     this.audio = new AudioSystem();
     const s = this.save.settings;
     this.audio.setMasterVolume(s.masterVol);
@@ -166,11 +170,12 @@ export class EndingScene extends Phaser.Scene {
     const dt = Math.min(100, Math.max(1, delta));
     const kb = this.input.keyboard;
     if (this.asking) {
-      if (!kb) return;
-      const J = Phaser.Input.Keyboard.JustDown;
-      const K = Phaser.Input.Keyboard.KeyCodes;
-      if (J(kb.addKey(K.Z)) || J(kb.addKey(K.SPACE)) || J(kb.addKey(K.ENTER))) this.startSecondLoop();
-      else if (J(kb.addKey(K.X)) || J(kb.addKey(K.ESC))) this.declineSecondLoop();
+      // 키보드(Z/Space·X/ESC)와 게임패드(A·B)는 InputSystem이, Enter는 따로 받는다.
+      const inp = this.inputSys;
+      inp.update();
+      const enter = kb ? Phaser.Input.Keyboard.JustDown(kb.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER)) : false;
+      if (inp.attackJustPressed || enter) this.startSecondLoop();
+      else if (inp.bombJustPressed || inp.pauseJustPressed) this.declineSecondLoop();
       return;
     }
     let held = false;

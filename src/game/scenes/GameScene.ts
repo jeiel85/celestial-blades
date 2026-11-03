@@ -731,6 +731,7 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
       stageStartScore: this.registry.get('carryScore') as number,
       power: this.player.getPower(),
       loop: this.loop,
+      continues: this.continues,
     });
   }
 
