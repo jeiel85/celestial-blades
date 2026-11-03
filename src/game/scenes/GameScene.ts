@@ -54,6 +54,13 @@ const CONTINUE_SECONDS = 10;
 /** 금화 연출은 이 개수까지만 그린다(점수는 탄 전부 계산) */
 const MAX_COIN_FX = 90;
 
+/**
+ * 탄의 그리기 순서. 적탄은 폭발·점수 글자 같은 연출보다 위(컷인·HUD 아래)에 두어 연출에 가려지지 않게 하고,
+ * 집중 시 보이는 판정 표시는 적탄보다도 위에 둔다(Player의 HITBOX_DEPTH).
+ */
+const PLAYER_BULLET_DEPTH = 200;
+const ENEMY_BULLET_DEPTH = 650;
+
 const MAX_PLAYER_BULLETS = 240;
 const MAX_ENEMY_BULLETS = 700;
 const MAX_ENEMIES = 80;
@@ -369,7 +376,7 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
   // -- IGameWorld 구현 --------------------------------------------------------
 
   spawnPlayerBullet(cfg: PlayerBulletSpawn): void {
-    const b = this.allocBullet(this.playerBullets, this.playerBulletGroup, MAX_PLAYER_BULLETS, cfg.texture, 200);
+    const b = this.allocBullet(this.playerBullets, this.playerBulletGroup, MAX_PLAYER_BULLETS, cfg.texture, PLAYER_BULLET_DEPTH);
     if (!b) return;
     b.fire(cfg.x, cfg.y, cfg.vx, cfg.vy, 'player', cfg.texture, {
       damage: cfg.damage,
@@ -386,7 +393,7 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
   }
 
   spawnEnemyBullet(x: number, y: number, angle: number, speed: number, tex: string, tint: number, scale?: number, damage?: number): void {
-    const b = this.allocBullet(this.enemyBullets, this.enemyBulletGroup, MAX_ENEMY_BULLETS, tex, 210);
+    const b = this.allocBullet(this.enemyBullets, this.enemyBulletGroup, MAX_ENEMY_BULLETS, tex, ENEMY_BULLET_DEPTH);
     if (!b) return;
     b.fire(x, y, Math.cos(angle) * speed, Math.sin(angle) * speed, 'enemy', tex, {
       damage: damage ?? 1,
