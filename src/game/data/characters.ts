@@ -55,7 +55,7 @@ export interface CharacterDef {
   maxBombs?: number;
   /**
    * 실측 수치(선택 화면 표시용). tools/bench.mjs로 잰 값: 파워 3으로 1스테이지 중간보스를
-   * 따라다니며 계속 쏠 때 보스가 받은 초당 피해, 필살기 1회가 보스에 준 피해(3회 평균).
+   * 따라다니며 계속 쏠 때 보스가 받은 초당 피해, 필살기 1회가 보스에 준 피해(6회 평균).
    * 화력·보스 HP를 바꾸면 다시 재서 고친다.
    */
   measured: { bossDps: number; bombDamage: number };
@@ -86,7 +86,7 @@ export const CHARACTERS: CharacterDef[] = [
     cutin: 'cutin_yun',
     bombName: '천명검진',
     bombNameEng: 'HEAVENLY SWORD FORMATION',
-    measured: { bossDps: 45, bombDamage: 190 },
+    measured: { bossDps: 45, bombDamage: 180 },
   },
   {
     id: 'ryeohwa',
@@ -138,7 +138,7 @@ export const CHARACTERS: CharacterDef[] = [
     cutin: 'cutin_mooyoung',
     bombName: '백귀야행',
     bombNameEng: 'NIGHT PARADE OF A HUNDRED GHOSTS',
-    measured: { bossDps: 57, bombDamage: 210 },
+    measured: { bossDps: 57, bombDamage: 180 },
   },
   {
     id: 'soyul',
@@ -164,7 +164,7 @@ export const CHARACTERS: CharacterDef[] = [
     cutin: 'cutin_soyul',
     bombName: '유성시우',
     bombNameEng: 'METEOR ARROW RAIN',
-    measured: { bossDps: 43, bombDamage: 190 },
+    measured: { bossDps: 43, bombDamage: 180 },
   },
   {
     id: 'haerang',
@@ -243,7 +243,7 @@ export const CHARACTERS: CharacterDef[] = [
     cutin: 'cutin_seori',
     bombName: '구미호염',
     bombNameEng: 'NINE-TAILED FOXFIRE',
-    measured: { bossDps: 61, bombDamage: 170 },
+    measured: { bossDps: 61, bombDamage: 190 },
     hidden: true,
     hitRadius: 9,
     maxBombs: 2,

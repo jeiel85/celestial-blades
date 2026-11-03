@@ -47,7 +47,7 @@ const POWER_DAMAGE = [1.6, 1.35, 1.3, 1.45];
 const HIT_RADIUS = 6;
 /** 무영 필살기 백귀야행: 잔상 하나가 베는 간격과 한 번의 피해 */
 const GHOST_TICK_MS = 30;
-const GHOST_DAMAGE = 31;
+const GHOST_DAMAGE = 35;
 /**
  * 필살기 공통: 발동 순간 화면 잡몹 전체에 주는 피해(엘리트 미만은 대부분 쓰러진다).
  * 보스 1기에 주는 피해는 천명사마다 약 180(파워 3, tools/bench.mjs 실측)으로 맞춘다 —
@@ -76,7 +76,7 @@ const RYEOHWA_PILLAR_FLAME_DAMAGE = 2.5;
 const SOYUL_RAIN_DAMAGE = 3.3;
 const HAERANG_WARD_DAMAGE = 11.5;
 const HYEGAK_VAJRA_DAMAGE = 14;
-const SEORI_FOX_DAMAGE = 4.4;
+const SEORI_FOX_DAMAGE = 4.9;
 /** 식신이 머무는 자리(플레이어 기준, 집중 중이면 앞쪽으로 붙는다) */
 const FAMILIAR_OFFSET = { x: -46, y: -50 };
 const FAMILIAR_FOCUS_OFFSET = { x: 36, y: -34 };

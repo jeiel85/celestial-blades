@@ -107,8 +107,8 @@ export class Bullet extends Phaser.Physics.Arcade.Image {
   /**
    * 이번 접촉을 피격으로 칠지 정하고 기록한다. false면 피해·관통 소모 없이 넘긴다.
    * - distinct 탄: 같은 대상은 한 번만.
-   * - 그 밖의 관통탄: 겹쳐 있는 동안 같은 대상을 PIERCE_REHIT_MS마다.
-   * - 관통이 없는 탄: 맞으면 사라지므로 항상 true.
+   * - 그 밖의 탄: 같은 대상을 다시 맞히려면 PIERCE_REHIT_MS가 지나야 한다. 관통을 다 써서
+   *   마지막 한 번만 남은 탄도 같다(바로 다음 프레임에 또 맞지 않게). 처음 맞히는 대상은 항상 true.
    */
   registerHit(target: object): boolean {
     if (this.distinct) {
@@ -116,7 +116,6 @@ export class Bullet extends Phaser.Physics.Arcade.Image {
       this.hitTargets.add(target);
       return true;
     }
-    if (this.pierce <= 0) return true;
     const last = this.lastHitAt.get(target);
     if (last !== undefined && this.ageMs - last < PIERCE_REHIT_MS) return false;
     this.lastHitAt.set(target, this.ageMs);
