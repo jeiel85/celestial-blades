@@ -22,6 +22,8 @@ SPRITE_SIZES = {
     "player_yun": (88, 72),
     "player_ryeohwa": (88, 72),
     "player_mooyoung": (88, 72),
+    "player_soyul": (88, 72),
+    "player_haerang": (88, 72),
     "enemy_small": (40, 36),
     "enemy_bat": (44, 32),
     "enemy_rusher": (48, 40),
@@ -29,6 +31,8 @@ SPRITE_SIZES = {
     "enemy_shield": (52, 56),
     "enemy_spawner": (60, 60),
     "enemy_elite": (84, 72),
+    "enemy_fish": (48, 36),
+    "enemy_wisp": (44, 36),
     "midboss_ray": (220, 160),
     "midboss_seg": (56, 56),
     "midboss_dark": (72, 84),
@@ -39,12 +43,19 @@ SPRITE_SIZES = {
     "boss_maiden": (110, 150),
     "final_human": (90, 130),
     "final_beast": (380, 280),
+    "midboss_jelly": (180, 170),
+    "midboss_fox": (190, 150),
+    "boss_dragon": (300, 220),
+    "boss_lantern": (250, 230),
+    "lantern_orb": (56, 56),
     "player_core": (12, 12),
     "shot_ki": (28, 10),
     "shot_crescent": (110, 44),
     "shot_flame": (26, 26),
     "shot_seeker": (18, 18),
     "shot_kunai": (26, 8),
+    "shot_arrow": (40, 10),
+    "shot_talisman": (22, 14),
     # 적탄·이펙트는 흰색 바탕 그림이고 게임에서 setTint로 색을 입힌다.
     "eb_small": (12, 12),
     "eb_mid": (18, 18),
@@ -64,6 +75,8 @@ SPRITE_SIZES = {
     "portrait_yun": (220, 150),
     "portrait_ryeohwa": (220, 150),
     "portrait_mooyoung": (220, 150),
+    "portrait_soyul": (220, 150),
+    "portrait_haerang": (220, 150),
     # 모바일 터치 조작 UI
     "touch_stick_base": (140, 140),
     "touch_stick_knob": (64, 64),
@@ -74,14 +87,16 @@ SPRITE_SIZES = {
 }
 BACKGROUND_KEYS = [
     "bg_valley", "bg_city", "bg_fortress", "bg_rift", "title_bg",
-    "ending_yun", "ending_ryeohwa", "ending_mooyoung",
+    "ending_yun", "ending_ryeohwa", "ending_mooyoung", "ending_soyul", "ending_haerang",
+    "bg_palace", "bg_market",
+    "story_0", "story_1", "story_2", "story_3", "story_4", "story_5",
 ]
 BG_SIZE = (1280, 720)
 # 필살기 컷인 띠(가로로 아주 긴 일러스트)
-CUTIN_KEYS = ["cutin_yun", "cutin_ryeohwa", "cutin_mooyoung"]
+CUTIN_KEYS = ["cutin_yun", "cutin_ryeohwa", "cutin_mooyoung", "cutin_soyul", "cutin_haerang"]
 CUTIN_SIZE = (1280, 360)
 # 가로로 반복되는 전경 레이어(투명 PNG). 높이를 화면 높이에 맞추고 좌우 끝을 투명하게 비워 이음매를 없앤다.
-LAYER_KEYS = ["layer_valley", "layer_city", "layer_fortress", "layer_rift"]
+LAYER_KEYS = ["layer_valley", "layer_city", "layer_palace", "layer_fortress", "layer_market", "layer_rift"]
 LAYER_EDGE = 0.04
 LAYER_W = 1600
 LAYER_CENTER_Y = 0.72

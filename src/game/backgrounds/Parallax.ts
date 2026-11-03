@@ -14,11 +14,17 @@ interface Layer {
  * 전경은 탄막과 같은 높이를 지나가므로 탄 가독성을 위해 반투명으로 둔다
  * (특히 천문의 수정 파편은 탄과 헷갈리지 않도록 더 옅게).
  */
-const LAYER_STYLE: Record<ParallaxTheme, { speed: number; alpha: number }> = {
-  valley: { speed: 70, alpha: 0.6 },
-  city: { speed: 55, alpha: 0.6 },
-  fortress: { speed: 60, alpha: 0.55 },
-  rift: { speed: 80, alpha: 0.4 },
+/**
+ * 테마별 전경 레이어 스크롤 속도·투명도와, 원경 위에 덮는 어둡게(dim) 정도.
+ * 수몰용궁·백귀야시는 원경이 밝고 레이어(등롱·파도)가 촘촘해 탄과 섞이므로 어둡게 깔고 레이어를 옅게 둔다.
+ */
+const LAYER_STYLE: Record<ParallaxTheme, { speed: number; alpha: number; dim: number }> = {
+  valley: { speed: 70, alpha: 0.6, dim: 0 },
+  city: { speed: 55, alpha: 0.6, dim: 0 },
+  palace: { speed: 75, alpha: 0.32, dim: 0.32 },
+  fortress: { speed: 60, alpha: 0.55, dim: 0 },
+  market: { speed: 50, alpha: 0.22, dim: 0.4 },
+  rift: { speed: 80, alpha: 0.4, dim: 0 },
 };
 
 /** 도시 테마 회전 톱니 [x, y, scale] (`gear` 텍스처 256px 기준). */
@@ -38,6 +44,7 @@ export class Parallax {
   private readonly gears: Phaser.GameObjects.Image[] = [];
   private sky: Phaser.GameObjects.Image | null = null;
   private darkness: Phaser.GameObjects.Rectangle | null = null;
+  private dim: Phaser.GameObjects.Rectangle | null = null;
   private mult = 1;
 
   constructor(private readonly scene: Phaser.Scene, private readonly theme: ParallaxTheme) {
@@ -53,6 +60,8 @@ export class Parallax {
       .setAlpha(LAYER_STYLE[theme].alpha)
       .setDepth(-7);
     this.layers.push({ img, speed: LAYER_STYLE[theme].speed });
+    const dim = LAYER_STYLE[theme].dim;
+    if (dim > 0) this.dim = scene.add.rectangle(0, 0, WIDTH, HEIGHT, 0x05040f, dim).setOrigin(0).setDepth(-6);
 
     if (theme === 'city') {
       for (const [gx, gy, s] of GEAR_SPOTS) {
@@ -99,5 +108,7 @@ export class Parallax {
     this.sky = null;
     this.darkness?.destroy();
     this.darkness = null;
+    this.dim?.destroy();
+    this.dim = null;
   }
 }

@@ -13,9 +13,10 @@
 - HTML/CSS는 이미 작성되어 있음(index.html). body background #05070d.
 
 ## 게임 흐름 (씬)
-Boot → Title → CharacterSelect → Game(stage 1) → (중간보스→보스→StageClear) → Game(stage 2) → Game(stage 3) → Game(final) → Ending
+Boot → Title → CharacterSelect → Story(서장) → Game(stage 1) → (중간보스→보스→StageClear) → Story(1장) → Game(stage 2) → … → Story(5장) → Game(final) → Ending
 - Game Over 시 Result 씬: RETRY / TITLE. NEW HIGH SCORE 표시.
-- 씬 키: `'Boot' | 'Title' | 'CharacterSelect' | 'Game' | 'Result' | 'Ending'`
+- 씬 키: `'Boot' | 'Title' | 'CharacterSelect' | 'Story' | 'Game' | 'Result' | 'Ending' | 'Ranking'`
+- Story 씬 데이터 `{chapter, next}`: chapter장 컷신(data/story.ts)을 보여 준 뒤 `next`로 Game을 시작한다. 장 번호 = 다음 스테이지 번호.
 - 씬 전달 데이터: CharacterSelect→Game `{charIndex, difficulty}`; Game→Result `{stageIndex, score, lives, bombs, power, charIndex, difficulty, cleared: boolean, gameOver: boolean}`; Result→Game(다음 스테이지, 상태 이월) / Result→Title / Result→Ending(스테이지 3 보스 격파 후).
 - Ending 후 Title 복귀.
 
@@ -34,6 +35,8 @@ Boot → Title → CharacterSelect → Game(stage 1) → (중간보스→보스�
 1. **윤 YUN** (균형 검사, 파랑) — 기본: 빠른 직선 검기 / 차지: 거대 초승달 검기(적탄 일부 소거) / 필살: 2초간 거대 검진 화면 전체 휩쓸기. 초보자용.
 2. **려화 RYEOHWA** (화염 술사, 빨강/주황) — 기본: 3갈래 화염탄 / 차지: 자동 추적 화염조 5~7마리 / 필살: 화면 여러 지점 불기둥 연속. 넓은 범위, 단일 DPS는 윤보다 약간 낮음.
 3. **무영 MOOYOUNG** (고속 암살자, 보라) — 기본: 매우 빠른 직선 수리검 / 차지: 전방 돌진(경로 대미지, 짧은 무적) / 필살: 잔상 다수가 화면을 가로지르며 공격. 최고 DPS, 좁은 범위, 고난도.
+4. **소율 SOYUL** (관통 궁수, 옥색) — 기본: 적을 꿰뚫는 화살(관통 1~2) / 차지: 천궁일시, 화면 끝까지 꿰뚫는 거대 화살 / 필살: 유성시우, 3초간 화살비. 느린 연사, 한 발이 무거움.
+5. **해랑 HAERANG** (결계 술사, 금색) — 기본: 약하게 유도되는 앞 부적 + 뒤쪽 견제 부적 / 차지: 호신결계, 1.6초간 반경 120px 적탄 소거 / 필살: 사신결계, 1.5초간 화면 정화 + 전체 피해. 최저 화력, 방어형.
 - 공격력/속도/범위 스탯 카드 + 차지공격 설명을 캐릭터 선택 화면에 표시.
 
 ## 전투 시스템
@@ -44,9 +47,10 @@ Boot → Title → CharacterSelect → Game(stage 1) → (중간보스→보스�
 - **아이템**: P(공격력)/B(필살기+1)/L(목숨+1)/G(점수). 적 처치 시 확률 드롭, G는 위로 튀어 아래로 낙하.
 - **점수**: 처치/보스 타격/아이템/콤보/노미스/클리어 보너스. HI-SCORE는 localStorage.
 
-## 난이도 (시작 시 선택 EASY/NORMAL/HARD, NORMAL 기준)
-- EASY: 탄속 0.8x, 탄 밀도 0.75x, 목숨 4
-- HARD: 탄속 1.15x, 밀도 1.3x, 적 HP/조합 강화, 보스 패턴 강화
+## 난이도 (시작 시 선택 EASY/NORMAL/HARD/EXTREME, NORMAL 기준, GameConfig.DIFFICULTY_PRESETS)
+- EASY: 탄속 0.8x, 탄 밀도 0.75x, 목숨 4, 시작 필살기 3
+- HARD: 탄속 1.15x, 밀도 1.3x, 적 HP 1.3x, 보스 HP 1.25x
+- EXTREME: 탄속 1.45x, 밀도 2.1x(발수 상한 2.4x), 목숨 1·필살기 0, 목숨 아이템 없음, 적 HP 1.5x, 보스 HP 1.6x·공격 빈도 1.35x, 원형탄 빈틈 1발분, 격파탄(적 사망 시 조준탄 + 원형탄, 플레이어 140px 안에서는 생략), 게임오버 RETRY는 1스테이지부터. 안전 경로 원칙은 그대로 지킨다.
 - localStorage에 선택 난이도/최근 캐릭터 저장.
 
 ## 적 (Enemy.ts + data/enemyPatterns.ts, 32~100px)
@@ -58,7 +62,9 @@ Boot → Title → CharacterSelect → Game(stage 1) → (중간보스→보스�
 - 횡스크롤(좌→우), 플레이어는 화면 좌측 70% 영역, 스크롤 속도 변화(보스전 정지).
 - **Stage 1 청운계곡**: 튜토리얼 리듬. 중간보스 거대 비행 가오리 요괴. 보스 **철갑귀 장군**(갑옷 비행 요괴) — P1 조준+직선탄, P2 부채꼴, P3(HP30%↓) 돌진+탄막 복합.
 - **Stage 2 붉은 기계도시**: 톱니/기계문/비행선/붉은 등불 배경. 중간보스 거대 기계 지네. 보스 **홍련기관왕** — 미사일/레이저/원형탄막/부품분리, HP↓ 시 외장 파괴 후 코어 노출 연출.
-- **Stage 3 천공성**: 가장 화려함. 강화 적 조합. 중간보스 타락한 천명사(플레이어와 유사 능력). 보스 **백야천녀** — 순간이동, 검기/원형탄막/추적탄/레이저/분신, HP↓ 시 화면 어두워지며 패턴 변화.
+- **Stage 3 수몰용궁**: 폭풍의 바다에 반쯤 잠긴 용궁. 물고기 요괴(fish) 중심. 중간보스 **달해파리 월해파**(원형탄·꽃잎탄·낙하탄). 보스 **해룡비 청린** — 물결 장막(curtain)·소용돌이 나선·돌진, HP↓ 시 꽃잎탄 + 레이저.
+- **Stage 4 천공성**: 가장 화려함. 강화 적 조합. 중간보스 타락한 천명사(플레이어와 유사 능력). 보스 **백야천녀** — 순간이동, 검기/원형탄막/추적탄/레이저/분신, HP↓ 시 화면 어두워지며 패턴 변화.
+- **Stage 5 백귀야시**: 구름 위 요괴 밤시장. 도깨비불(wisp) 중심. 중간보스 **구미호 홍월**(여우불 꽃잎·순간이동·분신). 보스 **등롱귀왕 야명** — 주위를 도는 등롱 4개가 사격, 원형탄·꽃잎탄·낙하탄·장막·조각탄, HP↓ 시 화면 암전.
 - **Final 천문**: 하늘의 균열. 보스 **무명천** — Phase1 인간형(정교한 탄막) → Phase2 용+새 결합 거대 신수형(배경이 움직이는 연출). 모든 패턴에 안전 경로 보장.
 
 ## 보스 설계 원칙 (Boss.ts + data/bossPatterns.ts, 150~400px)
@@ -145,4 +151,4 @@ src/game/utils/Pool.ts
 - 보스 필살기로 지나치게 쉽게 죽지 않게(필살기 대미지는 총 HP의 작은 비율 수준으로).
 
 ## 최종 체크리스트
-npm install/dev/build 성공, Title→캐릭터선택(3명)→스테이지→보스→클리어→스테이지2→3→파이널→엔딩, 게임오버/리트라이, 하이스코어 저장 유지, 디버그 키, 모바일 실행. TODO/FIXME/placeholder 금지.
+npm install/dev/build 성공, Title→캐릭터선택(5명)→서장→스테이지→보스→클리어→컷신→스테이지2~5→파이널→엔딩, 게임오버/리트라이, 하이스코어 저장 유지, 디버그 키, 모바일 실행. TODO/FIXME/placeholder 금지.

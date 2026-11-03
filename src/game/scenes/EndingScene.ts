@@ -1,7 +1,9 @@
 import Phaser from 'phaser';
 import { HEIGHT, UI_FONT, WIDTH } from '../GameConfig';
+import { parseDifficulty } from '../GameConfig';
 import type { Difficulty } from '../GameConfig';
-import { getCharacter } from '../data/characters';
+import { clampCharIndex, getCharacter } from '../data/characters';
+import { STAGES } from '../data/stages';
 import { AudioSystem } from '../systems/AudioSystem';
 import { SaveSystem } from '../systems/SaveSystem';
 
@@ -31,6 +33,18 @@ const EPILOGUES: string[][] = [
     '무영은 이름 없이 사라졌다 — 그림자처럼.',
     '“보이지 않아도, 지키는 자는 있다.”',
     '— 아무도 그를 보지 못했지만, 모두 기억한다.',
+  ],
+  [
+    '마지막 화살이 균열을 꿰뚫고, 하늘은 다시 이어졌다.',
+    '소율은 활을 내리고 매를 불러 앉혔다.',
+    '“빗나간 적은 없어. 돌아갈 길도.”',
+    '— 관통의 궁수는 숲의 파수꾼으로 돌아갔다.',
+  ],
+  [
+    '사신의 결계가 걷히자, 무명천의 가면이 바람에 날렸다.',
+    '해랑은 산 위 작은 사당에서 흩어진 부적을 쓸어 모았다.',
+    '“천명은 끊는 게 아니라, 함께 지는 거였어.”',
+    '— 결계의 술사는 오늘도 누군가의 하늘을 지킨다.',
   ],
 ];
 
@@ -62,9 +76,9 @@ export class EndingScene extends Phaser.Scene {
 
   init(raw: EndingSceneData): void {
     const d = raw ?? {};
-    this.charIndex = Math.min(2, Math.max(0, Math.floor(d.charIndex ?? 0)));
+    this.charIndex = clampCharIndex(d.charIndex);
     this.score = Math.max(0, Math.floor(d.score ?? 0));
-    this.difficulty = d.difficulty === 'EASY' || d.difficulty === 'HARD' ? d.difficulty : 'NORMAL';
+    this.difficulty = parseDifficulty(d.difficulty);
   }
 
   create(): void {
@@ -308,7 +322,7 @@ export class EndingScene extends Phaser.Scene {
         score: this.score,
         pilot: getCharacter(this.charIndex).id,
         difficulty: this.difficulty,
-        stage: 4,
+        stage: STAGES.length,
         cleared: true,
       },
     });

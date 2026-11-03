@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { HEIGHT, MAX_BOMBS, START_BOMBS, UI_FONT, WIDTH } from '../GameConfig';
+import { HEIGHT, MAX_BOMBS, UI_FONT, WIDTH, parseDifficulty } from '../GameConfig';
 import type {
   BossLike,
   Difficulty,
@@ -28,6 +28,7 @@ import { ScoreSystem } from '../systems/ScoreSystem';
 import { AudioSystem } from '../systems/AudioSystem';
 import { SaveSystem } from '../systems/SaveSystem';
 import { Effects } from '../effects/Effects';
+import { clampCharIndex } from '../data/characters';
 
 export interface GameSceneData {
   stageIndex?: number;
@@ -116,15 +117,14 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
   init(data: GameSceneData): void {
     const raw = data ?? {};
     this.stageIndex = Math.max(0, Math.min(STAGES.length - 1, Math.floor(raw.stageIndex ?? 0)));
-    const d = raw.difficulty;
-    this.difficulty = d === 'EASY' || d === 'HARD' ? d : 'NORMAL';
+    this.difficulty = parseDifficulty(raw.difficulty);
     this.carriedMaxCombo = Math.max(0, Math.floor(raw.maxCombo ?? 0));
     this.initPower = Math.max(0, Math.min(3, Math.floor(raw.power ?? 0)));
     // lives/bombs는 create()에서 프리셋 기본값과 합친다
     this.registry.set('carryScore', Math.max(0, Math.floor(raw.score ?? 0)));
     this.registry.set('carryLives', raw.lives === undefined ? -1 : Math.max(0, Math.floor(raw.lives)));
     this.registry.set('carryBombs', raw.bombs === undefined ? -1 : Math.max(0, Math.floor(raw.bombs)));
-    this.registry.set('carryChar', Math.max(0, Math.min(2, Math.floor(raw.charIndex ?? 0))));
+    this.registry.set('carryChar', clampCharIndex(raw.charIndex));
   }
 
   create(): void {
@@ -181,7 +181,7 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
       this,
       charIndex,
       carryLives < 0 ? preset.lives : Math.max(1, carryLives),
-      carryBombs < 0 ? START_BOMBS : Math.min(MAX_BOMBS, Math.max(0, carryBombs)),
+      carryBombs < 0 ? preset.startBombs : Math.min(MAX_BOMBS, Math.max(0, carryBombs)),
     );
     this.player.sprite.setPosition(RESPAWN_X, RESPAWN_Y);
     for (let i = 0; i < this.initPower; i += 1) this.player.addPower(1);
@@ -332,6 +332,7 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
     b.fire(cfg.x, cfg.y, cfg.vx, cfg.vy, 'player', cfg.texture, {
       damage: cfg.damage,
       pierce: cfg.pierce ?? 0,
+      distinct: cfg.distinct ?? false,
       clearsBullets: cfg.clearsBullets ?? false,
       homing: cfg.homing ?? false,
       homingTurn: cfg.homingTurn ?? 4,
@@ -558,6 +559,7 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
 
   private onPlayerBulletHitEnemy(bullet: Bullet, enemy: Enemy): void {
     if (!bullet.active || !enemy.active) return;
+    if (!bullet.registerHit(enemy)) return;
     enemy.takeDamage(bullet.damage, bullet.x);
     if (bullet.clearsBullets) this.clearEnemyBulletsNear(bullet.x, bullet.y, 90);
     if (bullet.consumeHit()) bullet.kill();
@@ -571,6 +573,7 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
       const dx = b.x - boss.x;
       const dy = b.y - boss.y;
       if (dx * dx + dy * dy > r2) continue;
+      if (!b.registerHit(boss)) continue;
       boss.takeDamage(b.damage);
       if (b.clearsBullets) this.clearEnemyBulletsNear(b.x, b.y, 90);
       if (b.consumeHit()) b.kill();
@@ -732,16 +735,18 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
       });
       return;
     }
-    this.scene.restart({
+    // 스테이지 사이 스토리 컷신(장 번호 = 다음 스테이지 번호)을 거쳐 다음 스테이지로
+    const next: GameSceneData = {
       stageIndex: this.stageIndex + 1,
       score: this.scoreSys.currentScore,
       lives: this.player.getLives(),
-      bombs: Math.max(2, this.player.getBombs()),
+      bombs: Math.max(DIFFICULTY_PRESETS[this.difficulty].startBombs, this.player.getBombs()),
       power: this.player.getPower(),
       charIndex: this.player.getCharIndex(),
       difficulty: this.difficulty,
       maxCombo: Math.max(this.carriedMaxCombo, this.scoreSys.bestCombo),
-    } as GameSceneData);
+    };
+    this.scene.start('Story', { chapter: this.stageIndex + 1, next });
   }
 
   // -- 연출 ------------------------------------------------------------------

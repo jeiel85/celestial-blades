@@ -70,11 +70,26 @@ export interface BossMoveState {
 
 export type BossMoveFn = (s: BossMoveState, tMs: number) => { x: number; y: number };
 
+/** 보스 주위를 도는 부속(기관왕 코어 조각, 귀왕의 등롱). 피격되지 않고 플레이어를 향해 3갈래로 쏜다. */
+export interface BossPartsDef {
+  tex: string;
+  count: number;
+  scale: number;
+  /** 이 페이즈부터 나타난다 */
+  fromPhase: number;
+  radiusX: number;
+  radiusY: number;
+  /** 발사 간격 (ms) */
+  fireMs: number;
+  tint: number;
+  speed: number;
+}
+
 export interface BossDef {
   id: string;
   tex: string;
   displayName: string;
-  /** 기본 HP (EASY 0.85x / HARD 1.25x 스케일 적용) */
+  /** 기본 HP (난이도 프리셋 bossHp 배율 적용) */
   hp: number;
   /** 피격/충돌 반경 (px) */
   radius: number;
@@ -83,6 +98,9 @@ export interface BossDef {
   hover: { xMin: number; xMax: number; yMin: number; yMax: number };
   movement: BossMoveFn;
   phases: BossPhase[];
+  parts?: BossPartsDef;
+  /** 이 페이즈부터 표시 이름을 바꾼다(최종 보스 변신 등) */
+  phaseNames?: Record<number, string>;
 }
 
 // -- 공용 헬퍼 ---------------------------------------------------------------
@@ -108,9 +126,10 @@ function str(p: any, key: string, fallback: string): string {
   return typeof v === 'string' ? v : fallback;
 }
 
-/** 밀도 배율을 발수에 반영 (최소 1, 최대 1.6x) */
+/** 밀도 배율을 발수에 반영 (최소 1, 상한은 난이도 프리셋 countCap) */
 function scaledCount(world: IGameWorld, base: number): number {
-  return Math.max(1, Math.round(base * Math.min(1.6, Math.max(0.6, diff(world).density))));
+  const preset = DIFFICULTY_PRESETS[world.getDifficulty()];
+  return Math.max(1, Math.round(base * Math.min(preset.countCap, Math.max(0.6, preset.density))));
 }
 
 /** 호버 이동 생성기: 앵커 주변 타원 궤적 (우측 60~85% x 범위 고정) */
@@ -163,7 +182,7 @@ function fan(boss: BossAttackContext, world: IGameWorld, params: AttackParams): 
 function ring(boss: BossAttackContext, world: IGameWorld, params: AttackParams): void {
   if (!world.isPlayerAlive()) return;
   const count = Math.max(8, scaledCount(world, num(params, 'count', 14)));
-  const skip = Math.max(1, Math.min(4, Math.round(num(params, 'skip', 2))));
+  const skip = Math.max(1, Math.min(DIFFICULTY_PRESETS[world.getDifficulty()].ringSkipMax, Math.round(num(params, 'skip', 2))));
   const speed = num(params, 'speed', 150) * diff(world).speed;
   const tex = str(params, 'tex', 'eb_mid');
   const tint = num(params, 'tint', 0xc9a8ff);
@@ -410,6 +429,44 @@ function sweep(boss: BossAttackContext, world: IGameWorld, params: AttackParams)
   }
 }
 
+/** 탄막 장막 (화면 오른쪽 끝에서 세로 한 줄이 밀려온다 — 플레이어 근처에 한 칸 틈) */
+function curtain(boss: BossAttackContext, world: IGameWorld, params: AttackParams): void {
+  if (!world.isPlayerAlive()) return;
+  const count = Math.max(8, Math.min(30, scaledCount(world, num(params, 'count', 12))));
+  const speed = num(params, 'speed', 170) * diff(world).speed;
+  const tint = num(params, 'tint', 0x8fe8ff);
+  const tex = str(params, 'tex', 'eb_mid');
+  const gapHalf = num(params, 'gap', 70);
+  const p = world.getPlayerPos();
+  const gapY = Math.max(110, Math.min(610, p.y + (Math.random() - 0.5) * 280));
+  for (let i = 0; i < count; i += 1) {
+    const y = 50 + (i / (count - 1)) * 620;
+    if (Math.abs(y - gapY) < gapHalf) continue;
+    world.spawnEnemyBullet(1300, y, Math.PI, speed, tex, tint);
+  }
+  void boss;
+}
+
+/** 꽃잎 탄 (여러 갈래가 짧은 호를 그리며 퍼지는 회전 꽃 — 갈래 사이가 통로) */
+function flower(boss: BossAttackContext, world: IGameWorld, params: AttackParams): void {
+  if (!world.isPlayerAlive()) return;
+  const arms = Math.max(3, Math.min(12, scaledCount(world, num(params, 'arms', 5))));
+  const per = Math.max(3, Math.min(7, Math.round(num(params, 'per', 5))));
+  const speed = num(params, 'speed', 170) * diff(world).speed;
+  const tint = num(params, 'tint', 0xff9fd0);
+  const tex = str(params, 'tex', 'eb_small');
+  const key = `flower_${str(params, 'tag', 'a')}`;
+  const base = (boss.attackState[key] ?? 0) + num(params, 'step', 0.37);
+  boss.attackState[key] = base;
+  const mid = (per - 1) / 2;
+  for (let k = 0; k < arms; k += 1) {
+    for (let j = 0; j < per; j += 1) {
+      const a = base + (k / arms) * Math.PI * 2 + (j - mid) * 0.07;
+      world.spawnEnemyBullet(boss.x, boss.y, a, speed * (1 - Math.abs(j - mid) * 0.09), tex, tint);
+    }
+  }
+}
+
 export const ATTACKS: Record<string, BossAttackFn> = {
   aimed,
   fan,
@@ -427,6 +484,8 @@ export const ATTACKS: Record<string, BossAttackFn> = {
   clone,
   rain,
   sweep,
+  curtain,
+  flower,
 };
 
 // -- 보스 정의 ---------------------------------------------------------------
@@ -601,6 +660,7 @@ export const BOSS_DEFS: Record<string, BossDef> = {
     entrance: { x: 1500, y: 360, durationMs: 2800 },
     hover: HOVER,
     movement: hoverMove(55, 90, 0.35, 0.5),
+    parts: { tex: 'boss_engine_core', count: 3, scale: 0.375, fromPhase: 1, radiusX: 120, radiusY: 84, fireMs: 2400, tint: 0xffd75e, speed: 190 },
     phases: [
       {
         hpAbove: 1.0,
@@ -690,6 +750,7 @@ export const BOSS_DEFS: Record<string, BossDef> = {
     id: 'final_moo',
     tex: 'final_human',
     displayName: '무명천 — 인간형',
+    phaseNames: { 2: '무명천 — 신수형' },
     hp: 12000,
     radius: 62,
     scale: 1.1,
@@ -731,6 +792,166 @@ export const BOSS_DEFS: Record<string, BossDef> = {
           { name: 'seeker', params: { count: 4, speed: 285, tint: 0xffb347 }, interval: 2000 },
           { name: 'ring', params: { count: 18, speed: 155, tint: 0xa06bff, tag: 'beast' }, interval: 3000, delay: 2000 },
           { name: 'shard', params: { speed: 150, tint: 0xffb347 }, interval: 3600, delay: 2800, telegraph: 400 },
+        ],
+      },
+    ],
+  },
+
+  // -- Stage 3 중간보스: 월해파 (거대 해파리, 거품 낙하 + 꽃잎) -------------------
+  midboss_jelly: {
+    id: 'midboss_jelly',
+    tex: 'midboss_jelly',
+    displayName: '거대 달해파리 — 월해파',
+    hp: 2400,
+    radius: 62,
+    scale: 1,
+    entrance: { x: 1500, y: 300, durationMs: 2400 },
+    hover: HOVER,
+    movement: hoverMove(80, 160, 0.4, 0.55, 0.4),
+    phases: [
+      {
+        hpAbove: 1.0,
+        duration: 6000,
+        attacks: [
+          { name: 'ring', params: { count: 14, speed: 140, tint: 0x8fe8ff, tag: 'jel' }, interval: 2600, delay: 1000 },
+          { name: 'wave', params: { count: 5, speed: 205, tint: 0xff9fd0 }, interval: 3000, delay: 2000 },
+          { name: 'aimed', params: { count: 3, speed: 240, tint: 0xd8f4ff }, interval: 1900, delay: 600 },
+        ],
+      },
+      {
+        hpAbove: 0.5,
+        duration: 0,
+        flashColor: 0x8fe8ff,
+        attacks: [
+          { name: 'flower', params: { arms: 5, per: 4, speed: 160, tint: 0xff9fd0, tag: 'jel' }, interval: 1500 },
+          { name: 'rain', params: { count: 8, speed: 180, tint: 0x8fe8ff }, interval: 2600, delay: 1200 },
+          { name: 'aimed', params: { count: 4, speed: 255, tint: 0xd8f4ff }, interval: 1700 },
+        ],
+      },
+    ],
+  },
+
+  // -- Stage 3 보스: 해룡비 청린 (HP 9500, 물결 장막 + 소용돌이 + 돌진) -------------
+  boss_dragon: {
+    id: 'boss_dragon',
+    tex: 'boss_dragon',
+    displayName: '해룡비 — 청린',
+    hp: 9500,
+    radius: 100,
+    scale: 1,
+    entrance: { x: 1500, y: 360, durationMs: 2800 },
+    hover: HOVER,
+    movement: hoverMove(70, 150, 0.45, 0.6, 1.6),
+    phases: [
+      {
+        hpAbove: 1.0,
+        duration: 10000,
+        attacks: [
+          { name: 'wave', params: { count: 6, speed: 215, tint: 0x8fe8ff }, interval: 2400, delay: 800, telegraph: 350 },
+          { name: 'fan', params: { count: 7, spread: 0.8, speed: 205, tint: 0x53e0b0 }, interval: 2600, delay: 1600 },
+          { name: 'curtain', params: { count: 12, speed: 165, tint: 0x8fe8ff }, interval: 4200, delay: 2600 },
+        ],
+      },
+      {
+        hpAbove: 0.62,
+        duration: 9000,
+        flashColor: 0x53e0b0,
+        attacks: [
+          { name: 'spiral', params: { arms: 4, step: 0.33, speed: 160, tint: 0x8fe8ff, tag: 'drg' }, interval: 900 },
+          { name: 'seeker', params: { count: 3, speed: 285, tint: 0xd8f4ff }, interval: 2200, delay: 700 },
+          { name: 'dash', params: {}, interval: 6000, delay: 2500, telegraph: 600 },
+        ],
+      },
+      {
+        hpAbove: 0.3,
+        duration: 0,
+        darkness: 0.25,
+        flashColor: 0x8fe8ff,
+        attacks: [
+          { name: 'flower', params: { arms: 6, per: 5, speed: 165, tint: 0x53e0b0, tag: 'drg' }, interval: 1700 },
+          { name: 'laser', params: { sweep: 0.25, tint: 0x8fe8ff }, interval: 4800, delay: 1500, telegraph: 800 },
+          { name: 'curtain', params: { count: 14, speed: 175, tint: 0x8fe8ff }, interval: 3600, delay: 2200 },
+        ],
+      },
+    ],
+  },
+
+  // -- Stage 5 중간보스: 구미호 홍월 (여우불 꽃잎 + 순간이동 + 분신) ----------------
+  midboss_fox: {
+    id: 'midboss_fox',
+    tex: 'midboss_fox',
+    displayName: '구미호 — 홍월',
+    hp: 3000,
+    radius: 50,
+    scale: 1,
+    entrance: { x: 1500, y: 360, durationMs: 2000 },
+    hover: HOVER,
+    movement: hoverMove(110, 150, 0.7, 0.85, 2.4),
+    phases: [
+      {
+        hpAbove: 1.0,
+        duration: 6000,
+        attacks: [
+          { name: 'flower', params: { arms: 4, per: 4, speed: 175, tint: 0x8fb8ff, tag: 'fox' }, interval: 1700, delay: 800 },
+          { name: 'aimed', params: { count: 4, speed: 270, tint: 0xff6f8f }, interval: 1600, delay: 400 },
+          { name: 'teleport', params: {}, interval: 5500, delay: 3500 },
+        ],
+      },
+      {
+        hpAbove: 0.5,
+        duration: 0,
+        flashColor: 0xff6f8f,
+        attacks: [
+          { name: 'clone', params: {}, interval: 8000, delay: 1000, telegraph: 600 },
+          { name: 'spiral', params: { arms: 3, step: 0.45, speed: 170, tint: 0x8fb8ff, tag: 'fox' }, interval: 850 },
+          { name: 'fan', params: { count: 7, spread: 0.8, speed: 230, tint: 0xff6f8f }, interval: 2200, telegraph: 350 },
+        ],
+      },
+    ],
+  },
+
+  // -- Stage 5 보스: 등롱귀왕 야명 (HP 11000, 등롱 4개가 주위를 돌며 사격) ----------
+  boss_lantern: {
+    id: 'boss_lantern',
+    tex: 'boss_lantern',
+    displayName: '등롱귀왕 — 야명',
+    hp: 11000,
+    radius: 96,
+    scale: 1,
+    entrance: { x: 1500, y: 360, durationMs: 3000 },
+    hover: HOVER,
+    movement: hoverMove(60, 110, 0.4, 0.55, 0.9),
+    parts: { tex: 'lantern_orb', count: 4, scale: 0.9, fromPhase: 0, radiusX: 150, radiusY: 130, fireMs: 2600, tint: 0xffb347, speed: 185 },
+    phases: [
+      {
+        hpAbove: 1.0,
+        duration: 10000,
+        attacks: [
+          { name: 'ring', params: { count: 16, speed: 150, tint: 0xff7b2d, tag: 'lan' }, interval: 2800, delay: 1000 },
+          { name: 'aimed', params: { count: 4, speed: 260, tint: 0xffd75e }, interval: 1700, delay: 500, telegraph: 300 },
+          { name: 'missile', params: { count: 3, speed: 140, tint: 0xff4d3d }, interval: 3000, delay: 2000 },
+        ],
+      },
+      {
+        hpAbove: 0.65,
+        duration: 9000,
+        flashColor: 0xff7b2d,
+        attacks: [
+          { name: 'flower', params: { arms: 6, per: 4, speed: 165, tint: 0xffb347, tag: 'lan' }, interval: 1600 },
+          { name: 'rain', params: { count: 8, speed: 195, tint: 0xff7b2d }, interval: 2600, delay: 900 },
+          { name: 'summon', params: { typeId: 'wisp', count: 2, cap: 4 }, interval: 8000, delay: 3000 },
+        ],
+      },
+      {
+        hpAbove: 0.33,
+        duration: 0,
+        darkness: 0.5,
+        flashColor: 0xff2d3f,
+        attacks: [
+          { name: 'spiral', params: { arms: 3, step: 0.39, speed: 170, tint: 0xffd75e, tag: 'lan' }, interval: 900 },
+          { name: 'curtain', params: { count: 14, speed: 175, tint: 0xff7b2d }, interval: 3800, delay: 1500 },
+          { name: 'shard', params: { speed: 150, tint: 0xff4d3d }, interval: 3400, delay: 2500, telegraph: 400 },
+          { name: 'clone', params: {}, interval: 9000, delay: 4000, telegraph: 600 },
         ],
       },
     ],

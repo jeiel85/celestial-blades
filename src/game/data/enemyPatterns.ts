@@ -289,6 +289,26 @@ export const ENEMY_TYPES: Record<string, EnemyTypeDef> = {
     move: batMove,
     fire: batFire,
   },
+  // 수몰용궁: 박쥐형 궤적의 비행 물고기 요괴
+  fish: {
+    tex: 'enemy_fish',
+    hp: 5,
+    radius: 15,
+    score: 90,
+    fireInterval: 2400,
+    move: batMove,
+    fire: batFire,
+  },
+  // 백귀야시: 소형 궤적의 도깨비불 등롱
+  wisp: {
+    tex: 'enemy_wisp',
+    hp: 4,
+    radius: 14,
+    score: 70,
+    fireInterval: 2000,
+    move: smallMove,
+    fire: smallFire,
+  },
   rusher: {
     tex: 'enemy_rusher',
     hp: 6,

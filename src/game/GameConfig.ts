@@ -66,24 +66,50 @@ export type ItemType = 'P' | 'B' | 'L' | 'G';
 // ---------------------------------------------------------------------------
 // 난이도
 // ---------------------------------------------------------------------------
-export type Difficulty = 'EASY' | 'NORMAL' | 'HARD';
+export type Difficulty = 'EASY' | 'NORMAL' | 'HARD' | 'EXTREME';
+
+/** 선택 화면·랭킹 탭에 나오는 순서 */
+export const DIFFICULTIES: Difficulty[] = ['EASY', 'NORMAL', 'HARD', 'EXTREME'];
+
+/** 저장값·씬 데이터에서 온 난이도를 검증한다(모르는 값은 NORMAL). */
+export function parseDifficulty(v: unknown): Difficulty {
+  return DIFFICULTIES.includes(v as Difficulty) ? (v as Difficulty) : 'NORMAL';
+}
 
 export interface DifficultyPreset {
   /** 적탄 속도 배율 */
   bulletSpeed: number;
   /** 탄 밀도(발사 수/빈도) 배율 */
   density: number;
+  /** 밀도를 발수에 반영할 때의 상한 배율 */
+  countCap: number;
   /** 시작 목숨 */
   lives: number;
-  /** 보스 강화 패턴 사용 여부 */
-  bossEnrage: boolean;
+  /** 스테이지 시작 시 필살기 수(이월분이 더 많으면 이월분) */
+  startBombs: number;
+  /** 보스 공격 빈도 배율(클수록 자주 쏜다) */
+  bossRate: number;
+  /** 보스·적 HP 배율 */
+  bossHp: number;
+  enemyHp: number;
+  /** 원형 탄막에서 비우는 탄 수의 상한(작을수록 빈틈이 좁다) */
+  ringSkipMax: number;
+  /** 적이 죽을 때 되갚음탄(격파탄)을 남긴다 */
+  revenge: boolean;
+  /** 목숨(L) 아이템이 나오는가 */
+  lifeDrops: boolean;
+  /** 게임오버 후 RETRY가 그 스테이지부터 이어 하는가(false면 1스테이지부터) */
+  stageRetry: boolean;
   label: string;
 }
 
 export const DIFFICULTY_PRESETS: Record<Difficulty, DifficultyPreset> = {
-  EASY: { bulletSpeed: 0.8, density: 0.75, lives: 4, bossEnrage: false, label: 'EASY' },
-  NORMAL: { bulletSpeed: 1.0, density: 1.0, lives: 3, bossEnrage: false, label: 'NORMAL' },
-  HARD: { bulletSpeed: 1.15, density: 1.3, lives: 3, bossEnrage: true, label: 'HARD' },
+  EASY: { bulletSpeed: 0.8, density: 0.75, countCap: 1.6, lives: 4, startBombs: 3, bossRate: 1, bossHp: 0.85, enemyHp: 0.9, ringSkipMax: 4, revenge: false, lifeDrops: true, stageRetry: true, label: 'EASY' },
+  NORMAL: { bulletSpeed: 1.0, density: 1.0, countCap: 1.6, lives: 3, startBombs: 2, bossRate: 1, bossHp: 1, enemyHp: 1, ringSkipMax: 4, revenge: false, lifeDrops: true, stageRetry: true, label: 'NORMAL' },
+  HARD: { bulletSpeed: 1.15, density: 1.3, countCap: 1.6, lives: 3, startBombs: 2, bossRate: 1, bossHp: 1.25, enemyHp: 1.3, ringSkipMax: 4, revenge: false, lifeDrops: true, stageRetry: true, label: 'HARD' },
+  // 거의 완벽한 회피를 요구하는 난이도: 목숨 1·필살기 0으로 시작, 목숨 아이템 없음, 격파탄,
+  // 탄속 1.45배·탄 수 2.1배(상한 2.4배), 원형탄 빈틈 1발분. 안전 경로는 모든 패턴에 남아 있다.
+  EXTREME: { bulletSpeed: 1.45, density: 2.1, countCap: 2.4, lives: 1, startBombs: 0, bossRate: 1.35, bossHp: 1.6, enemyHp: 1.5, ringSkipMax: 1, revenge: true, lifeDrops: false, stageRetry: false, label: 'EXTREME' },
 };
 
 // ---------------------------------------------------------------------------
@@ -106,23 +132,6 @@ export const COLORS = {
   uiCyan: 0x8fd3ff,
 } as const;
 
-export interface StageTheme {
-  key: string;
-  title: string;
-  skyTop: number;
-  skyBottom: number;
-  far: number;
-  near: number;
-  accent: number;
-}
-
-export const STAGE_THEMES: StageTheme[] = [
-  { key: 'stage1', title: 'STAGE 1 — 청운계곡', skyTop: 0x0a1a33, skyBottom: 0x2c5f8a, far: 0x3a6e8f, near: 0x274d3d, accent: COLORS.playerBlue },
-  { key: 'stage2', title: 'STAGE 2 — 붉은 기계도시', skyTop: 0x1a0a12, skyBottom: 0x6e2a1e, far: 0x5e3a2a, near: 0x3d2a2a, accent: COLORS.flameOrange },
-  { key: 'stage3', title: 'STAGE 3 — 천공성', skyTop: 0x0d0a2e, skyBottom: 0x4d3a8f, far: 0x6e5fc0, near: 0x2e2a5e, accent: COLORS.shadowPurple },
-  { key: 'final', title: 'FINAL — 천문', skyTop: 0x02030a, skyBottom: 0x1e1a4d, far: 0x3d2a6e, near: 0x10102a, accent: COLORS.gold },
-];
-
 // ---------------------------------------------------------------------------
 // 씬 간 스폰/연출 계약 타입
 // ---------------------------------------------------------------------------
@@ -136,6 +145,8 @@ export interface PlayerBulletSpawn {
   scale?: number;
   tint?: number;
   pierce?: number;
+  /** true면 관통이 서로 다른 대상마다 1회씩만 소모된다(같은 적과 여러 프레임 겹쳐도 1회 피격) */
+  distinct?: boolean;
   clearsBullets?: boolean;
   homing?: boolean;
   homingTurn?: number;
