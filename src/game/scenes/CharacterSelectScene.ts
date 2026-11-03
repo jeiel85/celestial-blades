@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
-import { DIFFICULTIES, DIFFICULTY_PRESETS, HEIGHT, LOGO_FONT, UI_FONT, WIDTH } from '../GameConfig';
+import { DIFFICULTIES, DIFFICULTY_PRESETS, HEIGHT, LOGO_FONT, MAX_BOMBS, PLAYER_SPEED, UI_FONT, WIDTH } from '../GameConfig';
 import type { Difficulty } from '../GameConfig';
-import { BASE_CHARACTER_COUNT, clampCharIndex, pilotRoster } from '../data/characters';
+import { BASE_CHARACTER_COUNT, CHARACTERS, clampCharIndex, pilotRoster, speedScale } from '../data/characters';
+import { bombInvulnMs } from '../entities/Player';
 import type { CharacterDef } from '../data/characters';
 import { AudioSystem } from '../systems/AudioSystem';
 import { InputSystem } from '../systems/InputSystem';
@@ -25,6 +26,13 @@ const SELECT_W = 220;
 const SECRET = [-2, 2, -2, 2, -1, -1, 1, 1];
 /** 커맨드 입력 사이 허용 간격(ms) */
 const SECRET_GAP_MS = 1500;
+/** 능력치 막대(실측 기준): 줄 위치·막대 폭 */
+const STAT_Y = 388;
+const STAT_GAP = 18;
+const STAT_BAR_W = 250;
+/** 막대의 만점: 모든 천명사 중 가장 높은 값 */
+const MAX_BOSS_DPS = Math.max(...CHARACTERS.map((c) => c.measured.bossDps));
+const MAX_SPEED_SCALE = Math.max(...CHARACTERS.map((c) => speedScale(c)));
 
 /**
  * 캐릭터 선택 씬 (키 'CharacterSelect'). 텐가이식: 아래 줄의 인게임 기체 중에서 고르고,
@@ -57,6 +65,8 @@ export class CharacterSelectScene extends Phaser.Scene {
   private bombText!: Phaser.GameObjects.Text;
   private infoText!: Phaser.GameObjects.Text;
   private statFills: Phaser.GameObjects.Rectangle[] = [];
+  private statValues: Phaser.GameObjects.Text[] = [];
+  private statNote!: Phaser.GameObjects.Text;
   private sprites: Phaser.GameObjects.Image[] = [];
   private glows: Phaser.GameObjects.Image[] = [];
   private names: Phaser.GameObjects.Text[] = [];
@@ -97,6 +107,7 @@ export class CharacterSelectScene extends Phaser.Scene {
     this.leaving = false;
     this.banner = null;
     this.statFills = [];
+    this.statValues = [];
     this.sprites = [];
     this.glows = [];
     this.names = [];
@@ -181,12 +192,19 @@ export class CharacterSelectScene extends Phaser.Scene {
     this.infoText = this.add
       .text(40, 392, '', { fontFamily: FONT, fontSize: '15px', color: '#c9d4e0', lineSpacing: 6, wordWrap: { width: 700 } })
       .setDepth(4);
+    // 공격 = 실측 보스 화력, 속도 = 실제 이동 속도, 범위 = 탄이 덮는 넓이(설계 값 1~5)
     ['공격', '속도', '범위'].forEach((label, r) => {
-      const y = 402 + r * 24;
+      const y = STAT_Y + r * STAT_GAP;
       this.add.text(820, y, label, { fontFamily: FONT, fontSize: '14px', color: '#8fd3ff' }).setOrigin(0, 0.5).setDepth(4);
-      this.add.rectangle(870, y, 300, 9, 0x1a2530).setOrigin(0, 0.5).setDepth(4);
-      this.statFills.push(this.add.rectangle(870, y, 300, 9, 0xffd75e).setOrigin(0, 0.5).setDepth(4));
+      this.add.rectangle(870, y, STAT_BAR_W, 9, 0x1a2530).setOrigin(0, 0.5).setDepth(4);
+      this.statFills.push(this.add.rectangle(870, y, STAT_BAR_W, 9, 0xffd75e).setOrigin(0, 0.5).setDepth(4));
+      this.statValues.push(
+        this.add.text(870 + STAT_BAR_W + 12, y, '', { fontFamily: FONT, fontSize: '14px', color: '#e8f2ff' }).setOrigin(0, 0.5).setDepth(4),
+      );
     });
+    this.statNote = this.add
+      .text(820, STAT_Y + 3 * STAT_GAP - 8, '', { fontFamily: FONT, fontSize: '13px', color: '#c9d4e0' })
+      .setDepth(4);
   }
 
   /** 한 줄에 놓을 기체 간격과 크기(숨겨진 천명사가 열리면 7기가 화면 폭에 맞게 줄어든다) */
@@ -336,9 +354,16 @@ export class CharacterSelectScene extends Phaser.Scene {
     this.subText.setText(`${ch.nameEng} · ${ch.title}`).setX(this.nameText.x + this.nameText.width + 24).setY(296);
     this.bombText.setText(`필살  ${ch.bombName}${ch.hidden ? '   · 숨겨진 천명사' : ''}`);
     this.infoText.setText(`${ch.desc}\n${ch.specialDesc}\n${ch.chargeDesc}`);
-    [ch.stats.power, ch.stats.speed, ch.stats.range].forEach((v, r) => {
-      this.statFills[r].setDisplaySize(Math.max(8, (v / 5) * 300), 9);
+    const speed = speedScale(ch);
+    [ch.measured.bossDps / MAX_BOSS_DPS, speed / MAX_SPEED_SCALE, ch.stats.range / 5].forEach((v, r) => {
+      this.statFills[r].setDisplaySize(Math.max(8, v * STAT_BAR_W), 9);
     });
+    this.statValues[0].setText(`보스 ${ch.measured.bossDps}/초`);
+    this.statValues[1].setText(`${Math.round(PLAYER_SPEED * speed)}px/초`);
+    this.statValues[2].setText(`${ch.stats.range} / 5`);
+    this.statNote.setText(
+      `판정 ${ch.hitRadius ?? 6}px · 필살 1회 약 ${ch.measured.bombDamage} · 필살 중 무적 ${(bombInvulnMs(ch.id) / 1000).toFixed(1)}초 · 필살 최대 ${ch.maxBombs ?? MAX_BOMBS}개`,
+    );
 
     const { scale } = this.rowLayout();
     this.sprites.forEach((sp, i) => {

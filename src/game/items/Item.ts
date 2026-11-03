@@ -26,10 +26,15 @@ const LABEL: Record<ItemType, string> = {
 
 const DESPAWN_MARGIN = 60;
 const MAGNET_RADIUS = 150;
+/** 격추 때 흘린 아이템: 남아 있는 시간, 깜빡이기 시작하는 시점, 튕기는 화면 안쪽 경계 */
+const SCATTER_LIFE_MS = 10000;
+const SCATTER_BLINK_MS = 7500;
+const SCATTER_BOUNDS = { left: 24, right: WIDTH - 24, top: 64, bottom: HEIGHT - 24 };
 
 /**
  * 풀링 아이템 (Arcade Image).
  * P/B/L은 좌하단으로 천천히 표류, G는 위로 튀었다가 낙하한다.
+ * 격추 때 흘린 아이템(scatter)은 사방으로 튀어 화면 가장자리에서 튕기다 SCATTER_LIFE_MS 뒤 사라진다.
  * 플레이어 150px 이내에서는 자석처럼 끌려간다.
  */
 export class Item extends Phaser.Physics.Arcade.Image {
@@ -39,6 +44,7 @@ export class Item extends Phaser.Physics.Arcade.Image {
   private vy = 0;
   private age = 0;
   private wob: number = 0;
+  private scatter = false;
 
   constructor(scene: Phaser.Scene, private readonly world: IGameWorld) {
     super(scene, -100, -100, 'item_p');
@@ -58,16 +64,22 @@ export class Item extends Phaser.Physics.Arcade.Image {
     }
   }
 
-  spawn(kind: ItemType, x: number, y: number): void {
+  spawn(kind: ItemType, x: number, y: number, scatter = false): void {
     this.kind = kind;
     this.age = 0;
+    this.scatter = scatter;
     this.wob = Math.random() * Math.PI * 2;
     this.setTexture(TEX[kind]);
     this.clearTint();
     this.setScale(1);
     this.setAlpha(1);
     this.setRotation(0);
-    if (kind === 'G') {
+    if (scatter) {
+      const a = Math.random() * Math.PI * 2;
+      const sp = 190 + Math.random() * 110;
+      this.vx = Math.cos(a) * sp;
+      this.vy = Math.sin(a) * sp;
+    } else if (kind === 'G') {
       // 위로 튀어오른 뒤 낙하
       this.vx = -60 - Math.random() * 40;
       this.vy = -260 - Math.random() * 60;
@@ -89,7 +101,15 @@ export class Item extends Phaser.Physics.Arcade.Image {
     const sec = dtMs / 1000;
     this.age += dtMs;
 
-    if (this.kind === 'G') {
+    if (this.scatter) {
+      // 점점 느려지되 완전히 멈추지는 않는다(초당 약 70px까지)
+      const sp = Math.hypot(this.vx, this.vy);
+      if (sp > 70) {
+        const k = Math.max(70 / sp, 1 - 0.9 * sec);
+        this.vx *= k;
+        this.vy *= k;
+      }
+    } else if (this.kind === 'G') {
       this.vy = Math.min(430, this.vy + 900 * sec);
     } else {
       this.vy += Math.sin(this.age / 420 + this.wob) * 26 * sec;
@@ -108,6 +128,23 @@ export class Item extends Phaser.Physics.Arcade.Image {
     }
 
     this.setRotation(Math.sin(this.age / 300 + this.wob) * 0.22);
+
+    if (this.scatter) {
+      const b = SCATTER_BOUNDS;
+      if (this.x < b.left || this.x > b.right) {
+        this.x = Phaser.Math.Clamp(this.x, b.left, b.right);
+        this.vx = this.x === b.left ? Math.abs(this.vx) : -Math.abs(this.vx);
+      }
+      if (this.y < b.top || this.y > b.bottom) {
+        this.y = Phaser.Math.Clamp(this.y, b.top, b.bottom);
+        this.vy = this.y === b.top ? Math.abs(this.vy) : -Math.abs(this.vy);
+      }
+      if (this.age >= SCATTER_LIFE_MS) {
+        this.release();
+        return;
+      }
+      this.setAlpha(this.age > SCATTER_BLINK_MS && Math.floor(this.age / 120) % 2 === 0 ? 0.3 : 1);
+    }
 
     const body = this.body as Phaser.Physics.Arcade.Body | null;
     try {

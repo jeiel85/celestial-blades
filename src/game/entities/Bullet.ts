@@ -4,9 +4,12 @@ import type { TargetRef } from '../GameConfig';
 
 export type BulletOwner = 'player' | 'enemy';
 
+/** 관통탄(distinct 아님)이 겹쳐 있는 같은 대상을 다시 맞히는 간격(ms). 프레임 수와 무관하게 화력을 고정한다. */
+const PIERCE_REHIT_MS = 100;
+
 export interface BulletFireOpts {
   damage?: number;
-  /** 관통 가능한 적 수 (0이면 관통 없음, 다단히트 시 GameScene이 차감) */
+  /** 관통 가능한 횟수 (0이면 관통 없음, 맞힐 때마다 GameScene이 차감) */
   pierce?: number;
   /** true면 같은 대상은 한 번만 맞힌다(관통 화살) */
   distinct?: boolean;
@@ -35,6 +38,10 @@ export class Bullet extends Phaser.Physics.Arcade.Image {
   distinct = false;
   /** distinct 탄이 이미 맞힌 대상 */
   readonly hitTargets = new Set<object>();
+  /** 관통탄이 대상을 마지막으로 맞힌 시각(ageMs) */
+  private readonly lastHitAt = new Map<object, number>();
+  /** 발사 후 흐른 게임 시간(ms) */
+  private ageMs = 0;
   clearsBullets = false;
   homing = false;
   homingTurn = 4;
@@ -69,6 +76,8 @@ export class Bullet extends Phaser.Physics.Arcade.Image {
     this.pierce = opts.pierce ?? 0;
     this.distinct = opts.distinct ?? false;
     this.hitTargets.clear();
+    this.lastHitAt.clear();
+    this.ageMs = 0;
     this.clearsBullets = opts.clearsBullets ?? false;
     this.homing = opts.homing ?? false;
     this.homingTurn = opts.homingTurn ?? 4;
@@ -96,13 +105,21 @@ export class Bullet extends Phaser.Physics.Arcade.Image {
   }
 
   /**
-   * distinct 탄이 이 대상을 처음 맞히는지 확인하고 기록한다. 이미 맞힌 대상이면 false(피해·관통 소모 없음).
-   * distinct가 아니면 항상 true(기존처럼 겹친 프레임마다 맞는다).
+   * 이번 접촉을 피격으로 칠지 정하고 기록한다. false면 피해·관통 소모 없이 넘긴다.
+   * - distinct 탄: 같은 대상은 한 번만.
+   * - 그 밖의 관통탄: 겹쳐 있는 동안 같은 대상을 PIERCE_REHIT_MS마다.
+   * - 관통이 없는 탄: 맞으면 사라지므로 항상 true.
    */
   registerHit(target: object): boolean {
-    if (!this.distinct) return true;
-    if (this.hitTargets.has(target)) return false;
-    this.hitTargets.add(target);
+    if (this.distinct) {
+      if (this.hitTargets.has(target)) return false;
+      this.hitTargets.add(target);
+      return true;
+    }
+    if (this.pierce <= 0) return true;
+    const last = this.lastHitAt.get(target);
+    if (last !== undefined && this.ageMs - last < PIERCE_REHIT_MS) return false;
+    this.lastHitAt.set(target, this.ageMs);
     return true;
   }
 
@@ -130,6 +147,7 @@ export class Bullet extends Phaser.Physics.Arcade.Image {
     // 게임 시간 배속(히트스톱·필살기 슬로모션)을 따른다. GameScene이 scene.time.timeScale에 배속을 넣는다.
     const gameDelta = delta * this.scene.time.timeScale;
     const dt = gameDelta / 1000;
+    this.ageMs += gameDelta;
 
     if (this.hasLife) {
       this.lifeLeft -= gameDelta;

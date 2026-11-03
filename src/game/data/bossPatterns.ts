@@ -498,7 +498,7 @@ export const BOSS_DEFS: Record<string, BossDef> = {
     id: 'midboss_ray',
     tex: 'midboss_ray',
     displayName: '거대 비행 가오리 — 운무요',
-    hp: 1600,
+    hp: 480,
     radius: 70,
     scale: 1,
     entrance: { x: 1500, y: 340, durationMs: 2200 },
@@ -533,8 +533,8 @@ export const BOSS_DEFS: Record<string, BossDef> = {
     id: 'midboss_centipede',
     tex: 'midboss_seg',
     displayName: '거대 기계 지네 — 철련충',
-    hp: 2200,
-    radius: 30,
+    hp: 300,
+    radius: 64,
     scale: 1.3,
     entrance: { x: 1500, y: 360, durationMs: 2400 },
     hover: HOVER,
@@ -573,8 +573,8 @@ export const BOSS_DEFS: Record<string, BossDef> = {
     id: 'midboss_dark',
     tex: 'midboss_dark',
     displayName: '타락한 천명사 — 먹구름',
-    hp: 2600,
-    radius: 34,
+    hp: 350,
+    radius: 48,
     scale: 1.1,
     entrance: { x: 1500, y: 360, durationMs: 2000 },
     hover: HOVER,
@@ -603,12 +603,12 @@ export const BOSS_DEFS: Record<string, BossDef> = {
     ],
   },
 
-  // -- Stage 1 보스: 철갑귀 장군 (HP 7000) --------------------------------------
+  // -- Stage 1 보스: 철갑귀 장군 (HP 2150) --------------------------------------
   boss_iron: {
     id: 'boss_iron',
     tex: 'boss_iron',
     displayName: '철갑귀 장군 — 파철',
-    hp: 7000,
+    hp: 2150,
     radius: 95,
     scale: 1,
     entrance: { x: 1500, y: 360, durationMs: 2600 },
@@ -648,12 +648,12 @@ export const BOSS_DEFS: Record<string, BossDef> = {
     ],
   },
 
-  // -- Stage 2 보스: 홍련기관왕 (HP 9000, 외장 파괴 → 코어) ----------------------
+  // -- Stage 2 보스: 홍련기관왕 (HP 2650, 외장 파괴 → 코어) ----------------------
   boss_engine: {
     id: 'boss_engine',
     tex: 'boss_engine',
     displayName: '홍련기관왕 — 염동로',
-    hp: 9000,
+    hp: 2650,
     radius: 110,
     scale: 1,
     entrance: { x: 1500, y: 360, durationMs: 2800 },
@@ -697,12 +697,12 @@ export const BOSS_DEFS: Record<string, BossDef> = {
     ],
   },
 
-  // -- Stage 3 보스: 백야천녀 (HP 10000, HP 35%↓ 화면 어둠) ----------------------
+  // -- Stage 3 보스: 백야천녀 (HP 2150, HP 35%↓ 화면 어둠) ----------------------
   boss_maiden: {
     id: 'boss_maiden',
     tex: 'boss_maiden',
     displayName: '백야천녀 — 설화',
-    hp: 10000,
+    hp: 2150,
     radius: 58,
     scale: 1.2,
     entrance: { x: 1500, y: 360, durationMs: 2600 },
@@ -744,13 +744,13 @@ export const BOSS_DEFS: Record<string, BossDef> = {
     ],
   },
 
-  // -- Final 보스: 무명천 (HP 12000, 인간형 → 신수형) ----------------------------
+  // -- Final 보스: 무명천 (HP 2800, 인간형 → 신수형) ----------------------------
   final_moo: {
     id: 'final_moo',
     tex: 'final_human',
     displayName: '무명천 — 인간형',
     phaseNames: { 2: '무명천 — 신수형' },
-    hp: 12000,
+    hp: 2800,
     radius: 62,
     scale: 1.1,
     entrance: { x: 1500, y: 360, durationMs: 3000 },
@@ -801,7 +801,7 @@ export const BOSS_DEFS: Record<string, BossDef> = {
     id: 'midboss_jelly',
     tex: 'midboss_jelly',
     displayName: '거대 달해파리 — 월해파',
-    hp: 2400,
+    hp: 540,
     radius: 62,
     scale: 1,
     entrance: { x: 1500, y: 300, durationMs: 2400 },
@@ -830,12 +830,12 @@ export const BOSS_DEFS: Record<string, BossDef> = {
     ],
   },
 
-  // -- Stage 3 보스: 해룡비 청린 (HP 9500, 물결 장막 + 소용돌이 + 돌진) -------------
+  // -- Stage 3 보스: 해룡비 청린 (HP 2700, 물결 장막 + 소용돌이 + 돌진) -------------
   boss_dragon: {
     id: 'boss_dragon',
     tex: 'boss_dragon',
     displayName: '해룡비 — 청린',
-    hp: 9500,
+    hp: 2700,
     radius: 100,
     scale: 1,
     entrance: { x: 1500, y: 360, durationMs: 2800 },
@@ -880,8 +880,8 @@ export const BOSS_DEFS: Record<string, BossDef> = {
     id: 'midboss_fox',
     tex: 'midboss_fox',
     displayName: '구미호 — 홍월',
-    hp: 3000,
-    radius: 50,
+    hp: 430,
+    radius: 60,
     scale: 1,
     entrance: { x: 1500, y: 360, durationMs: 2000 },
     hover: HOVER,
@@ -909,12 +909,12 @@ export const BOSS_DEFS: Record<string, BossDef> = {
     ],
   },
 
-  // -- Stage 5 보스: 등롱귀왕 야명 (HP 11000, 등롱 4개가 주위를 돌며 사격) ----------
+  // -- Stage 5 보스: 등롱귀왕 야명 (HP 3050, 등롱 4개가 주위를 돌며 사격) ----------
   boss_lantern: {
     id: 'boss_lantern',
     tex: 'boss_lantern',
     displayName: '등롱귀왕 — 야명',
-    hp: 11000,
+    hp: 3050,
     radius: 96,
     scale: 1,
     entrance: { x: 1500, y: 360, durationMs: 3000 },
