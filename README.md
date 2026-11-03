@@ -10,7 +10,7 @@
 
 <a href="https://jeiel85.github.io/celestial-blades/"><img src="https://img.shields.io/badge/%E2%96%B6%20%EC%A7%80%EA%B8%88%20%ED%94%8C%EB%A0%88%EC%9D%B4-PLAY%20NOW-ffd75e?style=for-the-badge&labelColor=2a1404" alt="지금 플레이"></a>
 
-<img src="https://img.shields.io/badge/version-1.6.0-a06bff?style=flat-square" alt="version">
+<img src="https://img.shields.io/badge/version-1.7.0-a06bff?style=flat-square" alt="version">
 <img src="https://img.shields.io/badge/Phaser-3.80-8fd3ff?style=flat-square" alt="Phaser">
 <img src="https://img.shields.io/badge/TypeScript-strict-3178c6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript">
 <img src="https://img.shields.io/badge/Vite-5-646cff?style=flat-square&logo=vite&logoColor=white" alt="Vite">
@@ -150,7 +150,7 @@ src/
     scenes/
       BootScene.ts             # 그림·글꼴 로드
       TitleScene.ts            # 로고·메뉴·설정·하이스코어
-      CharacterSelectScene.ts  # 캐릭터 5인 카드 + 난이도 선택
+      CharacterSelectScene.ts  # 텐가이식 기체 줄 + 대형 일러스트 + 난이도 선택
       StoryScene.ts            # 스테이지 사이 스토리 컷신
       ArchiveScene.ts          # 스토리 다시보기 (본 장·엔딩 해금)
       GameScene.ts             # 게임플레이 심장 (충돌·HUD·보스 흐름·클리어)

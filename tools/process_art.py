@@ -96,6 +96,8 @@ BACKGROUND_KEYS = [
     "story_0", "story_1", "story_2", "story_3", "story_4", "story_5",
 ]
 BG_SIZE = (1280, 720)
+# 캐릭터 선택 화면 기체(select_<id>)
+SELECT_SIZE = (220, 170)
 # 필살기 컷인 띠(가로로 아주 긴 일러스트)
 CUTIN_KEYS = ["cutin_yun", "cutin_ryeohwa", "cutin_mooyoung", "cutin_soyul", "cutin_haerang"]
 CUTIN_SIZE = (1280, 360)
@@ -172,6 +174,14 @@ def main() -> int:
             if im.mode != "RGBA" or im.getchannel("A").getextrema()[0] == 255:
                 print(f"경고: {key} 원본에 투명 배경이 없습니다", file=sys.stderr)
             fit_sprite(im, size).save(SPRITES / f"{key}.png", optimize=True)
+    # 캐릭터 선택 화면의 큰 기체: 같은 조종사 원본을 더 크게 가공(인게임 88x72를 키우면 흐려진다).
+    for key in [k for k in SPRITE_SIZES if k.startswith("player_") and k != "player_core"]:
+        raw = RAW / f"{key}.png"
+        if not raw.exists():
+            missing.append(key)
+            continue
+        with Image.open(raw) as im:
+            fit_sprite(im, SELECT_SIZE).save(SPRITES / f"select_{key[len('player_'):]}.png", optimize=True)
     for key in BACKGROUND_KEYS:
         raw = RAW / f"{key}.png"
         if not raw.exists():

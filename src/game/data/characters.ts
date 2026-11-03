@@ -31,8 +31,12 @@ export interface CharacterDef {
   /** 기본탄 대미지 배율 (캐릭터 간 DPS 조정용) */
   damageMult: number;
   texture: string;
-  /** 캐릭터 선택 카드 초상화 */
+  /** 랭킹 목록 아이콘 등에 쓰는 초상화 */
   portrait: string;
+  /** 캐릭터 선택 화면의 큰 기체 그림 */
+  select: string;
+  /** 기본 공격 탄 텍스처(선택 화면 미리보기) */
+  shotTexture: string;
   /** 엔딩 후일담 일러스트 */
   ending: string;
   /** 필살기 컷인 일러스트 */
@@ -59,6 +63,8 @@ export const CHARACTERS: CharacterDef[] = [
     damageMult: 1.0,
     texture: 'player_yun',
     portrait: 'portrait_yun',
+    select: 'select_yun',
+    shotTexture: 'shot_ki',
     ending: 'ending_yun',
     cutin: 'cutin_yun',
     bombName: '천명검진',
@@ -80,6 +86,8 @@ export const CHARACTERS: CharacterDef[] = [
     damageMult: 0.85,
     texture: 'player_ryeohwa',
     portrait: 'portrait_ryeohwa',
+    select: 'select_ryeohwa',
+    shotTexture: 'shot_flame',
     ending: 'ending_ryeohwa',
     cutin: 'cutin_ryeohwa',
     bombName: '홍련화재',
@@ -101,6 +109,8 @@ export const CHARACTERS: CharacterDef[] = [
     damageMult: 1.15,
     texture: 'player_mooyoung',
     portrait: 'portrait_mooyoung',
+    select: 'select_mooyoung',
+    shotTexture: 'shot_kunai',
     ending: 'ending_mooyoung',
     cutin: 'cutin_mooyoung',
     bombName: '백귀야행',
@@ -122,6 +132,8 @@ export const CHARACTERS: CharacterDef[] = [
     damageMult: 1.35,
     texture: 'player_soyul',
     portrait: 'portrait_soyul',
+    select: 'select_soyul',
+    shotTexture: 'shot_arrow',
     ending: 'ending_soyul',
     cutin: 'cutin_soyul',
     bombName: '유성시우',
@@ -143,6 +155,8 @@ export const CHARACTERS: CharacterDef[] = [
     damageMult: 0.8,
     texture: 'player_haerang',
     portrait: 'portrait_haerang',
+    select: 'select_haerang',
+    shotTexture: 'shot_talisman',
     ending: 'ending_haerang',
     cutin: 'cutin_haerang',
     bombName: '사신결계',
