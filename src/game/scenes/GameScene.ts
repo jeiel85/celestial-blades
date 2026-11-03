@@ -332,6 +332,7 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
     b.fire(cfg.x, cfg.y, cfg.vx, cfg.vy, 'player', cfg.texture, {
       damage: cfg.damage,
       pierce: cfg.pierce ?? 0,
+      distinct: cfg.distinct ?? false,
       clearsBullets: cfg.clearsBullets ?? false,
       homing: cfg.homing ?? false,
       homingTurn: cfg.homingTurn ?? 4,
@@ -558,6 +559,7 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
 
   private onPlayerBulletHitEnemy(bullet: Bullet, enemy: Enemy): void {
     if (!bullet.active || !enemy.active) return;
+    if (!bullet.registerHit(enemy)) return;
     enemy.takeDamage(bullet.damage, bullet.x);
     if (bullet.clearsBullets) this.clearEnemyBulletsNear(bullet.x, bullet.y, 90);
     if (bullet.consumeHit()) bullet.kill();
@@ -571,6 +573,7 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
       const dx = b.x - boss.x;
       const dy = b.y - boss.y;
       if (dx * dx + dy * dy > r2) continue;
+      if (!b.registerHit(boss)) continue;
       boss.takeDamage(b.damage);
       if (b.clearsBullets) this.clearEnemyBulletsNear(b.x, b.y, 90);
       if (b.consumeHit()) b.kill();

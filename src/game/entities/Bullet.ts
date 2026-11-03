@@ -8,6 +8,8 @@ export interface BulletFireOpts {
   damage?: number;
   /** 관통 가능한 적 수 (0이면 관통 없음, 다단히트 시 GameScene이 차감) */
   pierce?: number;
+  /** true면 같은 대상은 한 번만 맞힌다(관통 화살) */
+  distinct?: boolean;
   /** true면 적과 닿은 적탄을 소거 (윤 차지/필살기 등) */
   clearsBullets?: boolean;
   /** true면 target을 향해 선회 */
@@ -30,6 +32,9 @@ export class Bullet extends Phaser.Physics.Arcade.Image {
   owner: BulletOwner = 'player';
   damage = 1;
   pierce = 0;
+  distinct = false;
+  /** distinct 탄이 이미 맞힌 대상 */
+  readonly hitTargets = new Set<object>();
   clearsBullets = false;
   homing = false;
   homingTurn = 4;
@@ -62,6 +67,8 @@ export class Bullet extends Phaser.Physics.Arcade.Image {
     this.owner = owner;
     this.damage = opts.damage ?? 1;
     this.pierce = opts.pierce ?? 0;
+    this.distinct = opts.distinct ?? false;
+    this.hitTargets.clear();
     this.clearsBullets = opts.clearsBullets ?? false;
     this.homing = opts.homing ?? false;
     this.homingTurn = opts.homingTurn ?? 4;
@@ -86,6 +93,17 @@ export class Bullet extends Phaser.Physics.Arcade.Image {
     if (vx !== 0 || vy !== 0) {
       this.setRotation(Math.atan2(vy, vx));
     }
+  }
+
+  /**
+   * distinct 탄이 이 대상을 처음 맞히는지 확인하고 기록한다. 이미 맞힌 대상이면 false(피해·관통 소모 없음).
+   * distinct가 아니면 항상 true(기존처럼 겹친 프레임마다 맞는다).
+   */
+  registerHit(target: object): boolean {
+    if (!this.distinct) return true;
+    if (this.hitTargets.has(target)) return false;
+    this.hitTargets.add(target);
+    return true;
   }
 
   /** GameScene 충돌 처리에서 관통 횟수를 차감한다. true면 탄이 소멸해야 한다. */

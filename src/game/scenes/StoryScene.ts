@@ -4,6 +4,7 @@ import { getCharacter } from '../data/characters';
 import { STORY } from '../data/story';
 import type { StoryLine } from '../data/story';
 import { AudioSystem } from '../systems/AudioSystem';
+import { InputSystem } from '../systems/InputSystem';
 import { SaveSystem } from '../systems/SaveSystem';
 import type { GameSceneData } from './GameScene';
 
@@ -21,7 +22,7 @@ export interface StorySceneData {
 
 /**
  * 스테이지 사이 스토리 컷신 (키 'Story'). 스틸 일러스트 + 비주얼 노벨식 대사.
- * Z/Enter/클릭: 글자 다 찍기 → 다음 대사. X/ESC/SKIP 버튼: 장 전체 건너뛰기.
+ * Z/Enter/클릭/패드 A: 글자 다 찍기 → 다음 대사. X/ESC/SKIP 버튼/패드 B: 장 전체 건너뛰기.
  */
 export class StoryScene extends Phaser.Scene {
   private chapter = 0;
@@ -33,6 +34,8 @@ export class StoryScene extends Phaser.Scene {
   private done = false;
 
   private audio!: AudioSystem;
+  /** 게임 중과 같은 입력(키보드·게임패드). 컷신이 패드 플레이어를 막지 않게 한다. */
+  private inputSys!: InputSystem;
   private speakerText!: Phaser.GameObjects.Text;
   private bodyText!: Phaser.GameObjects.Text;
   private nextMark!: Phaser.GameObjects.Text;
@@ -68,6 +71,8 @@ export class StoryScene extends Phaser.Scene {
         // 무시
       }
     });
+
+    this.inputSys = new InputSystem(this);
 
     const ch = STORY[this.chapter];
     const pilot = getCharacter(this.next.charIndex ?? 0);
@@ -105,7 +110,7 @@ export class StoryScene extends Phaser.Scene {
       .setVisible(false);
     this.tweens.add({ targets: this.nextMark, y: HEIGHT - 34, duration: 420, yoyo: true, repeat: -1 });
     this.add
-      .text(WIDTH / 2, HEIGHT - 14, 'Z · 클릭  다음     X · ESC  건너뛰기', { fontFamily: FONT, fontSize: '14px', color: '#6f86a0' })
+      .text(WIDTH / 2, HEIGHT - 14, 'Z · 클릭 · 패드 A  다음     X · ESC · 패드 B  건너뛰기', { fontFamily: FONT, fontSize: '14px', color: '#6f86a0' })
       .setOrigin(0.5, 1);
 
     const skip = this.add
@@ -129,16 +134,15 @@ export class StoryScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     if (this.done) return;
-    const kb = this.input.keyboard;
-    if (kb) {
-      const J = Phaser.Input.Keyboard.JustDown;
-      const K = Phaser.Input.Keyboard.KeyCodes;
-      if (J(kb.addKey(K.X)) || J(kb.addKey(K.ESC))) {
-        this.finish();
-        return;
-      }
-      if (J(kb.addKey(K.Z)) || J(kb.addKey(K.ENTER)) || J(kb.addKey(K.SPACE))) this.advance();
+    const inp = this.inputSys;
+    inp.update();
+    if (inp.bombJustPressed || inp.pauseJustPressed) {
+      this.finish();
+      return;
     }
+    const kb = this.input.keyboard;
+    const enter = kb ? Phaser.Input.Keyboard.JustDown(kb.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER)) : false;
+    if (inp.attackJustPressed || enter) this.advance();
     const line = this.lines[this.lineIndex];
     if (!line || this.charCount >= line.text.length) return;
     this.typeAcc += Math.min(100, delta);

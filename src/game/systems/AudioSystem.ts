@@ -77,7 +77,8 @@ export class AudioSystem {
         this.applyVolumes();
       }
       if (this.ctx.state === 'suspended') {
-        void this.ctx.resume();
+        // 장면이 빨리 바뀌어 dispose()가 먼저 닫으면 거부되므로 삼킨다(무음 동작 원칙).
+        this.ctx.resume().catch(() => undefined);
       }
     } catch {
       this.ctx = null;
@@ -185,7 +186,7 @@ export class AudioSystem {
   dispose(): void {
     this.stopMusic();
     try {
-      void this.ctx?.close();
+      this.ctx?.close().catch(() => undefined);
     } catch {
       // 무시
     }

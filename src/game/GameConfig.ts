@@ -145,6 +145,8 @@ export interface PlayerBulletSpawn {
   scale?: number;
   tint?: number;
   pierce?: number;
+  /** true면 관통이 서로 다른 대상마다 1회씩만 소모된다(같은 적과 여러 프레임 겹쳐도 1회 피격) */
+  distinct?: boolean;
   clearsBullets?: boolean;
   homing?: boolean;
   homingTurn?: number;

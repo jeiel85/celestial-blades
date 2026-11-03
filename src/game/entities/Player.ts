@@ -343,7 +343,7 @@ export class Player {
               ? [[0, 0], [-12, -30], [12, 30]]
               : [[-6, 0], [6, 0], [-16, -40], [16, 40]];
       for (const [dy, vy] of rows) {
-        w.spawnPlayerBullet({ texture: 'shot_arrow', x, y: y + dy, vx: SPEED, vy, damage: dmg(1), pierce });
+        w.spawnPlayerBullet({ texture: 'shot_arrow', x, y: y + dy, vx: SPEED, vy, damage: dmg(1), pierce, distinct: true });
       }
       w.audio.playSfx('shoot');
     } else if (def.id === 'haerang') {
