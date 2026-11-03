@@ -6,7 +6,7 @@ import { AudioSystem } from '../systems/AudioSystem';
 import { SaveSystem } from '../systems/SaveSystem';
 
 const FONT = UI_FONT;
-const MENU = ['START GAME', 'RANKING', 'HOW TO PLAY', 'SETTINGS'] as const;
+const MENU = ['START GAME', 'RANKING', 'STORY', 'HOW TO PLAY', 'SETTINGS'] as const;
 
 interface Star {
   img: Phaser.GameObjects.Image;
@@ -170,9 +170,9 @@ export class TitleScene extends Phaser.Scene {
     const cx = WIDTH / 2;
     this.menuTexts = [];
     MENU.forEach((label, i) => {
-      const y = 400 + i * 56;
+      const y = 376 + i * 48;
       const t = this.add
-        .text(cx, y, label, { fontFamily: FONT, fontSize: '30px', color: '#e8f2ff', fontStyle: 'bold' })
+        .text(cx, y, label, { fontFamily: FONT, fontSize: '28px', color: '#e8f2ff', fontStyle: 'bold' })
         .setOrigin(0.5)
         .setInteractive({ useHandCursor: true });
       t.on('pointerover', () => {
@@ -236,6 +236,8 @@ export class TitleScene extends Phaser.Scene {
       this.scene.start('CharacterSelect');
     } else if (item === 'RANKING') {
       this.scene.start('Ranking');
+    } else if (item === 'STORY') {
+      this.scene.start('Archive');
     } else if (item === 'HOW TO PLAY') {
       this.openHowto();
     } else {
