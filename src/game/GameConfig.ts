@@ -112,6 +112,26 @@ export const DIFFICULTY_PRESETS: Record<Difficulty, DifficultyPreset> = {
   EXTREME: { bulletSpeed: 1.45, density: 2.1, countCap: 2.4, lives: 1, startBombs: 0, bossRate: 1.35, bossHp: 1.6, enemyHp: 1.5, ringSkipMax: 1, revenge: true, lifeDrops: false, stageRetry: false, label: 'EXTREME' },
 };
 
+/** 2주차(텐가이식 두 번째 바퀴): 같은 난이도를 한 단계 더 거칠게 만든다. 격파탄은 항상 켠다. */
+export const MAX_LOOP = 2;
+
+/** 난이도 + 주차에 맞는 실제 프리셋 */
+export function presetFor(difficulty: Difficulty, loop: number): DifficultyPreset {
+  const base = DIFFICULTY_PRESETS[difficulty];
+  if (loop < 2) return base;
+  return {
+    ...base,
+    bulletSpeed: base.bulletSpeed * 1.15,
+    density: base.density * 1.3,
+    countCap: base.countCap + 0.4,
+    bossRate: base.bossRate * 1.15,
+    bossHp: base.bossHp * 1.2,
+    enemyHp: base.enemyHp * 1.2,
+    revenge: true,
+    label: `${base.label} 2주`,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // 공용 색 상수
 // ---------------------------------------------------------------------------
@@ -211,9 +231,13 @@ export interface IGameWorld {
   registerKill(x: number, y: number, isBig: boolean): void;
   /** 화면의 적탄 전체 소거 (이펙트 포함) */
   clearEnemyBullets(): void;
+  /** 화면의 적탄을 금화로 바꿔 플레이어에게 끌어온다(보스 형태 변화·격파, 탄 하나당 perBullet점) */
+  convertEnemyBulletsToCoins?(perBullet: number): void;
   /** 지정 위치 주변 적탄 소거 */
   clearEnemyBulletsNear(x: number, y: number, radius: number): void;
   getDifficulty(): Difficulty;
+  /** 난이도와 주차를 반영한 실제 밸런스 값 */
+  getPreset(): DifficultyPreset;
   isPlayerAlive(): boolean;
   getPlayerPos(): { x: number; y: number };
   shake(intensity: number, dur: number): void;

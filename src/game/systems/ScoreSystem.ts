@@ -13,6 +13,8 @@ export class ScoreSystem {
   private comboLeft = 0;
   private maxCombo = 0;
   private pendingHi = false;
+  /** 컨티뉴 후 점수 끝자리에 고정할 이어 한 횟수(0~9, -1이면 고정 없음) */
+  private continueMark = -1;
 
   constructor(private readonly save: SaveSystem) {}
 
@@ -22,7 +24,14 @@ export class ScoreSystem {
   }
 
   get currentScore(): number {
-    return Math.floor(this.score);
+    const base = Math.floor(this.score);
+    // 아케이드 관례: 이어 한 판은 끝자리가 항상 이어 한 횟수다(이후 득점이 끝자리를 바꾸지 않게 매번 덮어쓴다).
+    return this.continueMark < 0 ? base : base - (base % 10) + this.continueMark;
+  }
+
+  /** 컨티뉴 횟수를 끝자리로 고정한다(0이면 해제) */
+  setContinueMark(continues: number): void {
+    this.continueMark = continues > 0 ? Math.min(9, Math.floor(continues)) : -1;
   }
 
   get currentCombo(): number {

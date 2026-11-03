@@ -33,6 +33,9 @@ const ARROW_RAIN_TIME = 3000;
 /** 해랑 필살기 사신결계 */
 const WARD_TIME = 1500;
 const WARD_COLORS = [0x4db2ff, 0xf2f2f2, 0xff4d3d, 0x6a5acd];
+/** 식신이 머무는 자리(플레이어 기준, 집중 중이면 앞쪽으로 붙는다) */
+const FAMILIAR_OFFSET = { x: -46, y: -50 };
+const FAMILIAR_FOCUS_OFFSET = { x: 36, y: -34 };
 
 /**
  * 캐릭터 전체 로직 (이동/집중/기본공격/차지/필살기/피격). 캐릭터별 분기는 def.id로 한다.
@@ -77,6 +80,11 @@ export class Player {
   private wardLeft = 0;
   private wardTick = 0;
 
+  /** 식신(텐가이식 옵션): 플레이어를 늦게 따라오며 공격키를 누르는 동안 함께 쏜다 */
+  private readonly familiar: Phaser.GameObjects.Image;
+  private familiarTimer = 0;
+  private familiarBob = 0;
+
   private onDeath: (() => void) | null = null;
   private onHit: (() => void) | null = null;
 
@@ -115,6 +123,9 @@ export class Player {
     }
 
     this.core = scene.add.image(this.sprite.x, this.sprite.y, 'player_core').setDepth(101).setVisible(false);
+    this.familiar = scene.add
+      .image(this.sprite.x + FAMILIAR_OFFSET.x, this.sprite.y + FAMILIAR_OFFSET.y, def.familiar)
+      .setDepth(100);
   }
 
   // -- 콜백 ---------------------------------------------------------------
@@ -255,6 +266,7 @@ export class Player {
     this.updateBarrier(dtMs);
     this.updateArrowRain(dtMs);
     this.updateWard(dtMs);
+    this.updateFamiliar(dtMs, focused, input.attackDown);
 
     // 기본 공격 + 차지
     if (input.attackDown) {
@@ -602,6 +614,60 @@ export class Player {
     }
   }
 
+  /**
+   * 식신: 자리(집중 중엔 앞쪽)로 부드럽게 따라가며 위아래로 흔들리고, 공격키를 누르는 동안
+   * 천명사마다 다른 탄을 쏜다. 파워가 오를수록 자주 쏜다. 무적 깜빡임은 본체와 맞춘다.
+   */
+  private updateFamiliar(dtMs: number, focused: boolean, firing: boolean): void {
+    const f = this.familiar;
+    const off = focused ? FAMILIAR_FOCUS_OFFSET : FAMILIAR_OFFSET;
+    this.familiarBob += dtMs * 0.004;
+    const tx = this.sprite.x + off.x;
+    const ty = this.sprite.y + off.y + Math.sin(this.familiarBob) * 6;
+    const k = Math.min(1, dtMs / 90);
+    f.setPosition(f.x + (tx - f.x) * k, f.y + (ty - f.y) * k);
+    f.setAlpha(this.sprite.alpha);
+    if (!firing) return;
+    this.familiarTimer -= dtMs;
+    if (this.familiarTimer > 0) return;
+    const w = this.world;
+    const x = f.x + 18;
+    const y = f.y;
+    const dmg = (base: number) => base * (1 + this.power * 0.15);
+    switch (this.def.id) {
+      case 'yun':
+        // 검령: 곧은 검기 1줄
+        w.spawnPlayerBullet({ texture: 'shot_ki', x, y, vx: 950, vy: 0, damage: dmg(0.6), scale: 0.8 });
+        this.familiarTimer = 200;
+        break;
+      case 'ryeohwa': {
+        // 화조: 가까운 적을 쫓는 작은 불꽃
+        const target = w.findTarget ? w.findTarget(x + 80, y, 700) : null;
+        w.spawnPlayerBullet({ texture: 'shot_seeker', x, y, vx: 520, vy: 0, damage: dmg(1.1), homing: target !== null, homingTurn: 4, life: 1800 });
+        this.familiarTimer = 380;
+        break;
+      }
+      case 'mooyoung':
+        // 그림자 고양이: 아래위로 엇갈리는 빠른 수리검
+        w.spawnPlayerBullet({ texture: 'shot_kunai', x, y: y - 6, vx: 1150, vy: 0, damage: dmg(0.55) });
+        w.spawnPlayerBullet({ texture: 'shot_kunai', x, y: y + 6, vx: 1150, vy: 0, damage: dmg(0.55) });
+        this.familiarTimer = 240;
+        break;
+      case 'soyul':
+        // 옥매: 적을 꿰뚫는 화살
+        w.spawnPlayerBullet({ texture: 'shot_arrow', x, y, vx: 1000, vy: 0, damage: dmg(1.2), pierce: 2, distinct: true });
+        this.familiarTimer = 420;
+        break;
+      default:
+        // 종이 인형(해랑): 약하게 유도되는 부적
+        w.spawnPlayerBullet({ texture: 'shot_talisman', x, y, vx: 680, vy: 0, damage: dmg(0.7), homing: true, homingTurn: 2, life: 1600 });
+        this.familiarTimer = 260;
+        break;
+    }
+    // 파워 0~3: 간격 100% → 70%
+    this.familiarTimer *= 1 - this.power * 0.1;
+  }
+
   /** 해랑 차지 결계: 유지되는 동안 매 프레임 주변 적탄을 지운다 */
   private updateBarrier(dtMs: number): void {
     if (this.barrierLeft <= 0) return;
@@ -704,6 +770,7 @@ export class Player {
       this.sprite.disableBody(true, false);
       this.sprite.setVisible(false);
       this.core.setVisible(false);
+      this.familiar.setVisible(false);
       this.hideChargeGlow();
       w.fx.explosion(this.sprite.x, this.sprite.y, 2.2, 0xffffff);
       if (this.onDeath) this.onDeath();
@@ -712,6 +779,21 @@ export class Player {
     this.invulnLeft = PLAYER_INVULN;
     this.blinkAcc = 0;
     return 'ok';
+  }
+
+  /** 컨티뉴: 쓰러진 자리에서 목숨·필살기를 채워 다시 살아난다(긴 무적). */
+  revive(lives: number, bombs: number, x: number, y: number): void {
+    this.alive = true;
+    this.lives = Math.max(1, lives);
+    this.bombs = Math.min(MAX_BOMBS, Math.max(0, bombs));
+    this.sprite.enableBody(true, x, y, true, true);
+    this.sprite.setVisible(true).setAlpha(1);
+    this.familiar.setVisible(true).setPosition(x + FAMILIAR_OFFSET.x, y + FAMILIAR_OFFSET.y);
+    this.invulnLeft = PLAYER_INVULN * 1.5;
+    this.blinkAcc = 0;
+    this.chargeTime = 0;
+    this.chargeReady = false;
+    this.chargeNotified = false;
   }
 
   destroy(): void {
@@ -727,6 +809,7 @@ export class Player {
     }
     this.barrierImg?.destroy();
     this.barrierImg = null;
+    this.familiar.destroy();
     this.core.destroy();
     this.aura.destroy();
     this.sprite.destroy();

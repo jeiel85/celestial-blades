@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
 import {
-  DIFFICULTY_PRESETS,
   DROP_RATE_B,
   DROP_RATE_G,
   DROP_RATE_L,
@@ -71,7 +70,7 @@ export class Enemy extends Phaser.Physics.Arcade.Image implements EnemyAgent {
     this.def = def;
     this.typeId = ENEMY_TYPES[typeId] !== undefined ? typeId : 'small';
 
-    const preset = DIFFICULTY_PRESETS[this.world.getDifficulty()];
+    const preset = this.world.getPreset();
     const hpMult = preset.enemyHp;
     this.maxHp = Math.max(1, Math.round(def.hp * (opts?.hpScale ?? 1) * hpMult));
     this.hp = this.maxHp;
@@ -239,7 +238,7 @@ export class Enemy extends Phaser.Physics.Arcade.Image implements EnemyAgent {
    */
   private revengeShot(x: number, y: number): void {
     const world = this.world;
-    if (!DIFFICULTY_PRESETS[world.getDifficulty()].revenge || !world.isPlayerAlive()) return;
+    if (!world.getPreset().revenge || !world.isPlayerAlive()) return;
     const p = world.getPlayerPos();
     if (Math.hypot(p.x - x, p.y - y) < 140) return;
     const aim = Math.atan2(p.y - y, p.x - x);
@@ -262,7 +261,7 @@ export class Enemy extends Phaser.Physics.Arcade.Image implements EnemyAgent {
     const biasG = this.def.dropBias?.G ?? 0;
     const roll = Math.random();
     // EXTREME은 목숨 아이템이 나오지 않는다(그 몫은 그대로 다음 아이템 확률로 넘어가지 않고 비운다).
-    const lifeRate = DIFFICULTY_PRESETS[this.world.getDifficulty()].lifeDrops ? DROP_RATE_L + biasL : 0;
+    const lifeRate = this.world.getPreset().lifeDrops ? DROP_RATE_L + biasL : 0;
     let acc = lifeRate;
     if (lifeRate > 0 && roll < acc) {
       this.world.spawnItem('L', x, y);

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { DIFFICULTY_PRESETS, HEIGHT, UI_FONT, WIDTH, parseDifficulty } from '../GameConfig';
+import { HEIGHT, MAX_LOOP, UI_FONT, WIDTH, parseDifficulty, presetFor } from '../GameConfig';
 import type { Difficulty } from '../GameConfig';
 import { AudioSystem } from '../systems/AudioSystem';
 import { SaveSystem } from '../systems/SaveSystem';
@@ -18,6 +18,10 @@ export interface ResultSceneData {
   stageStartScore?: number;
   /** 유지되는 파워 단계 */
   power?: number;
+  /** 주차(1/2) */
+  loop?: number;
+  /** 지금까지 쓴 컨티뉴 횟수(같은 스테이지 RETRY에도 이어 간다) */
+  continues?: number;
 }
 
 /**
@@ -27,6 +31,8 @@ export interface ResultSceneData {
 export class ResultScene extends Phaser.Scene {
   private result!: Required<Pick<ResultSceneData, 'score' | 'charIndex' | 'stageIndex' | 'stageStartScore' | 'power'>> & {
     difficulty: Difficulty;
+    loop: number;
+    continues: number;
   };
 
   private save!: SaveSystem;
@@ -49,6 +55,8 @@ export class ResultScene extends Phaser.Scene {
       stageIndex: Math.max(0, Math.min(STAGES.length - 1, Math.floor(d.stageIndex ?? 0))),
       stageStartScore: Math.max(0, Math.floor(d.stageStartScore ?? 0)),
       power: Math.max(0, Math.min(3, Math.floor(d.power ?? 0))),
+      loop: d.loop === MAX_LOOP ? MAX_LOOP : 1,
+      continues: Math.max(0, Math.floor(d.continues ?? 0)),
     };
   }
 
@@ -119,7 +127,7 @@ export class ResultScene extends Phaser.Scene {
         .setOrigin(0.5);
     }
     this.add
-      .text(WIDTH / 2, 372, `STAGE ${this.result.stageIndex + 1} · ${this.result.difficulty}`, {
+      .text(WIDTH / 2, 372, `${this.result.loop >= MAX_LOOP ? '2주차 ' : ''}STAGE ${this.result.stageIndex + 1} · ${this.result.difficulty}`, {
         fontFamily: FONT,
         fontSize: '18px',
         color: '#5e7a8f',
@@ -196,7 +204,7 @@ export class ResultScene extends Phaser.Scene {
     if (this.menuIndex === 0) {
       // 같은 스테이지 재시작: 점수는 스테이지 시작값으로, 목숨은 프리셋, 파워 유지.
       // 이어 하기가 없는 난이도(EXTREME)는 1스테이지·0점부터 다시 시작한다.
-      const preset = DIFFICULTY_PRESETS[this.result.difficulty];
+      const preset = presetFor(this.result.difficulty, this.result.loop);
       const fromStart = !preset.stageRetry;
       this.scene.start('Game', {
         stageIndex: fromStart ? 0 : this.result.stageIndex,
@@ -206,6 +214,9 @@ export class ResultScene extends Phaser.Scene {
         power: fromStart ? 0 : this.result.power,
         charIndex: this.result.charIndex,
         difficulty: this.result.difficulty,
+        // 1스테이지부터 다시 하는 난이도는 1주차부터, 아니면 지금 주차 그대로
+        loop: fromStart ? 1 : this.result.loop,
+        continues: fromStart ? 0 : this.result.continues,
       });
     } else if (this.menuIndex === 1) {
       this.scene.start('Ranking', {
@@ -213,7 +224,8 @@ export class ResultScene extends Phaser.Scene {
           score: this.result.score,
           pilot: getCharacter(this.result.charIndex).id,
           difficulty: this.result.difficulty,
-          stage: this.result.stageIndex + 1,
+          // 2주차는 스테이지 번호에 한 바퀴(STAGES.length)를 더해 기록한다(7~12)
+          stage: this.result.stageIndex + 1 + (this.result.loop - 1) * STAGES.length,
           cleared: false,
         },
       });

@@ -20,6 +20,12 @@ const DIFFS: Difficulty[] = DIFFICULTIES;
 const TOP = 20;
 const PILOT_NAME = Object.fromEntries(CHARACTERS.map((c) => [c.id, c.nameKor])) as Record<PilotId, string>;
 const STAGE_NAME = STAGES.map((st) => st.nameKor);
+/** 도달 표시: 1주차 `천공성`·`CLEAR`, 2주차(스테이지 7~12) `2주 천공성`·`2주 CLEAR` */
+function reachLabel(stage: number, cleared: boolean): string {
+  const lap = stage > STAGES.length ? '2주 ' : '';
+  if (cleared) return `${lap}CLEAR`;
+  return `${lap}${STAGE_NAME[(stage - 1) % STAGES.length] ?? ''}`;
+}
 /** 닉네임 칸 폭(px). 한글 12자는 20px 글꼴로 약 240px라 넘치면 줄인다. */
 const NICK_MAX_W = 140;
 
@@ -198,7 +204,7 @@ export class RankingScene extends Phaser.Scene {
         this.add.text(x, y, `${i + 1}`, { fontFamily: FONT, fontSize: '22px', color: medal ?? color, fontStyle: 'bold' }),
         this.add.image(x + 74, y + 13, `portrait_${r.pilot}`).setScale(0.17),
         fitWidth(this.add.text(x + 100, y + 2, r.nickname, { fontFamily: FONT, fontSize: '20px', color }), NICK_MAX_W),
-        this.add.text(x + 250, y + 4, `${r.cleared ? 'CLEAR' : STAGE_NAME[r.stage - 1] ?? ''} · ${PILOT_NAME[r.pilot]}`, {
+        this.add.text(x + 250, y + 4, `${reachLabel(r.stage, r.cleared)} · ${PILOT_NAME[r.pilot]}`, {
           fontFamily: FONT,
           fontSize: '15px',
           color: r.cleared ? '#53e0b0' : '#8fa4b8',

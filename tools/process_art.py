@@ -24,6 +24,12 @@ SPRITE_SIZES = {
     "player_mooyoung": (88, 72),
     "player_soyul": (88, 72),
     "player_haerang": (88, 72),
+    # 식신(옵션): 게임에서 약 56px로 보인다
+    "familiar_yun": (56, 56),
+    "familiar_ryeohwa": (56, 56),
+    "familiar_mooyoung": (56, 56),
+    "familiar_soyul": (56, 56),
+    "familiar_haerang": (56, 56),
     "enemy_small": (40, 36),
     "enemy_bat": (44, 32),
     "enemy_rusher": (48, 40),

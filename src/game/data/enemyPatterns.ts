@@ -1,4 +1,3 @@
-import { DIFFICULTY_PRESETS } from '../GameConfig';
 import type { IGameWorld, ItemType } from '../GameConfig';
 
 /**
@@ -60,7 +59,7 @@ function aimAngle(world: IGameWorld, x: number, y: number): number {
 }
 
 function bulletSpeed(world: IGameWorld, base: number, e: EnemyAgent): number {
-  return base * DIFFICULTY_PRESETS[world.getDifficulty()].bulletSpeed * e.speedScale;
+  return base * world.getPreset().bulletSpeed * e.speedScale;
 }
 
 /** 발사 타이머를 dt만큼 깎고, 발사 시점이면 true (간격 리필 포함) */
@@ -193,7 +192,7 @@ function turretMove(e: EnemyAgent, t: number, dt: number): void {
 
 function turretFire(e: EnemyAgent, _t: number, dt: number, world: IGameWorld): void {
   if (!fireReady(e, dt)) return;
-  const d = DIFFICULTY_PRESETS[world.getDifficulty()].density;
+  const d = world.getPreset().density;
   const count = d >= 1.2 ? 16 : d <= 0.8 ? 12 : 14;
   const offset = e.seed + e.phase * 0.35;
   e.phase += 1;
@@ -259,7 +258,7 @@ function eliteFire(e: EnemyAgent, _t: number, dt: number, world: IGameWorld): vo
   if (!world.isPlayerAlive()) return;
   const center = aimAngle(world, e.x, e.y);
   if (e.phase % 2 === 0) {
-    const d = DIFFICULTY_PRESETS[world.getDifficulty()].density;
+    const d = world.getPreset().density;
     fanBullets(world, e.x - 30, e.y, center, d >= 1.2 ? 7 : 5, 0.32, bulletSpeed(world, 225, e), 'eb_mid', 0xffd75e);
   } else {
     fanBullets(world, e.x - 30, e.y, center, 3, 0.16, bulletSpeed(world, 260, e), 'eb_small', 0xff8f5f);

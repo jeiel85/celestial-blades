@@ -1,5 +1,4 @@
 import Phaser from 'phaser';
-import { DIFFICULTY_PRESETS } from '../GameConfig';
 import type { BossLike, IGameWorld } from '../GameConfig';
 import { ATTACKS, BOSS_DEFS } from '../data/bossPatterns';
 import type { BossAttackContext, BossDef } from '../data/bossPatterns';
@@ -86,7 +85,7 @@ export class Boss implements BossLike, BossAttackContext {
     this.world = world;
     this.def = def;
 
-    const preset = DIFFICULTY_PRESETS[world.getDifficulty()];
+    const preset = world.getPreset();
     this.maxHp = Math.round(def.hp * preset.bossHp);
     this.attackRate = preset.bossRate;
     this.hp = this.maxHp;
@@ -434,7 +433,7 @@ export class Boss implements BossLike, BossAttackContext {
       }
     }
     this.clones.length = 0;
-    const preset = DIFFICULTY_PRESETS[this.world.getDifficulty()];
+    const preset = this.world.getPreset();
     void preset;
     const offs = [
       { dx: -110, dy: -120 },
@@ -467,7 +466,9 @@ export class Boss implements BossLike, BossAttackContext {
     this.phaseIndex = idx;
     this.phaseTime = 0;
     const phase = this.def.phases[idx];
-    this.world.clearEnemyBullets();
+    // 형태가 바뀌는 순간 남은 탄은 금화가 된다(텐가이식 탄 소거 보상).
+    if (this.world.convertEnemyBulletsToCoins) this.world.convertEnemyBulletsToCoins(30);
+    else this.world.clearEnemyBullets();
     this.invulnLeft = Math.max(this.invulnLeft, 1200);
     this.applyPhaseVisual(phase, true);
     this.timers = phase.attacks.map((a) => ({ elapsed: -((a.delay ?? 0) + 400) }));
@@ -570,7 +571,7 @@ export class Boss implements BossLike, BossAttackContext {
         p.fireT = def.fireMs / this.attackRate;
         const pl = this.world.getPlayerPos();
         const a = Math.atan2(pl.y - py, pl.x - px);
-        const sp = def.speed * DIFFICULTY_PRESETS[this.world.getDifficulty()].bulletSpeed;
+        const sp = def.speed * this.world.getPreset().bulletSpeed;
         for (let k = -1; k <= 1; k += 1) {
           this.world.spawnEnemyBullet(px, py, a + k * 0.18, sp, 'eb_small', def.tint);
         }
@@ -580,7 +581,7 @@ export class Boss implements BossLike, BossAttackContext {
 
   private updateClones(dt: number): void {
     if (this.clones.length === 0) return;
-    const sp = 250 * DIFFICULTY_PRESETS[this.world.getDifficulty()].bulletSpeed;
+    const sp = 250 * this.world.getPreset().bulletSpeed;
     for (let i = this.clones.length - 1; i >= 0; i -= 1) {
       const c = this.clones[i];
       c.life -= dt;
