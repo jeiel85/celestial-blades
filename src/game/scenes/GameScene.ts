@@ -210,7 +210,7 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
     );
     this.player.sprite.setPosition(RESPAWN_X, RESPAWN_Y);
     for (let i = 0; i < this.initPower; i += 1) this.player.addPower(1);
-    this.player.setOnHit(() => this.onPlayerHit());
+    this.player.setOnHit((lostPower, x, y) => this.onPlayerHit(lostPower, x, y));
     this.player.setOnDeath(() => this.onPlayerDeath());
 
     // -- 입력 --
@@ -390,10 +390,10 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
     });
   }
 
-  spawnItem(type: ItemType, x: number, y: number): void {
+  spawnItem(type: ItemType, x: number, y: number, scatter = false): void {
     for (const item of this.items) {
       if (!item.active) {
-        item.spawn(type, x, y);
+        item.spawn(type, x, y, scatter);
         return;
       }
     }
@@ -401,7 +401,19 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
     const item = new Item(this, this);
     this.items.push(item);
     this.itemGroup.add(item);
-    item.spawn(type, x, y);
+    item.spawn(type, x, y, scatter);
+  }
+
+  /**
+   * 격추 때 가진 것을 흘린다(라이덴 IV식): 잃은 파워 단계만큼 P, 필살기는 시작 개수로 돌리고
+   * 넘던 만큼 B. 흘린 아이템은 화면 안에서 튕기며 남아 있어 다시 주우면 회복된다(컨티뉴 뒤에도).
+   */
+  private dropOnMiss(lostPower: number, x: number, y: number): void {
+    const start = this.getPreset().startBombs;
+    const extra = Math.max(0, this.player.getBombs() - start);
+    this.player.setBombs(start);
+    for (let i = 0; i < lostPower; i += 1) this.spawnItem('P', x, y, true);
+    for (let i = 0; i < extra; i += 1) this.spawnItem('B', x, y, true);
   }
 
   spawnEnemy(typeId: string, x: number, y: number, opts?: EnemySpawnOpts): void {
@@ -520,6 +532,14 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
       if (d2 < bestD2) best = boss;
     }
     return best;
+  }
+
+  damageAllEnemies(damage: number): void {
+    for (const e of this.enemies) {
+      if (!e.active) continue;
+      if (e.x < -40 || e.x > WIDTH + 40 || e.y < -40 || e.y > HEIGHT + 40) continue;
+      e.takeDamage(damage);
+    }
   }
 
   dealDamageInRadius(x: number, y: number, radius: number, damage: number): void {
@@ -691,8 +711,9 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
     this.player.damagePlayer();
   }
 
-  /** 피격(목숨 잔여) 시: 콤보 리셋 + 좌측 중앙 복귀 + 적탄 소거 */
-  private onPlayerHit(): void {
+  /** 피격 시(마지막 목숨 포함): 가진 것 흘리기 + 콤보 리셋 + 좌측 중앙 복귀 + 적탄 소거 */
+  private onPlayerHit(lostPower: number, x: number, y: number): void {
+    this.dropOnMiss(lostPower, x, y);
     this.scoreSys.onPlayerHit();
     this.noMiss = false;
     this.player.sprite.setPosition(RESPAWN_X, RESPAWN_Y);

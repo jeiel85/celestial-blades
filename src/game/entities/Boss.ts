@@ -12,8 +12,12 @@ import type { BossAttackContext, BossDef } from '../data/bossPatterns';
  * 기본 공격(약 10~36회/초)은 그대로 통과하고, 필살기의 다단히트만 감쇠된다.
  */
 
-const HIT_GATE_MS = 25;
 const HIT_SFX_GAP_MS = 90;
+/**
+ * 보스 피해 1당 점수. v1.10.0에서 보스 HP를 약 1/4로 줄이며(체감 길이 조정) 점수 규모가
+ * 이전 랭킹과 비슷하게 남도록 4배로 준다.
+ */
+const SCORE_PER_DAMAGE = 4;
 const BOSS_FLASH_GAP_MS = 150;
 const TRAIL_PUSH_MS = 26;
 
@@ -54,7 +58,6 @@ export class Boss implements BossLike, BossAttackContext {
   isDefeated = false;
 
   private invulnLeft = 0;
-  private hitGateLeft = 0;
   private lastSfxAt = -1000;
   private lastFlashAt = -1000;
   private phaseIndex = 0;
@@ -146,11 +149,10 @@ export class Boss implements BossLike, BossAttackContext {
 
   takeDamage(dmg: number): void {
     if (this.isDefeated || this.destroyed) return;
-    if (this.invulnLeft > 0 || this.hitGateLeft > 0) return;
+    if (this.invulnLeft > 0) return;
     if (!Number.isFinite(dmg) || dmg <= 0) return;
-    this.hitGateLeft = HIT_GATE_MS;
     this.hp -= dmg;
-    this.world.addScore(Math.max(1, Math.ceil(dmg)));
+    this.world.addScore(Math.max(1, Math.ceil(dmg * SCORE_PER_DAMAGE)));
 
     // 피격 플래시 (기본 틴트 없음 — 흰색 후 클리어)
     // 연속 피격 시 흰색에 영구히 덮이지 않도록 시각 플래시만 스로틀한다.
@@ -185,7 +187,6 @@ export class Boss implements BossLike, BossAttackContext {
     const dt = Math.min(100, Math.max(1, dtMs));
     this.timeMs += dt;
     if (this.invulnLeft > 0) this.invulnLeft -= dt;
-    if (this.hitGateLeft > 0) this.hitGateLeft -= dt;
     if (!this.entered) {
       this.syncFollowers(dt);
       return;

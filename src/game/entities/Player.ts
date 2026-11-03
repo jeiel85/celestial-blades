@@ -17,8 +17,8 @@ import {
   START_BOMBS,
 } from '../GameConfig';
 import type { IGameWorld } from '../GameConfig';
-import { clampCharIndex, getCharacter } from '../data/characters';
-import type { CharacterDef } from '../data/characters';
+import { clampCharIndex, getCharacter, speedScale } from '../data/characters';
+import type { CharacterDef, CharacterId } from '../data/characters';
 import type { InputSystem } from '../systems/InputSystem';
 
 export type PlayerHitResult = 'ok' | 'invulnerable' | 'dead';
@@ -38,8 +38,45 @@ const RING_LIFE = 560;
 /** 혜각 필살기 금강항마진: 반경 안을 일정 간격으로 내리친다 */
 const VAJRA_TIME = 1800;
 const VAJRA_RADIUS = 360;
+/**
+ * 파워 단계별 기본탄 피해 배율. 파워 3은 이전과 같은 1.45, 낮은 단계는 탄 수가 적은 만큼 한 발을 무겁게 해
+ * 파워 0 화력이 파워 3의 약 40%가 되게 한다(격추로 파워를 잃어도 보스전이 끝없이 늘어지지 않게).
+ */
+const POWER_DAMAGE = [1.6, 1.35, 1.3, 1.45];
 /** 판정 원 기본 반지름 */
 const HIT_RADIUS = 6;
+/** 무영 필살기 백귀야행: 잔상 하나가 베는 간격과 한 번의 피해 */
+const GHOST_TICK_MS = 30;
+const GHOST_DAMAGE = 35;
+/**
+ * 필살기 공통: 발동 순간 화면 잡몹 전체에 주는 피해(엘리트 미만은 대부분 쓰러진다).
+ * 보스 1기에 주는 피해는 천명사마다 약 180(파워 3, tools/bench.mjs 실측)으로 맞춘다 —
+ * 보스 HP의 약 7%, 중간보스 HP의 약 1/3.
+ */
+const BOMB_SCREEN_DAMAGE = 40;
+/** 필살기 지속 시간(ms). 이 시간 + BOMB_TAIL_INVULN 동안 무적이다. */
+const BOMB_TIME: Record<CharacterId, number> = {
+  yun: 2000,
+  ryeohwa: 1600,
+  mooyoung: 1300,
+  soyul: ARROW_RAIN_TIME,
+  haerang: WARD_TIME,
+  hyegak: VAJRA_TIME,
+  seori: 1800,
+};
+const BOMB_TAIL_INVULN = 400;
+
+/** 필살기를 쓰면 무적인 시간(ms) — 선택 화면 표시에도 쓴다 */
+export function bombInvulnMs(id: CharacterId): number {
+  return Math.max(BOMB_INVULN, BOMB_TIME[id] + BOMB_TAIL_INVULN);
+}
+const YUN_BOMB_DAMAGE = 1.9;
+const RYEOHWA_PILLAR_DAMAGE = 5.7;
+const RYEOHWA_PILLAR_FLAME_DAMAGE = 2.5;
+const SOYUL_RAIN_DAMAGE = 3.3;
+const HAERANG_WARD_DAMAGE = 11.5;
+const HYEGAK_VAJRA_DAMAGE = 14;
+const SEORI_FOX_DAMAGE = 4.9;
 /** 식신이 머무는 자리(플레이어 기준, 집중 중이면 앞쪽으로 붙는다) */
 const FAMILIAR_OFFSET = { x: -46, y: -50 };
 const FAMILIAR_FOCUS_OFFSET = { x: 36, y: -34 };
@@ -84,6 +121,7 @@ export class Player {
   private barrierImg: Phaser.GameObjects.Image | null = null;
   private arrowRainLeft = 0;
   private arrowRainTick = 0;
+  private arrowRainCount = 0;
   private wardLeft = 0;
   private wardTick = 0;
   private vajraLeft = 0;
@@ -96,8 +134,9 @@ export class Player {
   private familiarTimer = 0;
   private familiarBob = 0;
 
+  /** 피격 콜백: 잃은 파워 단계와 맞은 자리(복귀 이동 전)를 넘긴다 */
   private onDeath: (() => void) | null = null;
-  private onHit: (() => void) | null = null;
+  private onHit: ((lostPower: number, x: number, y: number) => void) | null = null;
 
   /** 디버그 무적 (F2). true면 damagePlayer가 항상 invulnerable. */
   godMode = false;
@@ -150,7 +189,7 @@ export class Player {
     this.onDeath = cb;
   }
 
-  setOnHit(cb: (() => void) | null): void {
+  setOnHit(cb: ((lostPower: number, x: number, y: number) => void) | null): void {
     this.onHit = cb;
   }
 
@@ -208,6 +247,10 @@ export class Player {
     this.bombs = Math.min(this.maxBombs, this.bombs + n);
   }
 
+  setBombs(n: number): void {
+    this.bombs = Math.min(this.maxBombs, Math.max(0, Math.floor(n)));
+  }
+
   addPower(n = 1): void {
     this.power = Math.min(MAX_POWER_LEVEL, this.power + n);
   }
@@ -236,8 +279,7 @@ export class Player {
 
     // 이동
     const axis = input.getAxis();
-    const speedScale = def.stats.speed >= 5 ? 1.08 : def.stats.speed <= 2 ? 0.94 : 1;
-    const speed = PLAYER_SPEED * speedScale * (focused ? FOCUS_SPEED_MULT : 1);
+    const speed = PLAYER_SPEED * speedScale(def) * (focused ? FOCUS_SPEED_MULT : 1);
     if (this.dashLeft > 0) {
       // 돌진 중: 전방 고속 + 상하 조향만 허용
       this.dashLeft -= dtMs;
@@ -320,7 +362,7 @@ export class Player {
     const x = this.sprite.x + 28;
     const y = this.sprite.y;
     const w = this.world;
-    const dmg = (base: number) => base * def.damageMult * (1 + this.power * 0.15);
+    const dmg = (base: number) => base * def.damageMult * POWER_DAMAGE[this.power];
 
     if (def.id === 'yun') {
       // 윤: 빠른 직선 검기
@@ -618,11 +660,20 @@ export class Player {
 
   private releaseBomb(): void {
     if (!this.alive) return;
-    this.invulnLeft = Math.max(this.invulnLeft, BOMB_INVULN);
+    // 필살기가 끝날 때까지 무적(CAVE식): 지속 시간 + 여유
+    this.invulnLeft = Math.max(this.invulnLeft, bombInvulnMs(this.def.id));
     const w = this.world;
     w.audio.playSfx('bomb');
     w.clearEnemyBullets();
-    w.shake(0.012, 450);
+    w.damageAllEnemies?.(BOMB_SCREEN_DAMAGE);
+    w.shake(0.022, 650);
+    w.hitStop(90);
+    try {
+      const c = this.def.color;
+      this.scene.cameras.main.flash(260, (c >> 16) & 0xff, (c >> 8) & 0xff, c & 0xff);
+    } catch {
+      // 무시
+    }
 
     const x = this.sprite.x;
     const y = this.sprite.y;
@@ -633,13 +684,14 @@ export class Player {
       this.bombSwordTick = 0;
       w.fx.explosion(x + 120, y, 1.4, 0x4db2ff);
     } else if (id === 'ryeohwa') {
-      // 려화: 화면 랜덤 불기둥 8~12개
+      // 려화: 불기둥 8~12개. 셋 중 둘은 가장 가까운 적(보스) 둘레에, 나머지는 화면 아무 데나 솟는다.
       const count = 8 + Math.min(4, this.power + 1);
       for (let i = 0; i < count; i += 1) {
         this.scene.time.delayedCall(i * 130, () => {
           if (!this.alive || !this.scene.scene.isActive()) return;
-          const rx = Phaser.Math.Between(Math.floor(x + 160), 1220);
-          const ry = Phaser.Math.Between(90, 630);
+          const tgt = i % 3 !== 2 && w.findTarget ? w.findTarget(this.sprite.x + 300, this.sprite.y, 1400) : null;
+          const rx = tgt ? tgt.x + Phaser.Math.Between(-50, 50) : Phaser.Math.Between(Math.floor(x + 160), 1220);
+          const ry = tgt ? tgt.y + Phaser.Math.Between(-50, 50) : Phaser.Math.Between(90, 630);
           w.fx.explosion(rx, ry, 1.2, 0xff7b2d);
           for (let k = -1; k <= 1; k += 1) {
             w.spawnPlayerBullet({
@@ -648,14 +700,14 @@ export class Player {
               y: ry + k * 14,
               vx: 420,
               vy: k * 160,
-              damage: 4,
+              damage: RYEOHWA_PILLAR_FLAME_DAMAGE,
               scale: 1.6,
               pierce: 6,
               clearsBullets: true,
               life: 1200,
             });
           }
-          if (w.dealDamageInRadius) w.dealDamageInRadius(rx, ry, 110, 6);
+          if (w.dealDamageInRadius) w.dealDamageInRadius(rx, ry, 110, RYEOHWA_PILLAR_DAMAGE);
         });
       }
     } else if (id === 'soyul') {
@@ -700,7 +752,7 @@ export class Player {
             y: this.sprite.y,
             vx: Math.cos(a) * 420,
             vy: Math.sin(a) * 420,
-            damage: 6,
+            damage: SEORI_FOX_DAMAGE,
             scale: 2.6,
             pierce: 10,
             clearsBullets: true,
@@ -712,20 +764,28 @@ export class Player {
       }
       w.fx.explosion(x, y, 1.3, this.def.color);
     } else {
-      // 무영: 잔상 다수가 화면을 가로지르기
+      // 무영: 잔상 다수가 화면을 가로지르기. 잔상 줄은 가장 가까운 적(보스) 높이에 모인다.
+      const tgt = w.findTarget ? w.findTarget(x + 300, y, 1400) : null;
+      const cy = tgt ? tgt.y : y;
       for (let i = 0; i < 6; i += 1) {
         this.scene.time.delayedCall(i * 150, () => {
           if (!this.alive || !this.scene.scene.isActive()) return;
-          const ry = Phaser.Math.Clamp(y + (i - 2.5) * 70, 80, 640);
+          const ry = Phaser.Math.Clamp(cy + (i - 2.5) * 46, 80, 640);
           try {
             const ghost = this.scene.add.image(-60, ry, this.def.texture).setDepth(100).setAlpha(0.8).setTint(0xa06bff);
+            // 프레임 수와 무관하게 GHOST_TICK_MS마다 벤다(화면 주사율이 달라도 같은 피해).
+            let lastTick = -GHOST_TICK_MS;
+            let elapsed = 0;
             this.scene.tweens.add({
               targets: ghost,
               x: 1360,
               duration: 420,
               ease: 'Cubic.easeIn',
-              onUpdate: () => {
-                if (w.dealDamageInRadius) w.dealDamageInRadius(ghost.x + 40, ghost.y, 90, 5);
+              onUpdate: (tw: Phaser.Tweens.Tween) => {
+                elapsed = tw.elapsed;
+                if (elapsed - lastTick < GHOST_TICK_MS) return;
+                lastTick = elapsed;
+                if (w.dealDamageInRadius) w.dealDamageInRadius(ghost.x + 40, ghost.y, 90, GHOST_DAMAGE);
               },
               onComplete: () => ghost.destroy(),
             });
@@ -825,21 +885,29 @@ export class Player {
     this.world.clearEnemyBulletsNear(this.sprite.x, this.sprite.y, BARRIER_RADIUS);
   }
 
-  /** 소율 필살기: 플레이어 앞쪽 하늘에서 비스듬히 떨어지는 관통 화살 */
+  /**
+   * 소율 필살기: 플레이어 앞쪽 하늘에서 비스듬히 떨어지는 관통 화살.
+   * 두 발 중 한 발은 가장 가까운 적(보스) 위로 떨어지게 출발점을 잡는다(낙하 기울기 260/1000).
+   */
   private updateArrowRain(dtMs: number): void {
     if (this.arrowRainLeft <= 0) return;
     this.arrowRainLeft -= dtMs;
     this.arrowRainTick -= dtMs;
     while (this.arrowRainTick <= 0 && this.arrowRainLeft > 0) {
       this.arrowRainTick += 60;
-      const rx = Phaser.Math.Between(Math.floor(this.sprite.x + 40), 1240);
-      this.world.spawnPlayerBullet({
+      this.arrowRainCount += 1;
+      const w = this.world;
+      const tgt = this.arrowRainCount % 2 === 0 && w.findTarget ? w.findTarget(this.sprite.x + 300, this.sprite.y, 1400) : null;
+      const sx = tgt
+        ? tgt.x - (260 * (tgt.y + 20)) / 1000 + Phaser.Math.Between(-40, 40)
+        : Phaser.Math.Between(Math.floor(this.sprite.x + 40), 1240) - 120;
+      w.spawnPlayerBullet({
         texture: 'shot_arrow',
-        x: rx - 120,
+        x: sx,
         y: -20,
         vx: 260,
         vy: 1000,
-        damage: 3,
+        damage: SOYUL_RAIN_DAMAGE,
         scale: 1.6,
         pierce: 8,
         clearsBullets: true,
@@ -857,7 +925,7 @@ export class Player {
     this.wardTick += 100;
     const w = this.world;
     w.clearEnemyBullets();
-    if (w.dealDamageInRadius) w.dealDamageInRadius(this.sprite.x, this.sprite.y, 1500, 4);
+    if (w.dealDamageInRadius) w.dealDamageInRadius(this.sprite.x, this.sprite.y, 1500, HAERANG_WARD_DAMAGE);
   }
 
   /** 혜각 필살기: 반경 안의 적탄을 지우며 0.15초마다 충격파를 내리친다 */
@@ -870,7 +938,7 @@ export class Player {
     const w = this.world;
     const { x, y } = this.sprite;
     w.clearEnemyBulletsNear(x, y, VAJRA_RADIUS);
-    if (w.dealDamageInRadius) w.dealDamageInRadius(x, y, VAJRA_RADIUS, 10);
+    if (w.dealDamageInRadius) w.dealDamageInRadius(x, y, VAJRA_RADIUS, HYEGAK_VAJRA_DAMAGE);
     try {
       // 실제 타격 반경까지 퍼지는 금빛 고리(fx_ring 64px 기준)
       const ring = this.scene.add.image(x, y, 'fx_ring').setDepth(98).setTint(this.def.color).setAlpha(0.85).setScale(0.5);
@@ -900,7 +968,7 @@ export class Player {
         y: Phaser.Math.Clamp(y + dy, 60, 660),
         vx: 800,
         vy: 0,
-        damage: 3.5,
+        damage: YUN_BOMB_DAMAGE,
         scale: 0.85,
         pierce: 12,
         clearsBullets: true,
@@ -913,12 +981,14 @@ export class Player {
     if (!this.alive) return 'dead';
     if (this.godMode || this.invulnLeft > 0 || this.cutInActive) return 'invulnerable';
     this.lives -= 1;
-    this.power = Math.max(0, this.power - 1);
+    // 격추되면 파워를 모두 잃는다. 잃은 단계는 GameScene이 P 아이템으로 흘려 다시 주울 수 있게 한다.
+    const lostPower = this.power;
+    this.power = 0;
     this.chargeTime = 0;
     this.chargeReady = false;
     this.chargeNotified = false;
     this.hideChargeGlow();
-    if (this.onHit) this.onHit();
+    if (this.onHit) this.onHit(lostPower, this.sprite.x, this.sprite.y);
 
     const w = this.world;
     w.audio.playSfx('playerHit');

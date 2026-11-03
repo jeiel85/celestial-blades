@@ -226,7 +226,8 @@ export interface IGameWorld {
     scale?: number,
     damage?: number,
   ): void;
-  spawnItem(type: ItemType, x: number, y: number): void;
+  /** scatter면 격추 때 흘린 아이템: 사방으로 흩어져 화면 안에서 튕기다 몇 초 뒤 사라진다 */
+  spawnItem(type: ItemType, x: number, y: number, scatter?: boolean): void;
   addScore(points: number): void;
   registerKill(x: number, y: number, isBig: boolean): void;
   /** 화면의 적탄 전체 소거 (이펙트 포함) */
@@ -251,6 +252,8 @@ export interface IGameWorld {
   findTarget?(x: number, y: number, maxDist?: number): TargetRef | null;
   /** 범위 내 적에게 직접 피해 (돌진/필살기 연출용). GameScene이 구현. */
   dealDamageInRadius?(x: number, y: number, radius: number, damage: number): void;
+  /** 화면 안의 잡몹 전체에 피해(보스 제외, 필살기 발동 시 화면 정리) */
+  damageAllEnemies?(damage: number): void;
   /** 보스전 시작 요청 (EnemySpawner의 midboss/boss 액션이 호출). GameScene이 구현. */
   startBoss(bossId: string): void;
   /** 현재 보스 (없으면 null). GameScene이 구현. */

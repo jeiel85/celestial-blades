@@ -10,7 +10,7 @@
 
 <a href="https://jeiel85.github.io/celestial-blades/"><img src="https://img.shields.io/badge/%E2%96%B6%20%EC%A7%80%EA%B8%88%20%ED%94%8C%EB%A0%88%EC%9D%B4-PLAY%20NOW-ffd75e?style=for-the-badge&labelColor=2a1404" alt="지금 플레이"></a>
 
-<img src="https://img.shields.io/badge/version-1.9.0-a06bff?style=flat-square" alt="version">
+<img src="https://img.shields.io/badge/version-1.10.0-a06bff?style=flat-square" alt="version">
 <img src="https://img.shields.io/badge/Phaser-3.80-8fd3ff?style=flat-square" alt="Phaser">
 <img src="https://img.shields.io/badge/TypeScript-strict-3178c6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript">
 <img src="https://img.shields.io/badge/Vite-5-646cff?style=flat-square&logo=vite&logoColor=white" alt="Vite">
@@ -128,8 +128,9 @@
 - **2주차**: 1주차 엔딩 뒤 더 빠르고 촘촘한 2주차에 도전(탄속 1.15배·밀도 1.3배·격파탄, 컷신 생략). 랭킹에 `2주`로 표시
 - **스토리 다시보기**: 타이틀 `STORY`에서 본 장과 클리어한 천명사의 엔딩을 다시 보기(장은 대사를 들을 천명사를 ←→로 바꿀 수 있음)
 - **차지 공격**: 공격 버튼 홀드 1.2초로 최대 차지, 캐릭터 주위 이펙트로 표시
-- **파워**: P 아이템으로 최대 4단계 — 단계마다 투사체 수/형태 변화, 피격 시 1단계 하락
-- **필살기**: 최대 4개 보유, 사용 시 대미지 + 적탄 소거 + 1.5초 무적
+- **파워**: P 아이템으로 최대 4단계 — 단계마다 투사체 수/형태 변화
+- **격추**: 맞으면 가진 파워(P)와 시작 개수를 넘는 필살기(B)가 흩어집니다. 10초 안에 다시 주우면 회복 — 컨티뉴 뒤에도 그 자리에 남아 있습니다
+- **필살기**: 최대 4개 보유, 사용 즉시 적탄 소거 + 화면 잡몹 정리 + 보스에 큰 피해, 필살기가 끝날 때까지 무적
 - **목숨**: 기본 3, 피격 시 -1 (2초 무적), L 아이템으로 +1
 - **콤보**: 빠른 연속 처치로 배율 증가(최대 x3.0), 피격/3초 무처치 시 초기화
 - **아이템**: P(파워) / B(필살기) / L(목숨) / G(점수) — 적 처치 시 확률 드롭
@@ -221,6 +222,17 @@ npm run preview  # 빌드 결과 미리보기
 2. `python tools/process_art.py`를 실행하면 `src/assets/`가 갱신됩니다.
 
 목표 크기는 스크립트의 `SPRITE_SIZES`에 있습니다. 히트박스가 프레임 크기를 기준으로 잡히므로 크기는 바꾸지 않습니다. 파일명이 곧 텍스처 키이고, 코드가 참조하는 그림이 빠지면 부팅 단계에서 오류를 표시합니다.
+
+### 화력 측정
+
+천명사 화력·필살기 피해·보스 격파 시간은 실제 게임 코드를 헤드리스 Chrome에서 빠르게 돌려 잽니다(개발 서버 전용, 배포 빌드에는 들어가지 않음).
+
+```bash
+npm run dev -- --host 127.0.0.1 --port 4181
+node tools/bench.mjs http://127.0.0.1:4181 midboss_ray
+```
+
+결과는 JSON(천명사·파워·방식별 초당 피해, 필살기 1회 피해)입니다. 세 번째 인자로 측정 목록 JSON을 넘길 수 있습니다(`src/dev/bench.ts`의 `BenchCase`, `untilDead: true`면 격파 시간). 화력이나 보스 HP를 바꾸면 다시 재서 `characters.ts`의 `measured`를 고칩니다.
 
 ---
 
