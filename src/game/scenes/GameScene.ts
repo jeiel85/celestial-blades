@@ -155,6 +155,7 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
     this.save = new SaveSystem();
     this.scoreSys = new ScoreSystem(this.save);
     this.scoreSys.addRaw(this.registry.get('carryScore') as number);
+    this.scoreSys.setContinueMark(this.continues);
     this.fx = new Effects(this);
     this.audio = new AudioSystem();
     this.audio.setMasterVolume(this.save.settings.masterVol);
@@ -782,8 +783,8 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
     this.continues += 1;
     // 아케이드 관례: 점수는 0부터, 끝자리에 이어 한 횟수를 남긴다(랭킹 공정성).
     this.scoreSys.resetRun();
-    this.scoreSys.addRaw(Math.min(9, this.continues));
-    this.registry.set('carryScore', Math.min(9, this.continues));
+    this.scoreSys.setContinueMark(this.continues);
+    this.registry.set('carryScore', 0);
     const preset = this.getPreset();
     this.clearEnemyBullets();
     this.player.revive(preset.lives, Math.max(1, preset.startBombs), this.player.x, this.player.y);

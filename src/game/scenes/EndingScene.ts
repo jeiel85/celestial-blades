@@ -170,12 +170,7 @@ export class EndingScene extends Phaser.Scene {
       const J = Phaser.Input.Keyboard.JustDown;
       const K = Phaser.Input.Keyboard.KeyCodes;
       if (J(kb.addKey(K.Z)) || J(kb.addKey(K.SPACE)) || J(kb.addKey(K.ENTER))) this.startSecondLoop();
-      else if (J(kb.addKey(K.X)) || J(kb.addKey(K.ESC))) {
-        this.audio.playSfx('menu');
-        this.asking = false;
-        this.declined = true;
-        this.finish();
-      }
+      else if (J(kb.addKey(K.X)) || J(kb.addKey(K.ESC))) this.declineSecondLoop();
       return;
     }
     let held = false;
@@ -343,16 +338,39 @@ export class EndingScene extends Phaser.Scene {
       .text(WIDTH / 2, HEIGHT / 2 + 4, '더 빠르고 촘촘한 2주차에 도전하시겠습니까?', { fontFamily: FONT, fontSize: '20px', color: '#ffffff' })
       .setOrigin(0.5)
       .setDepth(21);
-    const t3 = this.add
-      .text(WIDTH / 2, HEIGHT / 2 + 56, 'Z · 클릭  2주차 도전     X  기록 등록', { fontFamily: FONT, fontSize: '18px', color: '#8fd3ff' })
-      .setOrigin(0.5)
-      .setDepth(21);
-    for (const o of [box, t1, t2, t3]) o.setAlpha(0);
-    this.tweens.add({ targets: [box, t1, t2, t3], alpha: 1, duration: 300 });
-    box.setInteractive().on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, e: Phaser.Types.Input.EventData) => {
-      e.stopPropagation();
-      this.startSecondLoop();
-    });
+    // 터치로도 둘 다 고를 수 있게 버튼을 따로 둔다.
+    const button = (x: number, label: string, onTap: () => void): Phaser.GameObjects.Text => {
+      const b = this.add
+        .text(x, HEIGHT / 2 + 58, label, {
+          fontFamily: FONT,
+          fontSize: '20px',
+          color: '#e8f2ff',
+          backgroundColor: '#1a2433',
+          padding: { x: 18, y: 8 },
+        })
+        .setOrigin(0.5)
+        .setDepth(21)
+        .setInteractive({ useHandCursor: true });
+      b.on('pointerover', () => b.setColor('#ffd75e'));
+      b.on('pointerout', () => b.setColor('#e8f2ff'));
+      b.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, e: Phaser.Types.Input.EventData) => {
+        e.stopPropagation();
+        onTap();
+      });
+      return b;
+    };
+    const go = button(WIDTH / 2 - 130, 'Z  2주차 도전', () => this.startSecondLoop());
+    const no = button(WIDTH / 2 + 130, 'X  기록 등록', () => this.declineSecondLoop());
+    for (const o of [box, t1, t2, go, no]) o.setAlpha(0);
+    this.tweens.add({ targets: [box, t1, t2, go, no], alpha: 1, duration: 300 });
+  }
+
+  private declineSecondLoop(): void {
+    if (!this.asking) return;
+    this.audio.playSfx('menu');
+    this.asking = false;
+    this.declined = true;
+    this.finish();
   }
 
   private startSecondLoop(): void {
