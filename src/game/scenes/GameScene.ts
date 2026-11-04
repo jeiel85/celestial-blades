@@ -40,7 +40,7 @@ import { InputSystem } from '../systems/InputSystem';
 import { ScoreSystem } from '../systems/ScoreSystem';
 import { AudioSystem } from '../systems/AudioSystem';
 import { SaveSystem } from '../systems/SaveSystem';
-import { AutoDodge, assistNames } from '../systems/Assist';
+import { AutoDodge, assistMask, assistNames } from '../systems/Assist';
 import type { DodgeThreat } from '../systems/Assist';
 import { Effects } from '../effects/Effects';
 import { clampCharIndex, getCharacter } from '../data/characters';
@@ -244,6 +244,8 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
     const assist = this.save.assist;
     this.player.setAssist(assist);
     this.dodge = new AutoDodge();
+    // 이번 판의 어시스트를 랭킹 등록(RankingScene)이 기록에 싣는다. 설정은 판 도중에 바뀌지 않는다.
+    this.registry.set('runAssist', assistMask(assist));
 
     // -- 입력 (자동 공격이 켜져 있으면 터치 공격 버튼은 차지용이다) --
     this.inputSys = new InputSystem(this);

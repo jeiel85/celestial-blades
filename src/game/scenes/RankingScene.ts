@@ -3,6 +3,7 @@ import { DIFFICULTIES, HEIGHT, UI_FONT, WIDTH } from '../GameConfig';
 import type { Difficulty } from '../GameConfig';
 import { AudioSystem } from '../systems/AudioSystem';
 import { SaveSystem } from '../systems/SaveSystem';
+import { assistFromMask, assistNames, assistShortNames } from '../systems/Assist';
 import { CHARACTERS } from '../data/characters';
 import { STAGES } from '../data/stages';
 import {
@@ -26,6 +27,12 @@ function reachLabel(stage: number, cleared: boolean): string {
   if (cleared) return `${lap}CLEAR`;
   return `${lap}${STAGE_NAME[(stage - 1) % STAGES.length] ?? ''}`;
 }
+/** 어시스트를 켠 기록의 표시 */
+const ASSIST_COLOR = '#53e0b0';
+/** 저장값(0~7)이 아니면 0으로 본다 */
+function cleanAssist(v: unknown): number {
+  return Number.isInteger(v) && (v as number) >= 0 && (v as number) <= 7 ? (v as number) : 0;
+}
 /** 닉네임 칸 폭(px). 한글 12자는 20px 글꼴로 약 240px라 넘치면 줄인다. */
 const NICK_MAX_W = 140;
 
@@ -38,9 +45,11 @@ function fitWidth(t: Phaser.GameObjects.Text, maxWidth: number): Phaser.GameObje
   return t;
 }
 
+/** 게임오버·엔딩에서 넘어온 등록 대기 기록. 닉네임은 입력받고, 어시스트는 이 판의 GameScene이 registry에 남긴 값을 쓴다. */
+type PendingEntry = Omit<ScoreEntry, 'nickname' | 'assist'>;
+
 export interface RankingSceneData {
-  /** 게임오버·엔딩에서 넘어온 등록 대기 기록(닉네임 제외) */
-  pending?: Omit<ScoreEntry, 'nickname'>;
+  pending?: PendingEntry;
 }
 
 /**
@@ -200,11 +209,12 @@ export class RankingScene extends Phaser.Scene {
         this.list.push(this.add.rectangle(x - 12, y - 6, 524, 38, 0xffd75e, 0.14).setOrigin(0));
       }
       const medal = ['#ffd75e', '#d8e0ea', '#e0a060'][i];
+      const assist = cleanAssist(r.assist);
       this.list.push(
         this.add.text(x, y, `${i + 1}`, { fontFamily: FONT, fontSize: '22px', color: medal ?? color, fontStyle: 'bold' }),
         this.add.image(x + 74, y + 13, `portrait_${r.pilot}`).setScale(0.17),
         fitWidth(this.add.text(x + 100, y + 2, r.nickname, { fontFamily: FONT, fontSize: '20px', color }), NICK_MAX_W),
-        this.add.text(x + 250, y + 4, `${reachLabel(r.stage, r.cleared)} · ${PILOT_NAME[r.pilot]}`, {
+        this.add.text(x + 250, y + (assist ? -1 : 4), `${reachLabel(r.stage, r.cleared)} · ${PILOT_NAME[r.pilot]}`, {
           fontFamily: FONT,
           fontSize: '15px',
           color: r.cleared ? '#53e0b0' : '#8fa4b8',
@@ -213,6 +223,14 @@ export class RankingScene extends Phaser.Scene {
           .text(x + 500, y + 1, r.score.toLocaleString('ko-KR'), { fontFamily: FONT, fontSize: '22px', color, fontStyle: 'bold' })
           .setOrigin(1, 0),
       );
+      // 어시스트를 켠 기록: 도달 줄 아래에 무엇을 켰는지 작게 붙인다(순위는 같은 표에서 매긴다).
+      if (assist) {
+        this.list.push(
+          this.add
+            .text(x + 250, y + 18, `ASSIST ${assistShortNames(assistFromMask(assist))}`, { fontFamily: FONT, fontSize: '12px', color: ASSIST_COLOR })
+            .setLetterSpacing(1),
+        );
+      }
     });
     // 내 기록이 TOP 밖이면 아래에 따로 보여 준다.
     if (this.myRank && !rows.some((r) => r.id === this.myRank?.row.id) && this.myRank.row.difficulty === DIFFS[this.diffIndex]) {
@@ -221,7 +239,7 @@ export class RankingScene extends Phaser.Scene {
           .text(
             WIDTH / 2,
             656,
-            `내 기록  ${this.myRank.rank > 0 ? `${this.myRank.rank}위` : ''}  ${this.myRank.row.nickname}  ${this.myRank.row.score.toLocaleString('ko-KR')}`,
+            `내 기록  ${this.myRank.rank > 0 ? `${this.myRank.rank}위` : ''}  ${this.myRank.row.nickname}  ${this.myRank.row.score.toLocaleString('ko-KR')}${cleanAssist(this.myRank.row.assist) ? '  ASSIST' : ''}`,
             { fontFamily: FONT, fontSize: '18px', color: '#ffd75e' },
           )
           .setOrigin(0.5),
@@ -231,7 +249,8 @@ export class RankingScene extends Phaser.Scene {
 
   // -- 닉네임 입력 (HTML 입력창) ------------------------------------------------
 
-  private openForm(pending: Omit<ScoreEntry, 'nickname'>): void {
+  private openForm(pending: PendingEntry): void {
+    const assist = cleanAssist(this.registry.get('runAssist'));
     // 입력하는 동안 Phaser가 키를 가로채지 않게 한다(Z·X 등이 입력창에 안 들어가는 문제 방지).
     const kb = this.input.keyboard;
     if (kb) {
@@ -244,6 +263,7 @@ export class RankingScene extends Phaser.Scene {
       <div class="rank-form__panel" role="dialog" aria-modal="true" aria-labelledby="rank-form-title">
         <h2 id="rank-form-title">랭킹 등록</h2>
         <p class="rank-form__score"></p>
+        <p class="rank-form__assist" hidden></p>
         <input class="rank-form__input" maxlength="12" autocomplete="nickname" spellcheck="false" placeholder="닉네임 (2~12자)" />
         <p class="rank-form__error" aria-live="polite"></p>
         <div class="rank-form__buttons">
@@ -253,6 +273,11 @@ export class RankingScene extends Phaser.Scene {
       </div>`;
     const scoreLine = form.querySelector('.rank-form__score') as HTMLParagraphElement;
     scoreLine.textContent = `${pending.difficulty} · ${PILOT_NAME[pending.pilot]} · ${pending.score.toLocaleString('ko-KR')}점`;
+    if (assist) {
+      const note = form.querySelector('.rank-form__assist') as HTMLParagraphElement;
+      note.textContent = `어시스트(${assistNames(assistFromMask(assist))})를 켠 기록이라 랭킹에 ASSIST로 표시돼요.`;
+      note.hidden = false;
+    }
     const input = form.querySelector('.rank-form__input') as HTMLInputElement;
     const error = form.querySelector('.rank-form__error') as HTMLParagraphElement;
     const submit = form.querySelector('.rank-form__submit') as HTMLButtonElement;
@@ -272,7 +297,7 @@ export class RankingScene extends Phaser.Scene {
       submit.disabled = true;
       skip.disabled = true;
       error.textContent = '등록 중…';
-      const res = await submitScore({ ...pending, nickname });
+      const res = await submitScore({ ...pending, nickname, assist });
       if (!this.scene.isActive()) return;
       if (!res.ok) {
         error.textContent = errorMessage(res.error);

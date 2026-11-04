@@ -36,6 +36,7 @@ Boot → Title → CharacterSelect → Story(서장) → Game(stage 1) → (중�
   - 자동 필살기: 무적이 아닐 때 맞으면 필살기가 남아 있으면 목숨 대신 필살기를 쓴다(`PlayerHitResult` `autoBomb`, 'AUTO BOMB' 글자).
   - 자동 회피: `AutoDodge`가 적탄(현재 속도로 직선 예측)·적 몸체(정지로 보고 판정 +10px)를 0.45초 앞까지 0.05초 간격으로 내다본다. 입력 방향이 안전하면 그대로, 아니면 멈춤+8방향×전속·반속 가운데 안전하고 입력과 가깝고 여유가 큰 쪽(없으면 가장 늦게 맞는 쪽)을 고른다. 이동 영역 경계는 그 자리에 멈춘 것으로 본다. 돌진 중에는 쓰지 않는다. 데스크톱 측정 프레임당 평균 0.03ms·최대 0.6ms(EXTREME 보스, 적탄 109개).
   - 안내: 모바일 첫 실행 때 타이틀 안내창(닫으면 `assistNotice` 저장), 켜져 있으면 스테이지 시작 카드 아래 한 줄과 HUD 점수 묶음 아래 `ASSIST` 줄.
+  - 랭킹: 어시스트를 켠 기록도 같은 표에 올리되 `ASSIST`로 표시한다(아래 온라인 랭킹).
 
 ## 플레이어 캐릭터 (data/characters.ts, 48~80px, 실루엣 구분)
 1. **윤 YUN** (균형 검사, 파랑) — 기본: 빠른 직선 검기 / 차지: 거대 초승달 검기(적탄 일부 소거) / 필살: 2초간 거대 검진 화면 전체 휩쓸기. 초보자용.
@@ -122,6 +123,7 @@ Boot → Title → CharacterSelect → Story(서장) → Game(stage 1) → (중�
 
 ## 온라인 랭킹 (RankingService · RankingScene, Supabase `public.scores`)
 - 등록: 게임오버 화면 `랭킹 등록`, 엔딩 종료 후 자동 진입(건너뛰기 가능). 닉네임 2~12자(한글·영문·숫자·_·-), 마지막 닉네임은 localStorage에 기억.
+- 어시스트 표시(v1.14.0): GameScene이 이번 판 어시스트를 registry `runAssist`(비트 합: 공격 1·필살기 2·회피 4)에 남기고, RankingScene이 등록할 때 `assist`로 싣는다(Result·Ending은 그대로). 켰으면 등록 창에 'ASSIST로 표시돼요' 안내, 순위표 도달 줄 아래에 `ASSIST 공격·필살·회피`. 순위는 같은 표에서 점수로만 매긴다(DECISIONS).
 - 조회: 타이틀 `RANKING` → 난이도 탭(←→) + TOP 20(점수 내림차순, 동점은 먼저 올린 기록이 위). 방금 올린 기록 강조, TOP 20 밖이면 아래에 순위 표시.
 - 서버 규칙(마이그레이션 `supabase/migrations/`): 조회·제출만 허용, 수정·삭제 불가, 클리어는 4스테이지에서만, 닉네임별 1분 3회. 점수 위조는 완전히 막지 못한다(DECISIONS.md).
 - 무료 플랜 일시정지 방지: `.github/workflows/supabase-keepalive.yml`이 사흘마다 조회.

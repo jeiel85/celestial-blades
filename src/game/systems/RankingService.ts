@@ -27,6 +27,8 @@ export interface ScoreEntry {
   /** 도달 스테이지 1~4 (4 = 천문) */
   stage: number;
   cleared: boolean;
+  /** 켠 어시스트의 비트 합(자동 공격 1 · 자동 필살기 2 · 자동 회피 4), 0이면 없음. 순위에는 쓰지 않고 표시만 한다. */
+  assist: number;
 }
 
 export interface RankRow extends ScoreEntry {
@@ -55,7 +57,7 @@ async function request(url: string, init: RequestInit): Promise<Response> {
 /** 난이도별 상위 기록(점수 내림차순, 동점은 먼저 올린 기록(작은 id)이 위). */
 export async function fetchTop(difficulty: Difficulty, limit = 20): Promise<Result<RankRow[]>> {
   const q = new URLSearchParams({
-    select: 'id,nickname,score,pilot,difficulty,stage,cleared,created_at',
+    select: 'id,nickname,score,pilot,difficulty,stage,cleared,assist,created_at',
     difficulty: `eq.${difficulty}`,
     order: 'score.desc,id.asc',
     limit: String(limit),

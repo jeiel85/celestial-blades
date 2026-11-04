@@ -25,6 +25,24 @@ export function anyAssist(f: AssistFlags): boolean {
   return f.shot || f.bomb || f.dodge;
 }
 
+/** 랭킹 `scores.assist`에 저장하는 비트 합: 자동 공격 1 · 자동 필살기 2 · 자동 회피 4 */
+export function assistMask(f: AssistFlags): number {
+  return (f.shot ? 1 : 0) | (f.bomb ? 2 : 0) | (f.dodge ? 4 : 0);
+}
+
+export function assistFromMask(mask: number): AssistFlags {
+  return { shot: (mask & 1) !== 0, bomb: (mask & 2) !== 0, dodge: (mask & 4) !== 0 };
+}
+
+/** 랭킹 목록용 짧은 이름("공격·회피"), 없으면 빈 문자열 */
+export function assistShortNames(f: AssistFlags): string {
+  const names: string[] = [];
+  if (f.shot) names.push('공격');
+  if (f.bomb) names.push('필살');
+  if (f.dodge) names.push('회피');
+  return names.join('·');
+}
+
 /** 켜진 어시스트 이름("자동 공격 · 자동 회피"), 없으면 빈 문자열 */
 export function assistNames(f: AssistFlags): string {
   const names: string[] = [];
