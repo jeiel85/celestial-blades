@@ -31,7 +31,7 @@ Boot → Title → CharacterSelect → Story(서장) → Game(stage 1) → (중�
 - 게임패드: 스틱/패드 이동, A버튼 공격, B버튼 필살기 지원(가능한 범위)
 - 디버그: F1 히트박스 표시, F2 무적, F3 현재 보스 호출, F4 다음 스테이지 (UI에는 노출 안 함)
 - 모바일: 터치 기기에서만 좌측 가상 이동 영역(드래그), 우측 공격/필살기 버튼. PC 조작감 우선.
-- 어시스트(v1.14.0, `systems/Assist.ts`): 설정에서 하나씩 켜고 끈다. 저장값이 없으면 모바일 기기(UA가 Android·iPhone·iPad·Mobile이거나 `(hover: none) and (pointer: coarse)`)에서만 켜 둔다.
+- 어시스트(v1.15.0, `systems/Assist.ts`): 설정에서 하나씩 켜고 끈다. 저장값이 없으면 모바일 기기(UA가 Android·iPhone·iPad·Mobile이거나 `(hover: none) and (pointer: coarse)`)에서만 켜 둔다.
   - 자동 공격: 공격키 없이 기본 공격·식신 사격. 차지는 공격키를 실제로 누르고 있을 때만 모은다(터치 공격 버튼 글자 `차지`).
   - 자동 필살기: 무적이 아닐 때 맞으면 필살기가 남아 있으면 목숨 대신 필살기를 쓴다(`PlayerHitResult` `autoBomb`, 'AUTO BOMB' 글자).
   - 자동 회피: `AutoDodge`가 적탄(현재 속도로 직선 예측)·적 몸체(정지로 보고 판정 +10px)를 0.45초 앞까지 0.05초 간격으로 내다본다. 입력 방향이 안전하면 그대로, 아니면 멈춤+8방향×전속·반속 가운데 안전하고 입력과 가깝고 여유가 큰 쪽(없으면 가장 늦게 맞는 쪽)을 고른다. 이동 영역 경계는 그 자리에 멈춘 것으로 본다. 돌진 중에는 쓰지 않는다. 데스크톱 측정 프레임당 평균 0.03ms·최대 0.6ms(EXTREME 보스, 적탄 109개).
@@ -123,7 +123,7 @@ Boot → Title → CharacterSelect → Story(서장) → Game(stage 1) → (중�
 
 ## 온라인 랭킹 (RankingService · RankingScene, Supabase `public.scores`)
 - 등록: 게임오버 화면 `랭킹 등록`, 엔딩 종료 후 자동 진입(건너뛰기 가능). 닉네임 2~12자(한글·영문·숫자·_·-), 마지막 닉네임은 localStorage에 기억.
-- 어시스트 표시(v1.14.0): GameScene이 이번 판 어시스트를 registry `runAssist`(비트 합: 공격 1·필살기 2·회피 4)에 남기고, RankingScene이 등록할 때 `assist`로 싣는다(Result·Ending은 그대로). 켰으면 등록 창에 'ASSIST로 표시돼요' 안내, 순위표 도달 줄 아래에 `ASSIST 공격·필살·회피`. 순위는 같은 표에서 점수로만 매긴다(DECISIONS).
+- 어시스트 표시(v1.15.0): GameScene이 이번 판 어시스트를 registry `runAssist`(비트 합: 공격 1·필살기 2·회피 4)에 남기고, RankingScene이 등록할 때 `assist`로 싣는다(Result·Ending은 그대로). 켰으면 등록 창에 'ASSIST로 표시돼요' 안내, 순위표 도달 줄 아래에 `ASSIST 공격·필살·회피`. 순위는 같은 표에서 점수로만 매긴다(DECISIONS).
 - 조회: 타이틀 `RANKING` → 난이도 탭(←→) + TOP 20(점수 내림차순, 동점은 먼저 올린 기록이 위). 방금 올린 기록 강조, TOP 20 밖이면 아래에 순위 표시.
 - 서버 규칙(마이그레이션 `supabase/migrations/`): 조회·제출만 허용, 수정·삭제 불가, 클리어는 4스테이지에서만, 닉네임별 1분 3회. 점수 위조는 완전히 막지 못한다(DECISIONS.md).
 - 무료 플랜 일시정지 방지: `.github/workflows/supabase-keepalive.yml`이 사흘마다 조회.
