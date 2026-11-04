@@ -70,6 +70,11 @@ const RESPAWN_X = 200;
 const RESPAWN_Y = 360;
 /** 물리 한 번에 진행하는 최대 시간(ms). 이보다 긴 프레임은 나눠 진행해 빠른 탄이 판정을 건너뛰지 않게 한다. */
 const PHYSICS_MAX_STEP_MS = 1000 / 60;
+/**
+ * 기체와 몸이 닿은 적이 받는 초당 피해(무적 중 들이받기). 겹침 판정은 물리 진행마다 일어나므로 진행 시간에 비례해 준다
+ * (판정 한 번마다 고정 피해면 144Hz 화면에서 2.4배가 된다). 240 = 예전 60Hz 고정 물리의 프레임당 4.
+ */
+const CONTACT_DPS = 240;
 
 /**
  * 게임플레이 씬 (키 'Game'). IGameWorld를 구조적으로 구현한다.
@@ -122,6 +127,8 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
   private timeFactor = 1;
   /** 배속이 원래대로 돌아오기까지 남은 실제 시간(ms, 일시정지 중에는 줄지 않음) */
   private slowLeftMs = 0;
+  /** 지금 진행 중인 물리 한 번의 게임 시간(ms). 겹침 콜백이 시간에 비례하는 피해를 줄 때 쓴다. */
+  private physicsStepMs = 0;
   private pauseLayer: Phaser.GameObjects.Container | null = null;
   private clearShown = false;
   private clearReadyAt = 0;
@@ -249,7 +256,7 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
     this.physics.add.overlap(this.enemyGroup, this.player.sprite, (a, b) => {
       const enemy = a instanceof Enemy ? a : b instanceof Enemy ? b : null;
       if (!enemy || !enemy.active) return;
-      enemy.takeDamage(4, this.player.x);
+      enemy.takeDamage((CONTACT_DPS * this.physicsStepMs) / 1000, this.player.x);
       this.hitPlayer();
     });
     this.physics.add.overlap(this.itemGroup, this.player.sprite, (a, b) => {
@@ -529,6 +536,7 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
     if (world.isPaused || ms <= 0) return;
     const n = Math.ceil(ms / PHYSICS_MAX_STEP_MS - 1e-6);
     const part = ms / n;
+    this.physicsStepMs = part;
     world.update(this.time.now, part);
     for (let i = 1; i < n; i += 1) world.step(part / 1000);
   }
