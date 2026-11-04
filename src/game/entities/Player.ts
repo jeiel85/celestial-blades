@@ -221,6 +221,10 @@ export class Player {
     return this.power;
   }
 
+  getMaxBombs(): number {
+    return this.maxBombs;
+  }
+
   getCharIndex(): number {
     return this.charIndex;
   }

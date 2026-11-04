@@ -135,6 +135,10 @@ export class Boss implements BossLike, BossAttackContext {
     return Math.max(0, Math.min(1, this.hp / this.maxHp));
   }
 
+  getPhaseMarks(): number[] {
+    return this.def.phases.map((p) => p.hpAbove).filter((v) => v > 0 && v < 1);
+  }
+
   getDisplayName(): string {
     let name = this.def.displayName;
     for (const [phase, n] of Object.entries(this.def.phaseNames ?? {})) {
