@@ -235,8 +235,9 @@ export class InputSystem {
   /**
    * 터치 기기에서만 가상 스틱 + 공격/필살기 버튼을 표시한다.
    * PC에서는 아무 것도 만들지 않는다. pointer가 touch일 때 활성화된다.
+   * attackLabel: 공격 버튼 글자(자동 공격이 켜져 있으면 누르고 있다 떼는 차지 버튼이라 '차지').
    */
-  setupTouchUI(targetScene: Phaser.Scene): void {
+  setupTouchUI(targetScene: Phaser.Scene, attackLabel = '공격'): void {
     if (this.touchUIBuilt) return;
     this.touchUIBuilt = true;
     try {
@@ -247,12 +248,12 @@ export class InputSystem {
     targetScene.input.on('pointerdown', (ptr: Phaser.Input.Pointer) => {
       if (ptr.wasTouch && !this.touchActive) {
         this.touchActive = true;
-        this.buildTouchControls(targetScene);
+        this.buildTouchControls(targetScene, attackLabel);
       }
     });
   }
 
-  private buildTouchControls(targetScene: Phaser.Scene): void {
+  private buildTouchControls(targetScene: Phaser.Scene, attackLabel: string): void {
     if (this.stickBase) return;
     const w = targetScene.scale.width;
     const h = targetScene.scale.height;
@@ -269,7 +270,7 @@ export class InputSystem {
 
     const atkBtn = targetScene.add.image(w - 130, h - 150, 'touch_btn_attack').setAlpha(0.7).setScrollFactor(0).setDepth(900);
     targetScene.add
-      .text(w - 130, h - 150 + 66, '공격', { fontFamily: UI_FONT, fontSize: '18px', color: '#ffd0d0', stroke: '#000000', strokeThickness: 4 })
+      .text(w - 130, h - 150 + 66, attackLabel, { fontFamily: UI_FONT, fontSize: '18px', color: '#ffd0d0', stroke: '#000000', strokeThickness: 4 })
       .setOrigin(0.5)
       .setDepth(901)
       .setScrollFactor(0);

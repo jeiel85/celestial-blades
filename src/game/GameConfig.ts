@@ -252,6 +252,11 @@ export interface IGameWorld {
   spawnEnemy(typeId: string, x: number, y: number, opts?: EnemySpawnOpts): void;
   /** 가장 가까운 적 조회 (추적탄용, 없으면 null). GameScene이 구현. */
   findTarget?(x: number, y: number, maxDist?: number): TargetRef | null;
+  /**
+   * 자동 회피 어시스트: 플레이어가 가려는 방향(want, 길이 0~1)을 받아, 그 길로 가면 곧 적탄·적에 닿으면
+   * 비켜 가는 방향으로 바꿔 돌려준다. speed는 지금 이동 속도(px/s), radius는 판정 반지름. GameScene이 구현.
+   */
+  steerAssist?(want: { x: number; y: number }, speed: number, radius: number): { x: number; y: number };
   /** 범위 내 적에게 직접 피해 (돌진/필살기 연출용). GameScene이 구현. */
   dealDamageInRadius?(x: number, y: number, radius: number, damage: number): void;
   /** 화면 안의 잡몹 전체에 피해(보스 제외, 필살기 발동 시 화면 정리) */

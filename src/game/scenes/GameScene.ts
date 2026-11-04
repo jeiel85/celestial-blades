@@ -1,5 +1,17 @@
 import Phaser from 'phaser';
-import { HEIGHT, MAX_BOMBS, MAX_LOOP, UI_FONT, WIDTH, parseDifficulty, presetFor } from '../GameConfig';
+import {
+  HEIGHT,
+  MAX_BOMBS,
+  MAX_LOOP,
+  PLAYER_MAX_X,
+  PLAYER_MAX_Y,
+  PLAYER_MIN_X,
+  PLAYER_MIN_Y,
+  UI_FONT,
+  WIDTH,
+  parseDifficulty,
+  presetFor,
+} from '../GameConfig';
 import type {
   BossLike,
   Difficulty,
@@ -28,6 +40,8 @@ import { InputSystem } from '../systems/InputSystem';
 import { ScoreSystem } from '../systems/ScoreSystem';
 import { AudioSystem } from '../systems/AudioSystem';
 import { SaveSystem } from '../systems/SaveSystem';
+import { AutoDodge, assistMask, assistNames } from '../systems/Assist';
+import type { DodgeThreat } from '../systems/Assist';
 import { Effects } from '../effects/Effects';
 import { clampCharIndex, getCharacter } from '../data/characters';
 import { BOSS_TALK } from '../data/bossTalk';
@@ -76,6 +90,9 @@ const PHYSICS_MAX_STEP_MS = 1000 / 60;
  * (판정 한 번마다 고정 피해면 144Hz 화면에서 2.4배가 된다). 240 = 예전 60Hz 고정 물리의 프레임당 4.
  */
 const CONTACT_DPS = 240;
+/** 자동 회피가 적 몸체를 피할 때 판정에 더하는 여유(px). 적은 패턴 함수가 직접 옮겨 속도를 모르므로 넉넉히 둔다. */
+const DODGE_ENEMY_PAD = 10;
+const DODGE_BOUNDS = { minX: PLAYER_MIN_X, maxX: PLAYER_MAX_X, minY: PLAYER_MIN_Y, maxY: PLAYER_MAX_Y };
 
 /**
  * 게임플레이 씬 (키 'Game'). IGameWorld를 구조적으로 구현한다.
@@ -135,6 +152,8 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
   private keyTitle: Phaser.Input.Keyboard.Key | null = null;
 
   private hud!: Hud;
+  private dodge = new AutoDodge();
+  private readonly dodgeThreats: DodgeThreat[] = [];
 
   constructor() {
     // Arcade 기본값(60Hz 고정 간격)은 144Hz 화면에서 탄이 두세 프레임 멈췄다 한 번에 뛰어 끊겨 보인다.
@@ -222,14 +241,19 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
     for (let i = 0; i < this.initPower; i += 1) this.player.addPower(1);
     this.player.setOnHit((lostPower, x, y) => this.onPlayerHit(lostPower, x, y));
     this.player.setOnDeath(() => this.onPlayerDeath());
+    const assist = this.save.assist;
+    this.player.setAssist(assist);
+    this.dodge = new AutoDodge();
+    // 이번 판의 어시스트를 랭킹 등록(RankingScene)이 기록에 싣는다. 설정은 판 도중에 바뀌지 않는다.
+    this.registry.set('runAssist', assistMask(assist));
 
-    // -- 입력 --
+    // -- 입력 (자동 공격이 켜져 있으면 터치 공격 버튼은 차지용이다) --
     this.inputSys = new InputSystem(this);
-    this.inputSys.setupTouchUI(this);
+    this.inputSys.setupTouchUI(this, assist.shot ? '차지' : '공격');
     this.keyTitle = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.X) ?? null;
 
     // -- HUD (보스 체력바 포함, 보스바는 숨김 상태로 준비) --
-    this.hud = new Hud(this, getCharacter(charIndex).color);
+    this.hud = new Hud(this, getCharacter(charIndex).color, assistNames(assist));
     this.refreshHud();
 
     // -- 충돌 --
@@ -261,8 +285,8 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
     // -- 일시정지 오버레이 --
     this.buildPauseLayer();
 
-    // -- 스테이지 타이틀 카드 --
-    this.showTitleCard(stage.nameEng, stage.nameKor);
+    // -- 스테이지 타이틀 카드 (켜진 어시스트를 함께 알린다) --
+    this.showTitleCard(stage.nameEng, stage.nameKor, assistNames(assist));
 
     // -- BGM --
     this.audio.startMusic(stage.music);
@@ -554,6 +578,24 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
       if (d2 < bestD2) best = boss;
     }
     return best;
+  }
+
+  steerAssist(want: { x: number; y: number }, speed: number, radius: number): { x: number; y: number } {
+    const threats = this.dodgeThreats;
+    threats.length = 0;
+    for (const b of this.enemyBullets) {
+      if (!b.active) continue;
+      const body = b.body as Phaser.Physics.Arcade.Body | null;
+      if (!body || !body.enable) continue;
+      threats.push({ x: body.center.x, y: body.center.y, vx: body.velocity.x, vy: body.velocity.y, r: body.halfWidth });
+    }
+    for (const e of this.enemies) {
+      if (!e.active) continue;
+      const body = e.body as Phaser.Physics.Arcade.Body | null;
+      if (!body || !body.enable) continue;
+      threats.push({ x: body.center.x, y: body.center.y, vx: 0, vy: 0, r: body.halfWidth + DODGE_ENEMY_PAD });
+    }
+    return this.dodge.steer(want, { x: this.player.x, y: this.player.y, r: radius, speed }, threats, DODGE_BOUNDS);
   }
 
   damageAllEnemies(damage: number): void {
@@ -975,7 +1017,7 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
 
   // -- 연출 ------------------------------------------------------------------
 
-  private showTitleCard(nameEng: string, nameKor: string): void {
+  private showTitleCard(nameEng: string, nameKor: string, assist: string): void {
     const base = this.stageIndex >= STAGES.length - 1 ? 'FINAL' : `STAGE ${this.stageIndex + 1}`;
     const stageNo = this.loop >= MAX_LOOP ? `2주차 ${base}` : base;
     const t1 = this.add
@@ -995,15 +1037,32 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
       .setOrigin(0.5)
       .setDepth(850)
       .setAlpha(0);
-    this.tweens.add({ targets: [t1, t2], alpha: 1, duration: 450, ease: 'Cubic.easeOut' });
-    this.time.delayedCall(1900, () => {
+    const lines = [t1, t2];
+    if (assist) {
+      lines.push(
+        this.add
+          .text(WIDTH / 2, 398, `어시스트 켜짐: ${assist}\n타이틀 SETTINGS에서 끄고 켤 수 있어요`, {
+            fontFamily: FONT,
+            fontSize: '18px',
+            color: '#7ff0c4',
+            align: 'center',
+            lineSpacing: 6,
+            stroke: '#05040f',
+            strokeThickness: 4,
+          })
+          .setOrigin(0.5, 0)
+          .setDepth(850)
+          .setAlpha(0),
+      );
+    }
+    this.tweens.add({ targets: lines, alpha: 1, duration: 450, ease: 'Cubic.easeOut' });
+    this.time.delayedCall(assist ? 3200 : 1900, () => {
       this.tweens.add({
-        targets: [t1, t2],
+        targets: lines,
         alpha: 0,
         duration: 600,
         onComplete: () => {
-          t1.destroy();
-          t2.destroy();
+          for (const t of lines) t.destroy();
         },
       });
     });

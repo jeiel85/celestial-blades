@@ -1,5 +1,10 @@
 # Backlog
 
+## v1.15.0 (어시스트)
+
+- [x] 랭킹에서 어시스트 사용 기록을 어떻게 다룰지 결정 — 사용자 결정(2026-11-04): 같은 랭킹에 올리되 `ASSIST`로 표시. `scores.assist`(비트 합) 추가(DECISIONS)
+- [ ] 랭킹에서 어시스트 기록만 거르거나 빼고 보는 보기 — 지금은 같은 표에 표시만 한다. 어시스트 기록이 상위를 채우면 필요해진다 · 영향: RankingScene, RankingService.fetchTop
+
 ## 그래픽 애셋 (2026-11-02, Codex 이미지 생성 1~3차 이후)
 
 - [ ] UI 패널·게이지는 여전히 Phaser 도형(rectangle) — 캐릭터 카드 테두리, 스탯 바, 화면 전환용 어둡게/밝게 덮개 · 영향: CharacterSelectScene, EndingScene, GameScene 결과 패널

@@ -10,7 +10,7 @@
 
 <a href="https://jeiel85.github.io/celestial-blades/"><img src="https://img.shields.io/badge/%E2%96%B6%20%EC%A7%80%EA%B8%88%20%ED%94%8C%EB%A0%88%EC%9D%B4-PLAY%20NOW-ffd75e?style=for-the-badge&labelColor=2a1404" alt="지금 플레이"></a>
 
-<img src="https://img.shields.io/badge/version-1.14.0-a06bff?style=flat-square" alt="version">
+<img src="https://img.shields.io/badge/version-1.15.0-a06bff?style=flat-square" alt="version">
 <img src="https://img.shields.io/badge/Phaser-3.80-8fd3ff?style=flat-square" alt="Phaser">
 <img src="https://img.shields.io/badge/TypeScript-strict-3178c6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript">
 <img src="https://img.shields.io/badge/Vite-5-646cff?style=flat-square&logo=vite&logoColor=white" alt="Vite">
@@ -107,6 +107,14 @@
 
 모바일 브라우저에서는 터치 UI(좌측 가상 이동 영역, 우측 공격/필살기 버튼)가 표시됩니다.
 
+**어시스트**: 타이틀 `SETTINGS`에서 자동 공격 · 자동 필살기 · 자동 회피를 하나씩 켜고 끌 수 있습니다. **모바일에서는 처음부터 켜져 있고**, 처음 실행할 때 안내창으로 알려 줍니다. 켜져 있으면 스테이지 시작 카드와 HUD 점수 아래 `ASSIST`에 표시됩니다. 어시스트를 켠 기록도 온라인 랭킹에 올라가며, 순위표에 `ASSIST 공격·필살·회피`처럼 무엇을 켰는지 표시됩니다.
+
+| 어시스트 | 동작 |
+| --- | --- |
+| 자동 공격 | 공격키 없이 기본 공격을 계속 쏩니다. 차지는 공격키를 누르고 있다 떼서 씁니다(터치 버튼 글자가 `차지`로 바뀜) |
+| 자동 필살기 | 맞는 순간 필살기가 남아 있으면 대신 터뜨려 목숨을 지킵니다 |
+| 자동 회피 | 가려는 길로 0.45초 안에 적탄·적에 닿으면 기체가 비켜 갑니다. 안전하면 입력 그대로 움직입니다 |
+
 디버그 키(일반 UI 미노출): `F1` 히트박스, `F2` 무적, `F3` 보스 호출, `F4` 다음 스테이지.
 
 ---
@@ -137,8 +145,9 @@
 - **난이도**: EASY(탄속·밀도 감소) / NORMAL / HARD(탄속·패턴·조합 강화) / **EXTREME**
   - EXTREME: 목숨 1·필살기 0으로 시작, 목숨 아이템 없음, 탄속 1.45배·탄 수 최대 2.4배, 보스 HP 1.6배·공격 빈도 1.35배, 원형 탄막 빈틈 1발분, 적이 죽을 때 격파탄을 남김, 게임오버 시 1스테이지부터 다시. 모든 패턴의 안전 경로는 유지됩니다.
 - **점수**: 처치·보스 타격·아이템·콤보·노미스·클리어 보너스, 최고 점수는 localStorage 저장
-- **온라인 랭킹**: 게임오버·엔딩 뒤 닉네임으로 등록, 타이틀 `RANKING`에서 난이도별 TOP 20 확인
+- **온라인 랭킹**: 게임오버·엔딩 뒤 닉네임으로 등록, 타이틀 `RANKING`에서 난이도별 TOP 20 확인. 어시스트를 켠 기록은 `ASSIST`로 표시
 - **필살기 컷인**: 발동 순간 캐릭터 일러스트 컷인이 화면을 가로지르고 공격이 터짐
+- **어시스트**: 자동 공격·자동 필살기·자동 회피(설정에서 하나씩, 모바일은 기본 켜짐)
 - **보스**: 각 보스 3개 이상 패턴, 체력 감소 시 패턴 추가/강화, 공격 전 경고 연출, 모든 탄막에 안전 경로 존재
 
 ---
@@ -176,6 +185,7 @@ src/
       AudioSystem.ts           # Web Audio 합성 효과음 + 절차 생성 BGM
       SaveSystem.ts            # localStorage (하이스코어·설정)
       InputSystem.ts           # 키보드·게임패드·터치 UI
+      Assist.ts                # 어시스트 설정·모바일 판별·자동 회피 경로 선택
     effects/Effects.ts         # 폭발·플래시·히트스톱·쉐이크·잔상
     effects/Hud.ts             # 인게임 HUD (점수·목숨·필살기·파워·콤보·보스 체력바)
     effects/Skins.ts           # 적탄 흰 심·외곽선, 기체 테두리 텍스처
