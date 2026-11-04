@@ -37,18 +37,30 @@ function keyOf(path: string): string {
   return path.slice(path.lastIndexOf('/') + 1, path.lastIndexOf('.'));
 }
 
+const URL_BY_KEY = new Map(Object.entries(IMAGE_URLS).map(([path, url]) => [keyOf(path), url]));
+
 /**
- * BootScene: 모든 그림을 로드하고 로고 글꼴을 받은 뒤 'Title'로 이동한다.
+ * 받지 못한 그림을 다시 받기 전에 기다리는 시간(ms), 차례대로 최대 세 번.
+ * 배포 직후 CDN이 한 장에 일시 오류(HTTP 503)를 내는 일이 있는데, 곧바로 다시 받으면 대개 받아진다.
+ */
+const RETRY_DELAYS_MS = [500, 1500, 3000];
+
+/**
+ * BootScene: 모든 그림을 로드하고(실패한 그림은 다시 받기) 로고 글꼴을 받은 뒤 'Title'로 이동한다.
  */
 export class BootScene extends Phaser.Scene {
+  /** 끝내 받지 못했거나 번들에 없는 그림 키(오류 화면에 표시) */
   private readonly failedSprites: string[] = [];
+  /** 이번 로드에서 받지 못해 다시 받을 그림 키 */
+  private readonly retryKeys = new Set<string>();
+  private label!: Phaser.GameObjects.Text;
 
   constructor() {
     super('Boot');
   }
 
   preload(): void {
-    const label = this.add
+    this.label = this.add
       .text(640, 360, 'LOADING...', {
         fontFamily: UI_FONT,
         fontSize: '28px',
@@ -59,18 +71,42 @@ export class BootScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, (file: Phaser.Loader.File) => {
-      this.failedSprites.push(file.key);
+      this.retryKeys.add(file.key);
     });
     this.load.on(Phaser.Loader.Events.PROGRESS, (p: number) => {
-      label.setText(`LOADING... ${Math.round(p * 100)}%`);
+      this.label.setText(`LOADING... ${Math.round(p * 100)}%`);
     });
 
-    for (const [path, url] of Object.entries(IMAGE_URLS)) this.load.image(keyOf(path), url);
+    for (const [key, url] of URL_BY_KEY) this.load.image(key, url);
   }
 
   create(): void {
+    void this.retryFailed().then(() => this.finishBoot());
+  }
+
+  /** 받지 못한 그림만 RETRY_DELAYS_MS 간격으로 다시 받는다. 다 받거나 횟수를 다 쓰면 남은 키를 실패로 넘긴다. */
+  private async retryFailed(): Promise<void> {
+    if (this.retryKeys.size === 0) return;
+    // 다시 받는 동안의 진행률(재시도 몇 장 기준)이 전체 진행률처럼 보이지 않게 끈다.
+    this.load.off(Phaser.Loader.Events.PROGRESS);
+    for (let i = 0; i < RETRY_DELAYS_MS.length && this.retryKeys.size > 0; i += 1) {
+      this.label.setText(`그림을 다시 받는 중... (${i + 1}/${RETRY_DELAYS_MS.length})`);
+      await new Promise<void>((resolve) => window.setTimeout(resolve, RETRY_DELAYS_MS[i]));
+      const keys = [...this.retryKeys];
+      this.retryKeys.clear();
+      console.warn(`그림 다시 받기 ${i + 1}/${RETRY_DELAYS_MS.length}:`, keys);
+      for (const key of keys) this.load.image(key, URL_BY_KEY.get(key));
+      await new Promise<void>((resolve) => {
+        this.load.once(Phaser.Loader.Events.COMPLETE, () => resolve());
+        this.load.start();
+      });
+    }
+    this.failedSprites.push(...this.retryKeys);
+  }
+
+  private finishBoot(): void {
     for (const key of REQUIRED_TEXTURES) {
-      if (!this.textures.exists(key)) this.failedSprites.push(key);
+      if (!this.textures.exists(key) && !this.failedSprites.includes(key)) this.failedSprites.push(key);
     }
     if (this.failedSprites.length > 0) {
       // 스프라이트 없이 진행하면 적/조종사가 Phaser 기본 '누락' 텍스처로 보이므로 멈추고 알린다.
@@ -90,8 +126,8 @@ export class BootScene extends Phaser.Scene {
 
     // 게임 전체는 pixelArt(최근접 보간)이지만, 채색 일러스트는 확대·축소(조종사 1.15배 등)에서
     // 계단 현상이 두드러지므로 선형 보간으로 그린다.
-    for (const path of Object.keys(IMAGE_URLS)) {
-      this.textures.get(keyOf(path)).setFilter(Phaser.Textures.FilterMode.LINEAR);
+    for (const key of URL_BY_KEY.keys()) {
+      this.textures.get(key).setFilter(Phaser.Textures.FilterMode.LINEAR);
     }
 
     // Phaser 텍스트는 생성 시점의 글꼴로 한 번 래스터화되므로, 화면에 쓰일 글자의 글꼴 조각을 받은 뒤 타이틀로 넘어간다.
