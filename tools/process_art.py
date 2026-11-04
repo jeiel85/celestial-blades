@@ -4,14 +4,15 @@
 
 - 스프라이트: 투명 여백을 잘라낸 뒤 비율을 유지해 목표 텍스처 크기 안에 맞추고 가운데 배치한다.
   목표 크기는 기존 텍스처 크기와 같다(히트박스가 프레임 크기를 기준으로 잡히므로 바꾸지 않는다).
-- 배경: 1280x720으로 맞춰 자른 JPEG.
-- 전경 레이어: 그림 띠를 잘라 1600x720 투명 PNG 아래쪽에 배치, 좌우 끝을 투명하게 페이드(가로 반복용).
+- 배경: 1280x720으로 맞춰 자른 JPEG. 스테이지 원경(가로 반복)은 좌우 끝이 이어지게 가공한다(make_tileable).
+- 전경 레이어: 그림 띠를 잘라 투명 PNG(높이 720) 아래쪽에 배치하고, 좌우 끝이 이어지게 가공한다(가로 반복용).
 원본이 없는 키는 건너뛰고 목록을 출력한다.
 """
 from pathlib import Path
 import sys
 
-from PIL import Image, ImageChops
+import numpy as np
+from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "art-raw"
@@ -112,15 +113,20 @@ BACKGROUND_KEYS = [
     "story_0", "story_1", "story_2", "story_3", "story_4", "story_5",
 ]
 BG_SIZE = (1280, 720)
+# 게임 중 가로로 흐르는 스테이지 원경. 원본을 (1280 + SKY_OVERLAP) 폭으로 맞춘 뒤 좌우 끝 SKY_OVERLAP을 겹쳐
+# 1280폭 반복 타일로 만든다(타일이 화면보다 좁으면 같은 그림이 한 화면에 두 번 보인다). 대신 위아래가 약 15% 잘린다.
+SKY_KEYS = ["bg_valley", "bg_city", "bg_palace", "bg_fortress", "bg_market", "bg_rift"]
+SKY_OVERLAP = 224
 # 캐릭터 선택 화면 기체(select_<id>)
 SELECT_SIZE = (220, 170)
 # 필살기 컷인 띠(가로로 아주 긴 일러스트)
 CUTIN_KEYS = ["cutin_yun", "cutin_ryeohwa", "cutin_mooyoung", "cutin_soyul", "cutin_haerang", "cutin_hyegak", "cutin_seori"]
 CUTIN_SIZE = (1280, 360)
-# 가로로 반복되는 전경 레이어(투명 PNG). 높이를 화면 높이에 맞추고 좌우 끝을 투명하게 비워 이음매를 없앤다.
+# 가로로 반복되는 전경 레이어(투명 PNG). 그림 띠를 LAYER_W 폭으로 맞추고 좌우 끝 LAYER_OVERLAP을 겹쳐 잇는다
+# (반복 주기 = LAYER_W - LAYER_OVERLAP, 화면 폭 1280보다 넓게).
 LAYER_KEYS = ["layer_valley", "layer_city", "layer_palace", "layer_fortress", "layer_market", "layer_rift"]
-LAYER_EDGE = 0.04
 LAYER_W = 1600
+LAYER_OVERLAP = 200
 LAYER_CENTER_Y = 0.72
 
 
@@ -152,28 +158,155 @@ def fit_background(src: Image.Image, size: tuple[int, int] = BG_SIZE) -> Image.I
     return img.crop((left, top, left + tw, top + th))
 
 
+def _box_blur(a: np.ndarray, r: int) -> np.ndarray:
+    """2차원 배열 상자 흐림(가장자리는 끝값 연장)."""
+    k = 2 * r + 1
+    c = np.pad(a, r, mode="edge").cumsum(0)
+    c = np.vstack([np.zeros((1, c.shape[1])), c])
+    c = ((c[k:] - c[:-k]) / k).cumsum(1)
+    c = np.hstack([np.zeros((c.shape[0], 1)), c])
+    return (c[:, k:] - c[:, :-k]) / k
+
+
+def _min_cut(err: np.ndarray, lo: int, hi: int, slope: int = 2) -> np.ndarray:
+    """위에서 아래로 내려가는 경계(행마다 열 하나, 다음 행으로 최대 slope칸) 중 err 합이 가장 작은 것의 열 위치."""
+    h, w = err.shape
+    idx = np.arange(w)
+    cost = np.full(w, np.inf)
+    cost[lo:hi + 1] = err[0, lo:hi + 1]
+    back = np.zeros((h, w), dtype=np.int64)
+    for y in range(1, h):
+        best = np.full(w, np.inf)
+        arg = idx.copy()
+        for d in range(-slope, slope + 1):
+            shifted = np.full(w, np.inf)
+            if d < 0:
+                shifted[-d:] = cost[:d]
+            elif d > 0:
+                shifted[:-d] = cost[d:]
+            else:
+                shifted = cost.copy()
+            # 옆으로 움직일수록 조금 비싸게 매겨 곧은 경계를 고른다
+            shifted += abs(d) * 0.02
+            better = shifted < best
+            best[better] = shifted[better]
+            arg[better] = idx[better] + d
+        cost = np.full(w, np.inf)
+        cost[lo:hi + 1] = best[lo:hi + 1] + err[y, lo:hi + 1]
+        back[y] = arg
+    cut = np.zeros(h, dtype=np.int64)
+    cut[-1] = int(cost.argmin())
+    for y in range(h - 1, 0, -1):
+        cut[y - 1] = back[y, cut[y]]
+    return cut
+
+
+def _poisson_band(a: np.ndarray, b: np.ndarray, cut: np.ndarray) -> np.ndarray:
+    """경계 왼쪽은 a, 오른쪽은 b의 기울기를 따르고 양 끝은 띠 바깥 그림에 이어지는 띠를 푼다(행렬 없는 켤레 기울기법).
+
+    색을 반투명하게 섞으면 한쪽에만 있는 건물이 유령처럼 비친다. 기울기로 합치면 그림은 경계에서 또렷이 갈리고
+    밝기·색 차이만 띠 전체에 고르게 퍼진다.
+    """
+    h, o, _ = a.shape
+    on_b = np.arange(o)[None, :] >= cut[:, None]
+
+    def guide(ga: np.ndarray, gb: np.ndarray, s0: np.ndarray, s1: np.ndarray) -> np.ndarray:
+        both_b = (s0 & s1)[..., None]
+        both_a = (~s0 & ~s1)[..., None]
+        return np.where(both_b, gb, np.where(both_a, ga, 0.5 * (ga + gb)))
+
+    gx = guide(a[:, 1:] - a[:, :-1], b[:, 1:] - b[:, :-1], on_b[:, :-1], on_b[:, 1:])
+    gy = guide(a[1:] - a[:-1], b[1:] - b[:-1], on_b[:-1], on_b[1:])
+    rhs = np.zeros_like(a)
+    rhs[:, :-1] -= gx
+    rhs[:, 1:] += gx
+    rhs[:-1] -= gy
+    rhs[1:] += gy
+    # 띠 바깥 이웃은 고정값이다: 왼쪽 = 타일 마지막 열(a 바로 앞 그림), 오른쪽 = 띠 다음 열(b 바로 뒤 그림).
+    # 우변으로 옮기는 값(이웃값 + 원래 그림의 기울기)은 a의 첫 열, b의 마지막 열과 같다.
+    rhs[:, :1] += a[:, :1]
+    rhs[:, -1:] += b[:, -1:]
+    deg = np.full((h, 1, 1), 4.0)
+    deg[0] = deg[-1] = 3.0
+
+    def lap(u: np.ndarray) -> np.ndarray:
+        out = deg * u
+        out[:, 1:] -= u[:, :-1]
+        out[:, :-1] -= u[:, 1:]
+        out[1:] -= u[:-1]
+        out[:-1] -= u[1:]
+        return out
+
+    u = np.where(on_b[..., None], b, a)
+    r = rhs - lap(u)
+    p = r.copy()
+    rs = rs0 = float((r * r).sum())
+    for _ in range(5000):
+        if rs <= rs0 * 1e-10:
+            break
+        ap = lap(p)
+        alpha = rs / float((p * ap).sum())
+        u += alpha * p
+        r -= alpha * ap
+        rn = float((r * r).sum())
+        p = r + (rn / rs) * p
+        rs = rn
+    return u
+
+
+def make_tileable(src: np.ndarray, overlap: int, poisson: bool = True) -> np.ndarray:
+    """가로 반복 타일을 만든다(이미지 퀼팅). 폭이 overlap만큼 줄어든다.
+
+    타일 앞부분 overlap 열은 원본 오른쪽 끝(타일 마지막 열에서 이어지는 그림)과 왼쪽 끝(타일 overlap 열로 이어지는 그림)을
+    겹친 띠다. 두 그림이 가장 비슷한 곳을 지나는 세로 경계를 찾아 왼쪽은 오른쪽 끝, 오른쪽은 왼쪽 끝 그림으로 채운다.
+    poisson=False면 경계 둘레 몇 px만 섞는다(투명 레이어용: 경계가 대개 빈 곳을 지나고, 알파는 기울기로 풀면 번진다).
+    """
+    h, w, _ = src.shape
+    wt = w - overlap
+    a = src[:, wt:]
+    b = src[:, :overlap]
+    margin = 12
+    cut = _min_cut(_box_blur(((a - b) ** 2).sum(2), 2), margin, overlap - margin - 1)
+    out = src[:, :wt].copy()
+    if poisson:
+        out[:, :overlap] = _poisson_band(a, b, cut)
+    else:
+        feather = 3
+        t = np.clip((np.arange(overlap)[None, :] - cut[:, None] + feather) / (2 * feather), 0, 1)[..., None]
+        out[:, :overlap] = a * (1 - t) + b * t
+    return np.clip(out, 0, 1)
+
+
+def fit_sky(src: Image.Image) -> Image.Image:
+    """스테이지 원경: 폭 1280 + SKY_OVERLAP으로 맞춰 가운데 720을 자른 뒤 1280x720 반복 타일로 만든다."""
+    img = src.convert("RGB")
+    tw, th = BG_SIZE
+    ws = tw + SKY_OVERLAP
+    img = img.resize((ws, max(th, round(img.height * ws / img.width))), Image.LANCZOS)
+    top = (img.height - th) // 2
+    arr = np.asarray(img.crop((0, top, ws, top + th)), dtype=np.float64) / 255
+    return Image.fromarray((make_tileable(arr, SKY_OVERLAP) * 255 + 0.5).astype(np.uint8))
+
+
 def fit_layer(src: Image.Image) -> Image.Image:
-    """그림 띠를 잘라 폭 LAYER_W로 맞추고, 높이 720 투명 캔버스의 LAYER_CENTER_Y 위치에 놓는다."""
+    """그림 띠를 잘라 폭 LAYER_W로 맞춰 반복 타일로 만들고, 높이 720 투명 캔버스의 LAYER_CENTER_Y 위치에 놓는다."""
     img = src.convert("RGBA")
     bbox = img.getchannel("A").point(lambda a: 255 if a > 8 else 0).getbbox()
     if bbox is None:
         raise ValueError("완전히 투명한 이미지")
     img = img.crop((0, bbox[1], img.width, bbox[3]))
     img = img.resize((LAYER_W, round(img.height * LAYER_W / img.width)), Image.LANCZOS)
-    # 좌우 가장자리 LAYER_EDGE 폭에서 알파를 0으로 서서히 줄인다(반복 시 잘린 형태가 보이지 않게).
-    edge = max(1, round(img.width * LAYER_EDGE))
-    ramp = Image.new("L", img.size, 255)
-    px = ramp.load()
-    for x in range(edge):
-        v = round(255 * x / edge)
-        for y in range(img.height):
-            px[x, y] = v
-            px[img.width - 1 - x, y] = v
-    img.putalpha(ImageChops.multiply(img.getchannel("A"), ramp))
+    # 투명한 곳의 색이 경계 찾기·섞기에 끼어들지 않도록 알파를 곱한 색으로 다룬다.
+    arr = np.asarray(img, dtype=np.float64) / 255
+    arr[..., :3] *= arr[..., 3:]
+    tiled = make_tileable(arr, LAYER_OVERLAP, poisson=False)
+    alpha = tiled[..., 3:]
+    tiled[..., :3] = np.where(alpha > 1e-6, tiled[..., :3] / np.maximum(alpha, 1e-6), 0)
+    band = Image.fromarray((np.clip(tiled, 0, 1) * 255 + 0.5).astype(np.uint8), "RGBA")
     th = BG_SIZE[1]
-    out = Image.new("RGBA", (LAYER_W, th), (0, 0, 0, 0))
-    top = min(th - img.height, max(0, round(th * LAYER_CENTER_Y - img.height / 2)))
-    out.paste(img, (0, top))
+    out = Image.new("RGBA", (band.width, th), (0, 0, 0, 0))
+    top = min(th - band.height, max(0, round(th * LAYER_CENTER_Y - band.height / 2)))
+    out.paste(band, (0, top))
     return out
 
 
@@ -204,7 +337,8 @@ def main() -> int:
             missing.append(key)
             continue
         with Image.open(raw) as im:
-            fit_background(im).save(BACKGROUNDS / f"{key}.jpg", quality=86, optimize=True, progressive=True)
+            fitted = fit_sky(im) if key in SKY_KEYS else fit_background(im)
+            fitted.save(BACKGROUNDS / f"{key}.jpg", quality=86, optimize=True, progressive=True)
     for key in CUTIN_KEYS:
         raw = RAW / f"{key}.png"
         if not raw.exists():
