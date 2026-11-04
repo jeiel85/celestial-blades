@@ -148,8 +148,8 @@ export class EndingScene extends Phaser.Scene {
     this.holdMs = 0;
     this.done = false;
 
-    // 어두운 균열 하늘
-    this.add.image(0, 0, 'bg_rift').setOrigin(0).setDisplaySize(WIDTH, HEIGHT);
+    // 어두운 균열 하늘: 천문 원경은 높이 720의 가로로 긴 반복 타일이라 원래 크기로 깔면 앞부분(첫 그림 구도)만 화면에 걸친다.
+    this.add.image(0, 0, 'bg_rift').setOrigin(0);
     this.add.rectangle(0, 0, WIDTH, HEIGHT, 0x05040f, 0.5).setOrigin(0);
     this.bright = this.add.rectangle(0, 0, WIDTH, HEIGHT, 0x9fd8f2, 0).setOrigin(0).setDepth(5);
     // 균열 기둥 (수축 연출 대상): 가로 빛줄기 그림을 세로로 세워 화면 높이만큼 늘린다.
