@@ -250,4 +250,12 @@ node tools/bench.mjs http://127.0.0.1:4181 midboss_ray
 
 ## 라이선스
 
-코드·그래픽·사운드는 이 저장소를 위해 만든 오리지널입니다. 글꼴 Song Myung·Gowun Dodum은 SIL Open Font License 1.1을 따릅니다.
+코드와 콘텐츠의 라이선스가 다릅니다.
+
+| 대상 | 라이선스 |
+|---|---|
+| **코드**: `src/`·`tools/`·`supabase/`·설정 파일. 실행 중 음악·효과음을 만드는 코드도 포함 | [MIT](LICENSE) |
+| **콘텐츠**: 그림(`src/assets/`·`public/icons/`·`share/`), 이야기·대사, 캐릭터·보스·스테이지의 이름과 설정 문장 | [CC BY 4.0](LICENSE-CONTENT.md) — 원저작자 표시 |
+| **글꼴**: Song Myung·Gowun Dodum | SIL Open Font License 1.1 |
+
+콘텐츠를 쓸 때는 `천명비행록 : Celestial Blades — 박용은 (jeiel85)`, 출처 링크, 라이선스를 함께 적고 고쳤다면 고쳤다고 밝혀 주세요. 범위와 표시 방법은 [LICENSE-CONTENT.md](LICENSE-CONTENT.md)에 있습니다.
