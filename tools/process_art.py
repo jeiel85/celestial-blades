@@ -4,8 +4,9 @@
 
 - 스프라이트: 투명 여백을 잘라낸 뒤 비율을 유지해 목표 텍스처 크기 안에 맞추고 가운데 배치한다.
   목표 크기는 기존 텍스처 크기와 같다(히트박스가 프레임 크기를 기준으로 잡히므로 바꾸지 않는다).
-- 배경: 1280x720으로 맞춰 자른 JPEG. 스테이지 원경(가로 반복)은 좌우 끝이 이어지게 가공한다(make_tileable).
-- 전경 레이어: 그림 띠를 잘라 투명 PNG(높이 720) 아래쪽에 배치하고, 좌우 끝이 이어지게 가공한다(가로 반복용).
+- 배경: 1280x720으로 맞춰 자른 JPEG.
+- 스테이지 원경·전경 레이어(가로 반복): `<key>.png`와 그 뒤를 이어 그린 `<key>_2.png`, `<key>_3.png` ...를 차례로 이어
+  한 바퀴 도는 높이 720 반복 타일로 만든다(make_loop). 레이어는 그림 띠를 잘라 투명 캔버스 아래쪽에 배치한다.
 원본이 없는 키는 건너뛰고 목록을 출력한다.
 """
 from pathlib import Path
@@ -113,8 +114,8 @@ BACKGROUND_KEYS = [
     "story_0", "story_1", "story_2", "story_3", "story_4", "story_5",
 ]
 BG_SIZE = (1280, 720)
-# 게임 중 가로로 흐르는 스테이지 원경. 원본을 (1280 + SKY_OVERLAP) 폭으로 맞춘 뒤 좌우 끝 SKY_OVERLAP을 겹쳐
-# 1280폭 반복 타일로 만든다(타일이 화면보다 좁으면 같은 그림이 한 화면에 두 번 보인다). 대신 위아래가 약 15% 잘린다.
+# 게임 중 가로로 흐르는 스테이지 원경. 이어 그린 장들을 높이 720으로 맞춰 이웃한 끝을 SKY_OVERLAP씩 겹쳐 잇는다
+# (16:9 세 장이면 반복 주기 약 3,170px).
 SKY_KEYS = ["bg_valley", "bg_city", "bg_palace", "bg_fortress", "bg_market", "bg_rift"]
 SKY_OVERLAP = 224
 # 캐릭터 선택 화면 기체(select_<id>)
@@ -122,12 +123,14 @@ SELECT_SIZE = (220, 170)
 # 필살기 컷인 띠(가로로 아주 긴 일러스트)
 CUTIN_KEYS = ["cutin_yun", "cutin_ryeohwa", "cutin_mooyoung", "cutin_soyul", "cutin_haerang", "cutin_hyegak", "cutin_seori"]
 CUTIN_SIZE = (1280, 360)
-# 가로로 반복되는 전경 레이어(투명 PNG). 그림 띠를 LAYER_W 폭으로 맞추고 좌우 끝 LAYER_OVERLAP을 겹쳐 잇는다
-# (반복 주기 = LAYER_W - LAYER_OVERLAP, 화면 폭 1280보다 넓게).
+# 가로로 반복되는 전경 레이어(투명 PNG). 이어 그린 장마다 그림 띠를 LAYER_W 폭으로 맞추고 이웃한 끝을 LAYER_OVERLAP씩
+# 겹쳐 잇는다(반복 주기 = 장 수 x (LAYER_W - LAYER_OVERLAP), 세 장이면 4,080px).
 LAYER_KEYS = ["layer_valley", "layer_city", "layer_palace", "layer_fortress", "layer_market", "layer_rift"]
 LAYER_W = 1600
-LAYER_OVERLAP = 200
+LAYER_OVERLAP = 240
 LAYER_CENTER_Y = 0.72
+# 반복 타일 한 장의 최대 폭. 모바일 GPU의 텍스처 한 변 상한(흔히 4096)을 넘으면 그리지 못한다.
+MAX_TEXTURE_W = 4096
 
 
 def fit_sprite(src: Image.Image, size: tuple[int, int]) -> Image.Image:
@@ -254,60 +257,97 @@ def _poisson_band(a: np.ndarray, b: np.ndarray, cut: np.ndarray) -> np.ndarray:
     return u
 
 
-def make_tileable(src: np.ndarray, overlap: int, poisson: bool = True) -> np.ndarray:
-    """가로 반복 타일을 만든다(이미지 퀼팅). 폭이 overlap만큼 줄어든다.
+def _join(a: np.ndarray, b: np.ndarray, poisson: bool) -> np.ndarray:
+    """앞 그림의 오른쪽 끝 a와 뒤 그림의 왼쪽 끝 b(같은 크기)를 겹쳐, 두 그림이 가장 비슷한 곳을 지나는 세로 경계로 잇는다.
 
-    타일 앞부분 overlap 열은 원본 오른쪽 끝(타일 마지막 열에서 이어지는 그림)과 왼쪽 끝(타일 overlap 열로 이어지는 그림)을
-    겹친 띠다. 두 그림이 가장 비슷한 곳을 지나는 세로 경계를 찾아 왼쪽은 오른쪽 끝, 오른쪽은 왼쪽 끝 그림으로 채운다.
     poisson=False면 경계 둘레 몇 px만 섞는다(투명 레이어용: 경계가 대개 빈 곳을 지나고, 알파는 기울기로 풀면 번진다).
     """
-    h, w, _ = src.shape
-    wt = w - overlap
-    a = src[:, wt:]
-    b = src[:, :overlap]
+    overlap = a.shape[1]
     margin = 12
     cut = _min_cut(_box_blur(((a - b) ** 2).sum(2), 2), margin, overlap - margin - 1)
-    out = src[:, :wt].copy()
     if poisson:
-        out[:, :overlap] = _poisson_band(a, b, cut)
-    else:
-        feather = 3
-        t = np.clip((np.arange(overlap)[None, :] - cut[:, None] + feather) / (2 * feather), 0, 1)[..., None]
-        out[:, :overlap] = a * (1 - t) + b * t
-    return np.clip(out, 0, 1)
+        return _poisson_band(a, b, cut)
+    feather = 3
+    t = np.clip((np.arange(overlap)[None, :] - cut[:, None] + feather) / (2 * feather), 0, 1)[..., None]
+    return a * (1 - t) + b * t
 
 
-def fit_sky(src: Image.Image) -> Image.Image:
-    """스테이지 원경: 폭 1280 + SKY_OVERLAP으로 맞춰 가운데 720을 자른 뒤 1280x720 반복 타일로 만든다."""
-    img = src.convert("RGB")
+def make_loop(segments: list[np.ndarray], overlap: int, poisson: bool = True) -> np.ndarray:
+    """그림 여러 장(같은 높이)을 차례로 이어 한 바퀴 도는 가로 반복 타일을 만든다(이미지 퀼팅). 폭 = Σ(장 폭 - overlap).
+
+    이웃한 두 장은 끝 overlap 열씩 겹쳐 _join으로 잇고, 마지막 장은 첫 장으로 이어진다(한 장이면 자기 자신의 양 끝을 잇는다).
+    타일은 [마지막→첫 장 띠, 첫 장 가운데, 첫→둘째 띠, 둘째 장 가운데, ...] 순서라 앞부분은 첫 장(원래 그림)의 구도를 지킨다.
+    """
+    parts = []
+    for i, cur in enumerate(segments):
+        parts.append(_join(segments[i - 1][:, -overlap:], cur[:, :overlap], poisson))
+        parts.append(cur[:, overlap:-overlap])
+    return np.clip(np.concatenate(parts, axis=1), 0, 1)
+
+
+def loop_sources(key: str) -> list[Image.Image]:
+    """반복 타일로 이을 원본: <key>.png 뒤에 이어 그린 <key>_2.png, <key>_3.png ...(있는 만큼, 번호 순)."""
+    paths = [RAW / f"{key}.png"]
+    while (RAW / f"{key}_{len(paths) + 1}.png").exists():
+        paths.append(RAW / f"{key}_{len(paths) + 1}.png")
+    images = []
+    for path in paths:
+        with Image.open(path) as im:
+            images.append(im.copy())
+    return images
+
+
+def _check_width(key: str, width: int) -> None:
+    if width > MAX_TEXTURE_W:
+        raise ValueError(f"{key}: 반복 타일 폭 {width}px이 텍스처 상한 {MAX_TEXTURE_W}px을 넘습니다(이어 그린 장 수를 줄이세요)")
+
+
+def fit_sky(key: str, sources: list[Image.Image]) -> Image.Image:
+    """스테이지 원경: 여러 장을 높이 720으로 맞춰 한 바퀴 이어지는 반복 타일로 만든다.
+
+    한 바퀴가 화면 폭(1280)보다 짧으면(한 장뿐일 때) 모두 같은 배율로 키워 가운데 720을 자른다 — 위아래가 잘리는 대신
+    같은 그림이 한 화면에 두 번 보이지 않는다.
+    """
     tw, th = BG_SIZE
-    ws = tw + SKY_OVERLAP
-    img = img.resize((ws, max(th, round(img.height * ws / img.width))), Image.LANCZOS)
-    top = (img.height - th) // 2
-    arr = np.asarray(img.crop((0, top, ws, top + th)), dtype=np.float64) / 255
-    return Image.fromarray((make_tileable(arr, SKY_OVERLAP) * 255 + 0.5).astype(np.uint8))
+    images = [src.convert("RGB") for src in sources]
+    widths = [im.width * th / im.height for im in images]
+    k = max(1.0, (tw + len(images) * SKY_OVERLAP) / sum(widths))
+    segments = []
+    for im, w in zip(images, widths):
+        sw, sh = round(w * k), max(th, round(th * k))
+        im = im.resize((sw, sh), Image.LANCZOS)
+        top = (sh - th) // 2
+        segments.append(np.asarray(im.crop((0, top, sw, top + th)), dtype=np.float64) / 255)
+    loop = make_loop(segments, SKY_OVERLAP)
+    _check_width(key, loop.shape[1])
+    return Image.fromarray((loop * 255 + 0.5).astype(np.uint8))
 
 
-def fit_layer(src: Image.Image) -> Image.Image:
-    """그림 띠를 잘라 폭 LAYER_W로 맞춰 반복 타일로 만들고, 높이 720 투명 캔버스의 LAYER_CENTER_Y 위치에 놓는다."""
+def _layer_segment(src: Image.Image) -> np.ndarray:
+    """그림 띠를 잘라 폭 LAYER_W로 맞추고 높이 720 캔버스의 LAYER_CENTER_Y 위치에 놓은, 알파를 곱한 RGBA 배열."""
     img = src.convert("RGBA")
     bbox = img.getchannel("A").point(lambda a: 255 if a > 8 else 0).getbbox()
     if bbox is None:
         raise ValueError("완전히 투명한 이미지")
     img = img.crop((0, bbox[1], img.width, bbox[3]))
     img = img.resize((LAYER_W, round(img.height * LAYER_W / img.width)), Image.LANCZOS)
-    # 투명한 곳의 색이 경계 찾기·섞기에 끼어들지 않도록 알파를 곱한 색으로 다룬다.
-    arr = np.asarray(img, dtype=np.float64) / 255
-    arr[..., :3] *= arr[..., 3:]
-    tiled = make_tileable(arr, LAYER_OVERLAP, poisson=False)
-    alpha = tiled[..., 3:]
-    tiled[..., :3] = np.where(alpha > 1e-6, tiled[..., :3] / np.maximum(alpha, 1e-6), 0)
-    band = Image.fromarray((np.clip(tiled, 0, 1) * 255 + 0.5).astype(np.uint8), "RGBA")
     th = BG_SIZE[1]
-    out = Image.new("RGBA", (band.width, th), (0, 0, 0, 0))
-    top = min(th - band.height, max(0, round(th * LAYER_CENTER_Y - band.height / 2)))
-    out.paste(band, (0, top))
-    return out
+    canvas = Image.new("RGBA", (LAYER_W, th), (0, 0, 0, 0))
+    top = min(th - img.height, max(0, round(th * LAYER_CENTER_Y - img.height / 2)))
+    canvas.paste(img, (0, top))
+    # 투명한 곳의 색이 경계 찾기·섞기에 끼어들지 않도록 알파를 곱한 색으로 다룬다.
+    arr = np.asarray(canvas, dtype=np.float64) / 255
+    arr[..., :3] *= arr[..., 3:]
+    return arr
+
+
+def fit_layer(key: str, sources: list[Image.Image]) -> Image.Image:
+    """전경 레이어: 여러 장을 한 바퀴 이어지는 높이 720 투명 반복 타일로 만든다."""
+    loop = make_loop([_layer_segment(src) for src in sources], LAYER_OVERLAP, poisson=False)
+    _check_width(key, loop.shape[1])
+    alpha = loop[..., 3:]
+    loop[..., :3] = np.where(alpha > 1e-6, loop[..., :3] / np.maximum(alpha, 1e-6), 0)
+    return Image.fromarray((np.clip(loop, 0, 1) * 255 + 0.5).astype(np.uint8), "RGBA")
 
 
 def main() -> int:
@@ -336,9 +376,12 @@ def main() -> int:
         if not raw.exists():
             missing.append(key)
             continue
-        with Image.open(raw) as im:
-            fitted = fit_sky(im) if key in SKY_KEYS else fit_background(im)
-            fitted.save(BACKGROUNDS / f"{key}.jpg", quality=86, optimize=True, progressive=True)
+        if key in SKY_KEYS:
+            fitted = fit_sky(key, loop_sources(key))
+        else:
+            with Image.open(raw) as im:
+                fitted = fit_background(im)
+        fitted.save(BACKGROUNDS / f"{key}.jpg", quality=86, optimize=True, progressive=True)
     for key in CUTIN_KEYS:
         raw = RAW / f"{key}.png"
         if not raw.exists():
@@ -351,9 +394,9 @@ def main() -> int:
         if not raw.exists():
             missing.append(key)
             continue
-        with Image.open(raw) as im:
-            # 레이어는 화면 전체 크기라 용량이 커서(장당 ~0.9MB) 256색 팔레트로 줄인다(~0.2MB).
-            fit_layer(im).quantize(256, method=Image.Quantize.FASTOCTREE).save(BACKGROUNDS / f"{key}.png", optimize=True)
+        # 레이어는 화면 전체 크기라 용량이 커서(장당 ~0.9MB) 256색 팔레트로 줄인다(~0.2MB).
+        layer = fit_layer(key, loop_sources(key))
+        layer.quantize(256, method=Image.Quantize.FASTOCTREE).save(BACKGROUNDS / f"{key}.png", optimize=True)
     if missing:
         print("원본 없음:", ", ".join(missing))
     return 0

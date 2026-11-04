@@ -10,7 +10,7 @@
 
 <a href="https://jeiel85.github.io/celestial-blades/"><img src="https://img.shields.io/badge/%E2%96%B6%20%EC%A7%80%EA%B8%88%20%ED%94%8C%EB%A0%88%EC%9D%B4-PLAY%20NOW-ffd75e?style=for-the-badge&labelColor=2a1404" alt="지금 플레이"></a>
 
-<img src="https://img.shields.io/badge/version-1.13.1-a06bff?style=flat-square" alt="version">
+<img src="https://img.shields.io/badge/version-1.14.0-a06bff?style=flat-square" alt="version">
 <img src="https://img.shields.io/badge/Phaser-3.80-8fd3ff?style=flat-square" alt="Phaser">
 <img src="https://img.shields.io/badge/TypeScript-strict-3178c6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript">
 <img src="https://img.shields.io/badge/Vite-5-646cff?style=flat-square&logo=vite&logoColor=white" alt="Vite">
@@ -221,7 +221,7 @@ npm run preview  # 빌드 결과 미리보기
 모든 그림(캐릭터·적·보스·탄·이펙트·아이템·배경·초상화·엔딩 일러스트·터치 UI)은 Codex 이미지 생성으로 만든 원본을 게임 크기에 맞게 가공해 번들에 포함합니다.
 
 1. 원본 PNG를 `art-raw/<텍스처키>.png`에 둡니다(git 제외).
-2. `python tools/process_art.py`를 실행하면 `src/assets/`가 갱신됩니다(Pillow·NumPy 필요). 스테이지 원경·전경 레이어는 이때 좌우 끝이 이어지는 반복 타일로 가공됩니다.
+2. `python tools/process_art.py`를 실행하면 `src/assets/`가 갱신됩니다(Pillow·NumPy 필요). 스테이지 원경·전경 레이어는 `<key>.png` 뒤에 이어 그린 `<key>_2.png`, `<key>_3.png` …를 차례로 이어 한 바퀴 도는 반복 타일로 가공됩니다.
 
 목표 크기는 스크립트의 `SPRITE_SIZES`에 있습니다. 히트박스가 프레임 크기를 기준으로 잡히므로 크기는 바꾸지 않습니다. 파일명이 곧 텍스처 키이고, 코드가 참조하는 그림이 빠지면 부팅 단계에서 오류를 표시합니다.
 

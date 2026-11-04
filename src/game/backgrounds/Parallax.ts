@@ -82,8 +82,8 @@ const GEAR_SPOTS: Array<[number, number, number]> = [
 /**
  * 스테이지 배경. 천천히 흐르는 원경 일러스트(`bg_<theme>`) 위에 전경 레이어(`layer_<theme>`)와
  * 테마별 속도감 입자를 흘리고, 도시 테마는 회전 톱니 3개를 더한다.
- * 원경과 레이어는 tools/process_art.py가 좌우 끝을 이어 붙인 반복 타일이라 그대로 가로 반복한다
- * (원경 반복 주기 1280 = 화면 폭, 레이어 1400 — 한 화면에 같은 그림이 두 번 보이지 않는다).
+ * 원경과 레이어는 tools/process_art.py가 이어 그린 여러 장을 한 바퀴 이어 붙인 반복 타일이라 그대로 가로 반복한다
+ * (반복 주기 원경 약 3,170px·레이어 4,080px — 같은 그림이 다시 오기까지 원경 2~6분, 레이어 50초~1분 20초).
  */
 export class Parallax {
   private readonly layers: Layer[] = [];
