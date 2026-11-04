@@ -32,6 +32,7 @@ import { Effects } from '../effects/Effects';
 import { clampCharIndex, getCharacter } from '../data/characters';
 import { BOSS_TALK } from '../data/bossTalk';
 import { BossTalkPanel } from '../effects/BossTalkPanel';
+import { Hud } from '../effects/Hud';
 
 export interface GameSceneData {
   stageIndex?: number;
@@ -115,9 +116,6 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
   private boss: BossLike | null = null;
   private bossState: BossPhase = 'none';
   private bossId = '';
-  private bossBar: Phaser.GameObjects.Container | null = null;
-  private bossFill: Phaser.GameObjects.Rectangle | null = null;
-  private bossNameText: Phaser.GameObjects.Text | null = null;
   private talk: BossTalkPanel | null = null;
 
   private noMiss = true;
@@ -136,13 +134,7 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
   private gameOverPending = false;
   private keyTitle: Phaser.Input.Keyboard.Key | null = null;
 
-  private hudScore!: Phaser.GameObjects.Text;
-  private hudHi!: Phaser.GameObjects.Text;
-  private hudLife!: Phaser.GameObjects.Text;
-  private hudBomb!: Phaser.GameObjects.Text;
-  private hudPower!: Phaser.GameObjects.Text;
-  private hudCombo!: Phaser.GameObjects.Text;
-  private hudCache = '';
+  private hud!: Hud;
 
   constructor() {
     // Arcade 기본값(60Hz 고정 간격)은 144Hz 화면에서 탄이 두세 프레임 멈췄다 한 번에 뛰어 끊겨 보인다.
@@ -236,8 +228,9 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
     this.inputSys.setupTouchUI(this);
     this.keyTitle = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.X) ?? null;
 
-    // -- HUD --
-    this.buildHud();
+    // -- HUD (보스 체력바 포함, 보스바는 숨김 상태로 준비) --
+    this.hud = new Hud(this, getCharacter(charIndex).color);
+    this.refreshHud();
 
     // -- 충돌 --
     // NOTE: Phaser 3.60+의 그룹 충돌은 내부 처리 순서에 따라 콜백 인자 순서가
@@ -264,9 +257,6 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
       if (!item || !item.active || !this.player.isAlive()) return;
       item.collect(this, this.player);
     });
-
-    // -- 보스 HP 바 (숨김 상태로 준비) --
-    this.buildBossBar();
 
     // -- 일시정지 오버레이 --
     this.buildPauseLayer();
@@ -373,7 +363,7 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
         // 보스 내부 오류가 게임 루프를 멈추지 않게
       }
       this.collidePlayerBulletsWithBoss(boss);
-      this.updateBossBar(boss);
+      this.hud.updateBoss(boss.getHpRatio(), boss.getDisplayName());
       if (boss.isDefeated) this.onBossDefeated();
     }
     this.scoreSys.update(wdt);
@@ -624,7 +614,7 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
         this.talk = null;
         this.bossState = 'active';
         this.showBossName(this.boss.getDisplayName());
-        this.showBossBar(this.boss.getDisplayName());
+        this.hud.showBoss(this.boss.getDisplayName(), this.boss.getPhaseMarks());
         this.audio.playSfx('bossWarn');
       };
       const talk = BOSS_TALK[bossId];
@@ -876,7 +866,7 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
         // 무시
       }
       this.boss = null;
-      this.hideBossBar();
+      this.hud.hideBoss();
       const midboss = this.bossId.startsWith('midboss');
       if (midboss) {
         // 중간보스: 드롭 후 웨이브 재개
@@ -1062,40 +1052,6 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
     });
   }
 
-  private buildBossBar(): void {
-    const barW = 560;
-    const barH = 12;
-    const cx = WIDTH / 2;
-    const y = 62;
-    const bg = this.add.rectangle(cx, y, barW + 6, barH + 6, 0x101020, 0.8).setDepth(802);
-    const fill = this.add.rectangle(cx - barW / 2, y, barW, barH, 0xff2d3f, 1).setOrigin(0, 0.5).setDepth(803);
-    const name = this.add
-      .text(cx, y - 24, '', { fontFamily: FONT, fontSize: '16px', color: '#ffd75e' })
-      .setOrigin(0.5)
-      .setDepth(803);
-    const c = this.add.container(0, 0, [bg, fill, name]).setDepth(802).setVisible(false);
-    this.bossBar = c;
-    this.bossFill = fill;
-    this.bossNameText = name;
-  }
-
-  private showBossBar(name: string): void {
-    if (!this.bossBar || !this.bossNameText) return;
-    this.bossNameText.setText(name);
-    this.bossBar.setVisible(true);
-    this.bossBar.setAlpha(0);
-    this.tweens.add({ targets: this.bossBar, alpha: 1, duration: 400 });
-  }
-
-  private updateBossBar(boss: BossLike): void {
-    if (!this.bossFill || !this.bossBar || !this.bossBar.visible) return;
-    this.bossFill.setScale(Math.max(0.001, boss.getHpRatio()), 1);
-  }
-
-  private hideBossBar(): void {
-    this.bossBar?.setVisible(false);
-  }
-
   private buildPauseLayer(): void {
     const dim = this.add.rectangle(0, 0, WIDTH, HEIGHT, 0x05070d, 0.72).setOrigin(0);
     const title = this.add
@@ -1142,48 +1098,23 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
 
   // -- HUD ------------------------------------------------------------------
 
-  private mono(x: number, y: number, size: number, color: string): Phaser.GameObjects.Text {
-    return this.add
-      .text(x, y, '', { fontFamily: FONT, fontSize: `${size}px`, color, fontStyle: 'bold' })
-      .setDepth(801)
-      .setScrollFactor(0);
-  }
-
-  private buildHud(): void {
-    this.add.rectangle(0, 0, WIDTH, 42, 0x05070d, 0.62).setOrigin(0).setDepth(800).setScrollFactor(0);
-    this.hudScore = this.mono(16, 10, 18, '#ffffff');
-    this.hudHi = this.mono(290, 10, 18, '#8fd3ff');
-    this.hudLife = this.mono(520, 10, 18, '#ff6f8f');
-    this.hudBomb = this.mono(700, 10, 18, '#ffd75e');
-    this.hudPower = this.mono(860, 10, 18, '#53e0b0');
-    this.hudCombo = this.mono(1060, 10, 18, '#ffb347');
-    this.add
-      .text(WIDTH - 16, HEIGHT - 12, 'Z 공격 · X 필살 · SHIFT 집중 · ESC 정지 · M 음소거', {
-        fontFamily: FONT,
-        fontSize: '13px',
-        color: '#5e7a8f',
-      })
-      .setOrigin(1, 1)
-      .setDepth(801)
-      .setAlpha(0.8);
-    this.refreshHud();
-  }
-
   private refreshHud(): void {
     const d = this.scoreSys.getDisplay();
-    const lives = this.player.getLives();
-    const bombs = this.player.getBombs();
-    const power = this.player.getPower();
-    const key = `${d.score}|${d.hi}|${lives}|${bombs}|${power}|${d.combo}|${d.mult.toFixed(1)}`;
-    if (key === this.hudCache) return;
-    this.hudCache = key;
-    this.hudScore.setText(`SCORE ${d.score.toString().padStart(8, '0')}`);
-    this.hudHi.setText(`HI ${Math.max(d.hi, d.score).toString().padStart(8, '0')}`);
-    this.hudLife.setText(`LIFE ${'♥'.repeat(Math.max(0, Math.min(6, lives)))}`);
-    this.hudBomb.setText(`BOMB ${'◆'.repeat(Math.max(0, Math.min(MAX_BOMBS, bombs)))}`);
-    const filled = Math.max(1, Math.min(4, power + 1));
-    this.hudPower.setText(`PWR ${'●'.repeat(filled)}${'○'.repeat(4 - filled)}`);
-    this.hudCombo.setText(d.combo > 1 ? `COMBO ${d.combo} x${d.mult.toFixed(1)}` : '');
+    this.hud.update(
+      {
+        score: d.score,
+        hi: d.hi,
+        newHigh: d.newHigh,
+        combo: d.combo,
+        mult: d.mult,
+        comboLeft: this.scoreSys.comboTimeLeft,
+        lives: this.player.getLives(),
+        bombs: this.player.getBombs(),
+        maxBombs: this.player.getMaxBombs(),
+        power: this.player.getPower(),
+      },
+      this.player,
+    );
   }
 
   // -- 풀 ------------------------------------------------------------------

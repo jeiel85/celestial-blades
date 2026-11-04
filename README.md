@@ -10,7 +10,7 @@
 
 <a href="https://jeiel85.github.io/celestial-blades/"><img src="https://img.shields.io/badge/%E2%96%B6%20%EC%A7%80%EA%B8%88%20%ED%94%8C%EB%A0%88%EC%9D%B4-PLAY%20NOW-ffd75e?style=for-the-badge&labelColor=2a1404" alt="지금 플레이"></a>
 
-<img src="https://img.shields.io/badge/version-1.12.0-a06bff?style=flat-square" alt="version">
+<img src="https://img.shields.io/badge/version-1.13.0-a06bff?style=flat-square" alt="version">
 <img src="https://img.shields.io/badge/Phaser-3.80-8fd3ff?style=flat-square" alt="Phaser">
 <img src="https://img.shields.io/badge/TypeScript-strict-3178c6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript">
 <img src="https://img.shields.io/badge/Vite-5-646cff?style=flat-square&logo=vite&logoColor=white" alt="Vite">
@@ -161,7 +161,7 @@ src/
       CharacterSelectScene.ts  # 텐가이식 기체 줄 + 대형 일러스트 + 난이도 선택
       StoryScene.ts            # 스테이지 사이 스토리 컷신
       ArchiveScene.ts          # 스토리 다시보기 (본 장·엔딩 해금)
-      GameScene.ts             # 게임플레이 심장 (충돌·HUD·보스 흐름·클리어)
+      GameScene.ts             # 게임플레이 심장 (충돌·물리 진행·보스 흐름·클리어)
       ResultScene.ts           # 게임 오버 / 리트라이
       EndingScene.ts           # 균열 봉합 + 캐릭터별 후일담
     entities/
@@ -177,6 +177,8 @@ src/
       SaveSystem.ts            # localStorage (하이스코어·설정)
       InputSystem.ts           # 키보드·게임패드·터치 UI
     effects/Effects.ts         # 폭발·플래시·히트스톱·쉐이크·잔상
+    effects/Hud.ts             # 인게임 HUD (점수·목숨·필살기·파워·콤보·보스 체력바)
+    effects/Skins.ts           # 적탄 흰 심·외곽선, 기체 테두리 텍스처
     backgrounds/Parallax.ts    # 원경 일러스트 + 전경 레이어 스크롤
     data/
       characters.ts            # 캐릭터 스탯/문구

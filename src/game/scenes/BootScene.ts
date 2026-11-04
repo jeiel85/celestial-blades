@@ -4,6 +4,7 @@ import { LOGO_FONT, LOGO_TEXT, UI_FONT } from '../GameConfig';
 import { CHARACTERS } from '../data/characters';
 import { STAGES } from '../data/stages';
 import { STORY } from '../data/story';
+import { BOSS_DEFS } from '../data/bossPatterns';
 
 // 게임의 모든 그림: 스프라이트(src/assets/sprites)와 배경(src/assets/backgrounds). 파일명이 곧 텍스처 키다.
 // 원본은 art-raw/(Codex 이미지 생성)에서 tools/process_art.py로 가공한다.
@@ -96,12 +97,15 @@ export class BootScene extends Phaser.Scene {
     // Phaser 텍스트는 생성 시점의 글꼴로 한 번 래스터화되므로, 화면에 쓰일 글자의 글꼴 조각을 받은 뒤 타이틀로 넘어간다.
     // 네트워크가 느리거나 실패하면 대체 글꼴로라도 진행한다(5초 상한).
     const fontReady = Promise.all([
-      // 로고 글꼴은 타이틀 로고, 필살기 컷인 기술명, 스토리 장 제목·다시보기 화면에 쓴다.
+      // 로고 글꼴은 타이틀 로고, 필살기 컷인 기술명, 스토리 장 제목·다시보기 화면, 보스 체력바 이름에 쓴다.
       document.fonts.load(
         `92px ${LOGO_FONT}`,
         LOGO_TEXT +
           CHARACTERS.map((c) => c.bombName + c.nameKor).join('') +
           STORY.map((ch) => ch.title).join('') +
+          Object.values(BOSS_DEFS)
+            .flatMap((b) => [b.displayName, ...Object.values(b.phaseNames ?? {})])
+            .join('') +
           '스토리 다시보기 종장의하늘？',
       ),
       document.fonts.load(`20px ${UI_FONT}`, UI_GLYPHS),

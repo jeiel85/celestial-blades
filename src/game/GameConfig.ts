@@ -203,6 +203,8 @@ export interface BossLike {
   isDefeated: boolean;
   getHpRatio(): number;
   getDisplayName(): string;
+  /** 페이즈가 바뀌는 체력 비율들(0~1, HUD 체력바 눈금) */
+  getPhaseMarks(): number[];
   getHitRadius(): number;
   takeDamage(dmg: number): void;
   update(dtMs: number): void;
