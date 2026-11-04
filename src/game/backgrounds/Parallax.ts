@@ -80,9 +80,10 @@ const GEAR_SPOTS: Array<[number, number, number]> = [
 ];
 
 /**
- * 스테이지 배경. 천천히 흐르는 원경 일러스트(`bg_<theme>`+좌우 반전본) 위에 가로로 반복되는
- * 전경 레이어(`layer_<theme>`)와 테마별 속도감 입자를 흘리고, 도시 테마는 회전 톱니 3개를 더한다.
- * 모든 텍스처는 BootScene에서 로드한 그림(art-raw → tools/process_art.py)이다.
+ * 스테이지 배경. 천천히 흐르는 원경 일러스트(`bg_<theme>`) 위에 전경 레이어(`layer_<theme>`)와
+ * 테마별 속도감 입자를 흘리고, 도시 테마는 회전 톱니 3개를 더한다.
+ * 원경과 레이어는 tools/process_art.py가 이어 그린 여러 장을 한 바퀴 이어 붙인 반복 타일이라 그대로 가로 반복한다
+ * (반복 주기 원경 약 3,170px·레이어 4,080px — 같은 그림이 다시 오기까지 원경 2~6분, 레이어 50초~1분 20초).
  */
 export class Parallax {
   private readonly layers: Layer[] = [];
@@ -94,8 +95,7 @@ export class Parallax {
   private mult = 1;
 
   constructor(private readonly scene: Phaser.Scene, private readonly theme: ParallaxTheme) {
-    // 원경: 그림과 좌우 반전본을 이어 붙인 텍스처를 천천히 흘려 이음매 없이 반복한다.
-    this.sky = scene.add.tileSprite(0, 0, WIDTH, HEIGHT, Parallax.mirroredSky(scene, theme)).setOrigin(0).setDepth(-10);
+    this.sky = scene.add.tileSprite(0, 0, WIDTH, HEIGHT, `bg_${theme}`).setOrigin(0).setDepth(-10);
 
     const layerKey = `layer_${theme}`;
     const src = scene.textures.get(layerKey).getSourceImage();
@@ -133,25 +133,6 @@ export class Parallax {
 
     // 보스 페이즈 어둠은 배경만 덮는다(탄·기체까지 어두워지면 피할 수 없는 어둠이 된다).
     this.darkness = scene.add.rectangle(0, 0, WIDTH, HEIGHT, 0x000000, 0).setOrigin(0).setDepth(-4).setVisible(false);
-  }
-
-  /** `bg_<theme>`와 그 좌우 반전본을 나란히 그린 2배 폭 캔버스 텍스처(한 번 만들어 재사용) */
-  private static mirroredSky(scene: Phaser.Scene, theme: ParallaxTheme): string {
-    const key = `bgm_${theme}`;
-    if (scene.textures.exists(key)) return key;
-    const src = scene.textures.get(`bg_${theme}`).getSourceImage() as HTMLImageElement;
-    const tex = scene.textures.createCanvas(key, WIDTH * 2, HEIGHT);
-    if (!tex) return `bg_${theme}`;
-    const ctx = tex.getContext();
-    ctx.drawImage(src, 0, 0, WIDTH, HEIGHT);
-    ctx.save();
-    ctx.translate(WIDTH * 2, 0);
-    ctx.scale(-1, 1);
-    ctx.drawImage(src, 0, 0, WIDTH, HEIGHT);
-    ctx.restore();
-    tex.refresh();
-    tex.setFilter(Phaser.Textures.FilterMode.LINEAR);
-    return key;
   }
 
   update(dtMs: number): void {
