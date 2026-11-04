@@ -20,6 +20,7 @@ import type { IGameWorld } from '../GameConfig';
 import { clampCharIndex, getCharacter, speedScale } from '../data/characters';
 import type { CharacterDef, CharacterId } from '../data/characters';
 import type { InputSystem } from '../systems/InputSystem';
+import { outlineSkin } from '../effects/Skins';
 
 export type PlayerHitResult = 'ok' | 'invulnerable' | 'dead';
 
@@ -79,6 +80,8 @@ const HYEGAK_VAJRA_DAMAGE = 14;
 const SEORI_FOX_DAMAGE = 4.9;
 /** 식신이 머무는 자리(플레이어 기준, 집중 중이면 앞쪽으로 붙는다) */
 const FAMILIAR_OFFSET = { x: -46, y: -50 };
+/** 집중 시 보이는 판정 표시는 적탄(GameScene ENEMY_BULLET_DEPTH 650)보다 위에 그려 탄 사이에서도 보이게 한다. */
+const HITBOX_DEPTH = 660;
 const FAMILIAR_FOCUS_OFFSET = { x: 36, y: -34 };
 
 /**
@@ -89,6 +92,8 @@ const FAMILIAR_FOCUS_OFFSET = { x: 36, y: -34 };
 export class Player {
   readonly sprite: Phaser.Physics.Arcade.Sprite;
   private readonly aura: Phaser.GameObjects.Image;
+  /** 기체 실루엣 테두리(밝은 안쪽·어두운 바깥). 세밀한 배경 그림 위에서 기체를 떼어 놓는다. */
+  private readonly rim: Phaser.GameObjects.Image | null;
   private readonly core: Phaser.GameObjects.Image;
   private chargeGlow: Phaser.GameObjects.Image | null = null;
 
@@ -154,6 +159,8 @@ export class Player {
 
     this.sprite = scene.physics.add.sprite(200, 360, def.texture).setScale(1.15);
     this.sprite.setDepth(100);
+    const rimKey = outlineSkin(scene, def.texture, def.color);
+    this.rim = rimKey ? scene.add.image(this.sprite.x, this.sprite.y, rimKey).setScale(1.15).setDepth(99.5) : null;
     // 캐릭터 실루엣을 배경에서 분리하는 얇은 색 오라. 집중/차지 글로우와
     // 겹치지 않도록 항상 뒤에 두고, 플레이어의 고유색으로만 식별성을 준다.
     this.aura = scene.add
@@ -176,7 +183,7 @@ export class Player {
     // 집중 중 보이는 판정 표시도 실제 판정 크기에 맞춘다.
     this.core = scene.add
       .image(this.sprite.x, this.sprite.y, 'player_core')
-      .setDepth(101)
+      .setDepth(HITBOX_DEPTH)
       .setScale((def.hitRadius ?? HIT_RADIUS) / HIT_RADIUS)
       .setVisible(false);
     this.familiar = scene.add
@@ -301,6 +308,7 @@ export class Player {
     this.sprite.x = Math.min(PLAYER_MAX_X, Math.max(PLAYER_MIN_X, this.sprite.x));
     this.sprite.y = Math.min(PLAYER_MAX_Y, Math.max(PLAYER_MIN_Y, this.sprite.y));
     this.sprite.setRotation(Phaser.Math.Clamp(axis.y * 0.28, -0.3, 0.3));
+    this.rim?.setPosition(this.sprite.x, this.sprite.y).setRotation(this.sprite.rotation).setAlpha(this.sprite.alpha);
 
     // 히트 코어 표시 (집중 시)
     this.core.setVisible(focused);
@@ -1001,6 +1009,7 @@ export class Player {
       this.sprite.setAlpha(1);
       this.sprite.disableBody(true, false);
       this.sprite.setVisible(false);
+      this.rim?.setVisible(false);
       this.core.setVisible(false);
       this.familiar.setVisible(false);
       this.hideChargeGlow();
@@ -1020,6 +1029,7 @@ export class Player {
     this.bombs = Math.min(this.maxBombs, Math.max(0, bombs));
     this.sprite.enableBody(true, x, y, true, true);
     this.sprite.setVisible(true).setAlpha(1);
+    this.rim?.setVisible(true).setAlpha(1).setPosition(x, y);
     this.familiar.setVisible(true).setPosition(x + FAMILIAR_OFFSET.x, y + FAMILIAR_OFFSET.y);
     this.invulnLeft = PLAYER_INVULN * 1.5;
     this.blinkAcc = 0;
@@ -1043,6 +1053,7 @@ export class Player {
     this.barrierImg = null;
     this.familiar.destroy();
     this.core.destroy();
+    this.rim?.destroy();
     this.aura.destroy();
     this.sprite.destroy();
   }

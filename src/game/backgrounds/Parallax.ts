@@ -59,16 +59,17 @@ function rand([a, b]: [number, number]): number {
  * (특히 천문의 수정 파편은 탄과 헷갈리지 않도록 더 옅게).
  */
 /**
- * 테마별 전경 레이어 스크롤 속도·투명도와, 원경 위에 덮는 어둡게(dim) 정도.
- * 수몰용궁·백귀야시는 원경이 밝고 레이어(등롱·파도)가 촘촘해 탄과 섞이므로 어둡게 깔고 레이어를 옅게 둔다.
+ * 테마별 전경 레이어 스크롤 속도·투명도와, 원경·레이어 위에 덮는 어둡게(dim) 정도.
+ * 배경은 밝고 채도 높은 일러스트라 그대로 두면 탄·기체와 섞인다. 탄막 슈팅의 관례대로 모든 테마를 눌러 두고,
+ * 밝은 테마(운해 계곡의 흰 안개·해)와 소품이 촘촘한 테마(수몰용궁·백귀야시의 등롱·파도)는 더 누른다.
  */
 const LAYER_STYLE: Record<ParallaxTheme, { speed: number; alpha: number; dim: number }> = {
-  valley: { speed: 70, alpha: 0.6, dim: 0 },
-  city: { speed: 55, alpha: 0.6, dim: 0 },
-  palace: { speed: 75, alpha: 0.32, dim: 0.32 },
-  fortress: { speed: 60, alpha: 0.55, dim: 0 },
-  market: { speed: 50, alpha: 0.22, dim: 0.4 },
-  rift: { speed: 80, alpha: 0.4, dim: 0 },
+  valley: { speed: 70, alpha: 0.5, dim: 0.42 },
+  city: { speed: 55, alpha: 0.5, dim: 0.36 },
+  palace: { speed: 75, alpha: 0.32, dim: 0.42 },
+  fortress: { speed: 60, alpha: 0.45, dim: 0.36 },
+  market: { speed: 50, alpha: 0.22, dim: 0.46 },
+  rift: { speed: 80, alpha: 0.4, dim: 0.34 },
 };
 
 /** 도시 테마 회전 톱니 [x, y, scale] (`gear` 텍스처 256px 기준). */
@@ -130,7 +131,8 @@ export class Parallax {
       this.motes.push({ img, vx, vy });
     }
 
-    this.darkness = scene.add.rectangle(0, 0, WIDTH, HEIGHT, 0x000000, 0).setOrigin(0).setDepth(450).setVisible(false);
+    // 보스 페이즈 어둠은 배경만 덮는다(탄·기체까지 어두워지면 피할 수 없는 어둠이 된다).
+    this.darkness = scene.add.rectangle(0, 0, WIDTH, HEIGHT, 0x000000, 0).setOrigin(0).setDepth(-4).setVisible(false);
   }
 
   /** `bg_<theme>`와 그 좌우 반전본을 나란히 그린 2배 폭 캔버스 텍스처(한 번 만들어 재사용) */
@@ -185,7 +187,7 @@ export class Parallax {
     this.mult = Math.max(0, mult);
   }
 
-  /** 스테이지3 보스 2페이즈용 화면 어둡게 (HUD 아래, 월드 위) */
+  /** 스테이지3 보스 2페이즈용 배경 어둡게 (배경 위, 적·탄·기체 아래) */
   setDarkness(alpha: number): void {
     if (!this.darkness) return;
     const a = Math.max(0, Math.min(0.75, alpha));

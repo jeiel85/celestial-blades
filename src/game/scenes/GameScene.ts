@@ -54,6 +54,13 @@ const CONTINUE_SECONDS = 10;
 /** 금화 연출은 이 개수까지만 그린다(점수는 탄 전부 계산) */
 const MAX_COIN_FX = 90;
 
+/**
+ * 탄의 그리기 순서. 적탄은 폭발·점수 글자 같은 연출보다 위(컷인·HUD 아래)에 두어 연출에 가려지지 않게 하고,
+ * 집중 시 보이는 판정 표시는 적탄보다도 위에 둔다(Player의 HITBOX_DEPTH).
+ */
+const PLAYER_BULLET_DEPTH = 200;
+const ENEMY_BULLET_DEPTH = 650;
+
 const MAX_PLAYER_BULLETS = 240;
 const MAX_ENEMY_BULLETS = 700;
 const MAX_ENEMIES = 80;
@@ -61,6 +68,13 @@ const MAX_ITEMS = 48;
 const FONT = UI_FONT;
 const RESPAWN_X = 200;
 const RESPAWN_Y = 360;
+/** 물리 한 번에 진행하는 최대 시간(ms). 이보다 긴 프레임은 나눠 진행해 빠른 탄이 판정을 건너뛰지 않게 한다. */
+const PHYSICS_MAX_STEP_MS = 1000 / 60;
+/**
+ * 기체와 몸이 닿은 적이 받는 초당 피해(무적 중 들이받기). 겹침 판정은 물리 진행마다 일어나므로 진행 시간에 비례해 준다
+ * (판정 한 번마다 고정 피해면 144Hz 화면에서 2.4배가 된다). 240 = 예전 60Hz 고정 물리의 프레임당 4.
+ */
+const CONTACT_DPS = 240;
 
 /**
  * 게임플레이 씬 (키 'Game'). IGameWorld를 구조적으로 구현한다.
@@ -113,6 +127,8 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
   private timeFactor = 1;
   /** 배속이 원래대로 돌아오기까지 남은 실제 시간(ms, 일시정지 중에는 줄지 않음) */
   private slowLeftMs = 0;
+  /** 지금 진행 중인 물리 한 번의 게임 시간(ms). 겹침 콜백이 시간에 비례하는 피해를 줄 때 쓴다. */
+  private physicsStepMs = 0;
   private pauseLayer: Phaser.GameObjects.Container | null = null;
   private clearShown = false;
   private clearReadyAt = 0;
@@ -129,7 +145,9 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
   private hudCache = '';
 
   constructor() {
-    super('Game');
+    // Arcade 기본값(60Hz 고정 간격)은 144Hz 화면에서 탄이 두세 프레임 멈췄다 한 번에 뛰어 끊겨 보인다.
+    // 물리는 update()가 화면 프레임마다 직접 진행한다(stepPhysics).
+    super({ key: 'Game', physics: { arcade: { fixedStep: false, customUpdate: true } } });
   }
 
   init(data: GameSceneData): void {
@@ -238,7 +256,7 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
     this.physics.add.overlap(this.enemyGroup, this.player.sprite, (a, b) => {
       const enemy = a instanceof Enemy ? a : b instanceof Enemy ? b : null;
       if (!enemy || !enemy.active) return;
-      enemy.takeDamage(4, this.player.x);
+      enemy.takeDamage((CONTACT_DPS * this.physicsStepMs) / 1000, this.player.x);
       this.hitPlayer();
     });
     this.physics.add.overlap(this.itemGroup, this.player.sprite, (a, b) => {
@@ -271,6 +289,7 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
 
   update(_time: number, delta: number): void {
     const dt = Math.min(100, Math.max(1, delta));
+    this.stepPhysics(dt * this.timeFactor);
     // 게임패드 엣지 검출을 위해 매 프레임 반드시 호출
     this.inputSys.update();
 
@@ -308,7 +327,7 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
       this.slowLeftMs -= dt;
       if (this.slowLeftMs <= 0) this.applyTimeFactor(1);
     }
-    // 이 아래 게임 진행은 배속이 적용된 시간으로 돈다(물리·타이머는 applyTimeFactor가 맞춘다).
+    // 이 아래 게임 진행은 배속이 적용된 시간으로 돈다(물리는 stepPhysics, 타이머는 applyTimeFactor가 맞춘다).
     const wdt = dt * this.timeFactor;
 
     // 클리어 패널: 4초 자동 진행 + 공격키 스킵
@@ -364,7 +383,7 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
   // -- IGameWorld 구현 --------------------------------------------------------
 
   spawnPlayerBullet(cfg: PlayerBulletSpawn): void {
-    const b = this.allocBullet(this.playerBullets, this.playerBulletGroup, MAX_PLAYER_BULLETS, cfg.texture, 200);
+    const b = this.allocBullet(this.playerBullets, this.playerBulletGroup, MAX_PLAYER_BULLETS, cfg.texture, PLAYER_BULLET_DEPTH);
     if (!b) return;
     b.fire(cfg.x, cfg.y, cfg.vx, cfg.vy, 'player', cfg.texture, {
       damage: cfg.damage,
@@ -381,7 +400,7 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
   }
 
   spawnEnemyBullet(x: number, y: number, angle: number, speed: number, tex: string, tint: number, scale?: number, damage?: number): void {
-    const b = this.allocBullet(this.enemyBullets, this.enemyBulletGroup, MAX_ENEMY_BULLETS, tex, 210);
+    const b = this.allocBullet(this.enemyBullets, this.enemyBulletGroup, MAX_ENEMY_BULLETS, tex, ENEMY_BULLET_DEPTH);
     if (!b) return;
     b.fire(x, y, Math.cos(angle) * speed, Math.sin(angle) * speed, 'enemy', tex, {
       damage: damage ?? 1,
@@ -504,9 +523,22 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
 
   private applyTimeFactor(f: number): void {
     this.timeFactor = f;
-    // Arcade 물리 timeScale은 값이 클수록 느리다(2.0 = 절반 속도). Clock.timeScale은 작을수록 느리다.
-    this.physics.world.timeScale = 1 / f;
+    // 물리는 stepPhysics가 이 배속을 곱한 시간만큼 진행한다. Clock.timeScale은 작을수록 느리다.
     this.time.timeScale = f;
+  }
+
+  /**
+   * 물리를 이번 프레임의 게임 시간(ms)만큼 진행한다. 위치 동기화는 씬의 POST_UPDATE(world.postUpdate)가 한다.
+   * 1/60초보다 긴 프레임은 같은 길이로 나눠 여러 번 판정한다(Arcade 고정 간격 모드의 추가 step과 같은 방식).
+   */
+  private stepPhysics(ms: number): void {
+    const world = this.physics.world;
+    if (world.isPaused || ms <= 0) return;
+    const n = Math.ceil(ms / PHYSICS_MAX_STEP_MS - 1e-6);
+    const part = ms / n;
+    this.physicsStepMs = part;
+    world.update(this.time.now, part);
+    for (let i = 1; i < n; i += 1) world.step(part / 1000);
   }
 
   findTarget(x: number, y: number, maxDist = 800): TargetRef | null {

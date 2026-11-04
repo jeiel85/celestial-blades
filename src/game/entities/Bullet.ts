@@ -1,11 +1,14 @@
 import Phaser from 'phaser';
 import { BULLET_DESPAWN_MARGIN, HEIGHT, WIDTH } from '../GameConfig';
 import type { TargetRef } from '../GameConfig';
+import { BULLET_SKIN_PAD, enemyBulletSkin } from '../effects/Skins';
 
 export type BulletOwner = 'player' | 'enemy';
 
 /** 관통탄(distinct 아님)이 겹쳐 있는 같은 대상을 다시 맞히는 간격(ms). 프레임 수와 무관하게 화력을 고정한다. */
 const PIERCE_REHIT_MS = 100;
+/** 플레이어탄 불투명도. 화려한 아군 탄이 적탄을 가리지 않게 살짝 비친다(탄막 슈팅의 관례). */
+const PLAYER_SHOT_ALPHA = 0.7;
 
 export interface BulletFireOpts {
   damage?: number;
@@ -85,11 +88,14 @@ export class Bullet extends Phaser.Physics.Arcade.Image {
     this.hasLife = (opts.life ?? 0) > 0;
     this.lifeLeft = opts.life ?? 0;
 
-    this.setTexture(texture);
+    // 적탄은 흰 심·외곽선을 두른 전용 그림으로 바꿔 색을 입힌다(tint를 곱하지 않는다).
+    const skin = owner === 'enemy' ? enemyBulletSkin(this.scene, texture, opts.tint ?? 0xffffff) : texture;
+    this.setTexture(skin);
     if (opts.scale !== undefined) this.setScale(opts.scale);
     else this.setScale(1);
-    if (opts.tint !== undefined) this.setTint(opts.tint);
+    if (opts.tint !== undefined && skin === texture) this.setTint(opts.tint);
     else this.clearTint();
+    this.setAlpha(owner === 'player' ? PLAYER_SHOT_ALPHA : 1);
 
     this.enableBody(true, x, y, true, true);
     const body = this.body as Phaser.Physics.Arcade.Body | null;
@@ -97,6 +103,18 @@ export class Bullet extends Phaser.Physics.Arcade.Image {
       body.setAllowGravity(false);
       body.setVelocity(vx, vy);
       body.setAllowRotation(false);
+      // 판정을 이번 그림에 맞춘다. 풀에서 다시 쓰는 탄은 처음 만든 그림의 판정 크기를 들고 있어서, 모양이 다른
+      // 탄으로 쏘면 판정이 그림보다 작거나 크고 중심에서 4~7px 비켜 있었다.
+      const fw = this.frame.realWidth;
+      const fh = this.frame.realHeight;
+      if (owner === 'enemy') {
+        // 적탄: 색 몸통(원본 크기)에 내접하는 원. 외곽선은 판정 밖 여유다.
+        const pad = skin === texture ? 0 : BULLET_SKIN_PAD * 2;
+        const r = Math.min(fw - pad, fh - pad) / 2;
+        body.setCircle(r, fw / 2 - r, fh / 2 - r);
+      } else {
+        body.setSize(fw, fh, true);
+      }
     }
     // 진행 방향으로 회전 (조각탄/검기 등의 방향감)
     if (vx !== 0 || vy !== 0) {
