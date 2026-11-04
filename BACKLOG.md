@@ -1,5 +1,9 @@
 # Backlog
 
+## v1.14.0 (어시스트)
+
+- [ ] 랭킹에서 어시스트 사용 기록을 어떻게 다룰지 결정 — 자동 회피만으로 보스전 피격이 0회가 되어(보스 45초, NORMAL·HARD·EXTREME 측정) 어시스트 없이 낸 기록과 같은 판에서 겨루면 공정하지 않다. 모바일은 기본으로 켜진다. 선택지: 그대로 둠 / 어시스트 기록은 등록 안 함 / `scores`에 어시스트 표시 열 추가(스키마 변경, DECISIONS 대상) · 영향: RankingService, Supabase `scores`
+
 ## 그래픽 애셋 (2026-11-02, Codex 이미지 생성 1~3차 이후)
 
 - [ ] UI 패널·게이지는 여전히 Phaser 도형(rectangle) — 캐릭터 카드 테두리, 스탯 바, 화면 전환용 어둡게/밝게 덮개 · 영향: CharacterSelectScene, EndingScene, GameScene 결과 패널

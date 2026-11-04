@@ -31,6 +31,11 @@ Boot → Title → CharacterSelect → Story(서장) → Game(stage 1) → (중�
 - 게임패드: 스틱/패드 이동, A버튼 공격, B버튼 필살기 지원(가능한 범위)
 - 디버그: F1 히트박스 표시, F2 무적, F3 현재 보스 호출, F4 다음 스테이지 (UI에는 노출 안 함)
 - 모바일: 터치 기기에서만 좌측 가상 이동 영역(드래그), 우측 공격/필살기 버튼. PC 조작감 우선.
+- 어시스트(v1.14.0, `systems/Assist.ts`): 설정에서 하나씩 켜고 끈다. 저장값이 없으면 모바일 기기(UA가 Android·iPhone·iPad·Mobile이거나 `(hover: none) and (pointer: coarse)`)에서만 켜 둔다.
+  - 자동 공격: 공격키 없이 기본 공격·식신 사격. 차지는 공격키를 실제로 누르고 있을 때만 모은다(터치 공격 버튼 글자 `차지`).
+  - 자동 필살기: 무적이 아닐 때 맞으면 필살기가 남아 있으면 목숨 대신 필살기를 쓴다(`PlayerHitResult` `autoBomb`, 'AUTO BOMB' 글자).
+  - 자동 회피: `AutoDodge`가 적탄(현재 속도로 직선 예측)·적 몸체(정지로 보고 판정 +10px)를 0.45초 앞까지 0.05초 간격으로 내다본다. 입력 방향이 안전하면 그대로, 아니면 멈춤+8방향×전속·반속 가운데 안전하고 입력과 가깝고 여유가 큰 쪽(없으면 가장 늦게 맞는 쪽)을 고른다. 이동 영역 경계는 그 자리에 멈춘 것으로 본다. 돌진 중에는 쓰지 않는다. 데스크톱 측정 프레임당 평균 0.03ms·최대 0.6ms(EXTREME 보스, 적탄 109개).
+  - 안내: 모바일 첫 실행 때 타이틀 안내창(닫으면 `assistNotice` 저장), 켜져 있으면 스테이지 시작 카드 아래 한 줄과 HUD 점수 묶음 아래 `ASSIST` 줄.
 
 ## 플레이어 캐릭터 (data/characters.ts, 48~80px, 실루엣 구분)
 1. **윤 YUN** (균형 검사, 파랑) — 기본: 빠른 직선 검기 / 차지: 거대 초승달 검기(적탄 일부 소거) / 필살: 2초간 거대 검진 화면 전체 휩쓸기. 초보자용.
@@ -113,7 +118,7 @@ Boot → Title → CharacterSelect → Story(서장) → Game(stage 1) → (중�
 - 스테이지 시작 타이틀 카드("STAGE 1 — 청운계곡"), Stage Clear(Enemy/Combo/NoMiss/Remaining Bonus 합산, 3~5초 후 자동 진행 + 스킵 가능).
 
 ## 타이틀 화면
-- 왼쪽 단: 로고 그림(`title_logo`, 글자까지 Codex 생성), HI-SCORE, 메뉴 START GAME / RANKING / STORY / HOW TO PLAY / SETTINGS(선택 줄 뒤 `ui_menu_plate` 명판, 왼쪽 `ui_cursor`). 오른쪽: 다섯 천명사 키 아트(`title_bg`, 왼쪽을 비워 그림). SETTINGS: Master/SFX Volume, Screen Shake, Difficulty, Fullscreen.
+- 왼쪽 단: 로고 그림(`title_logo`, 글자까지 Codex 생성), HI-SCORE, 메뉴 START GAME / RANKING / STORY / HOW TO PLAY / SETTINGS(선택 줄 뒤 `ui_menu_plate` 명판, 왼쪽 `ui_cursor`). 오른쪽: 다섯 천명사 키 아트(`title_bg`, 왼쪽을 비워 그림). SETTINGS: Master/SFX Volume, Screen Shake, Difficulty, Fullscreen, Auto Shot·Auto Bomb·Auto Dodge(어시스트, 고른 줄의 설명을 아래에 표시). 터치용 `닫기 ✕`, 값 글자를 누르면 바뀐다. Fullscreen 글자는 전체화면이 실제로 바뀐 뒤(`ENTER_FULLSCREEN`/`LEAVE_FULLSCREEN`, 브라우저 ESC 포함) 다시 그리고, 지원하지 않는 브라우저면 알린다.
 
 ## 온라인 랭킹 (RankingService · RankingScene, Supabase `public.scores`)
 - 등록: 게임오버 화면 `랭킹 등록`, 엔딩 종료 후 자동 진입(건너뛰기 가능). 닉네임 2~12자(한글·영문·숫자·_·-), 마지막 닉네임은 localStorage에 기억.
@@ -122,7 +127,7 @@ Boot → Title → CharacterSelect → Story(서장) → Game(stage 1) → (중�
 - 무료 플랜 일시정지 방지: `.github/workflows/supabase-keepalive.yml`이 사흘마다 조회.
 
 ## 저장 (SaveSystem, localStorage key `celestial-blades-save`)
-- hiscore, settings(masterVol, sfxVol, musicVol, shake, difficulty, lastChar), story(본 장 번호 chapters, 엔딩을 본 천명사 endings), secretPilots(비밀 커맨드 입력 여부). 새로고침 후 유지. story가 없는 구버전 저장은 빈 기록으로 읽는다.
+- hiscore, settings(masterVol, sfxVol, musicVol, shake, difficulty, lastChar, autoShot, autoBomb, autoDodge), story(본 장 번호 chapters, 엔딩을 본 천명사 endings), secretPilots(비밀 커맨드 입력 여부), assistNotice(모바일 어시스트 안내를 닫음). 새로고침 후 유지. story가 없는 구버전 저장은 빈 기록으로, 어시스트 값이 없는 저장은 기기에 맞는 기본값(모바일만 켬)으로 읽는다.
 
 ## 코드 구조 (이 구조 준수)
 ```
@@ -144,6 +149,7 @@ src/game/systems/ScoreSystem.ts
 src/game/systems/AudioSystem.ts
 src/game/systems/SaveSystem.ts
 src/game/systems/InputSystem.ts
+src/game/systems/Assist.ts        // 어시스트 플래그·모바일 판별·자동 회피
 src/game/effects/Effects.ts       // 폭발/플래시/히트스톱/쉐이크/파티클 헬퍼
 src/game/backgrounds/Parallax.ts
 src/game/data/characters.ts

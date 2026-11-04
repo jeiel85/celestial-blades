@@ -21,6 +21,7 @@ export interface HudState {
 const SHADE_DEPTH = 640;
 const DEPTH = 801;
 const LABEL_STYLE = { fontFamily: UI_FONT, fontSize: '13px', color: '#8ea3b8' };
+const ASSIST_COLOR = '#53e0b0';
 const LIFE_COLOR = 0xff5f7e;
 const BOMB_COLOR = 0xffd75e;
 const POWER_COLOR = 0x53e0b0;
@@ -80,7 +81,8 @@ export class Hud {
   private iconKey = '';
   private lastCombo = 0;
 
-  constructor(private readonly scene: Phaser.Scene, accent: number) {
+  /** assist: 켜진 어시스트 이름(없으면 빈 문자열). 점수 묶음 아래에 늘 띄워 둔다. */
+  constructor(private readonly scene: Phaser.Scene, accent: number, assist = '') {
     const shade = scene.add.graphics().setDepth(SHADE_DEPTH).setScrollFactor(0);
     shade.fillGradientStyle(0x05070d, 0x05070d, 0x05070d, 0x05070d, 0.55, 0.55, 0, 0).fillRect(0, 0, WIDTH, 120);
 
@@ -93,6 +95,11 @@ export class Hud {
     this.hiLabel = this.label(LEFT_X + 13, 66, 'HI');
     this.hi = scene.add.text(LEFT_X + 38, 64, '0', { fontFamily: UI_FONT, fontSize: '15px', color: '#c3d2e0' });
     this.left = scene.add.container(0, 0, [bar, scoreLabel, this.score, this.hiLabel, this.hi]).setDepth(DEPTH).setScrollFactor(0);
+    if (assist) {
+      const tag = this.label(LEFT_X + 13, 88, 'ASSIST').setColor(ASSIST_COLOR);
+      const names = scene.add.text(tag.x + tag.width + 8, 86, assist, { ...LABEL_STYLE, color: '#a8ecd2' });
+      this.left.add([tag, names]);
+    }
 
     // -- 오른쪽: LIFE / BOMB / POWER 줄. 아이콘은 icons 하나에 그린다.
     this.icons = scene.add.graphics();

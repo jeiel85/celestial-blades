@@ -20,9 +20,11 @@ import type { IGameWorld } from '../GameConfig';
 import { clampCharIndex, getCharacter, speedScale } from '../data/characters';
 import type { CharacterDef, CharacterId } from '../data/characters';
 import type { InputSystem } from '../systems/InputSystem';
+import type { AssistFlags } from '../systems/Assist';
 import { outlineSkin } from '../effects/Skins';
 
-export type PlayerHitResult = 'ok' | 'invulnerable' | 'dead';
+/** autoBomb: 자동 필살기가 대신 터져 목숨을 잃지 않았다 */
+export type PlayerHitResult = 'ok' | 'invulnerable' | 'autoBomb' | 'dead';
 
 const DASH_TIME = 180;
 const DASH_SPEED = DASH_DISTANCE / (DASH_TIME / 1000);
@@ -146,6 +148,9 @@ export class Player {
   /** 디버그 무적 (F2). true면 damagePlayer가 항상 invulnerable. */
   godMode = false;
 
+  /** 어시스트(설정). GameScene이 시작할 때 넣는다. */
+  private assist: AssistFlags = { shot: false, bomb: false, dodge: false };
+
   constructor(scene: Phaser.Scene, world: IGameWorld, charIndex: number, lives = 3, bombs = START_BOMBS) {
     this.scene = scene;
     this.world = world;
@@ -198,6 +203,10 @@ export class Player {
 
   setOnHit(cb: ((lostPower: number, x: number, y: number) => void) | null): void {
     this.onHit = cb;
+  }
+
+  setAssist(flags: AssistFlags): void {
+    this.assist = { ...flags };
   }
 
   // -- getter ---------------------------------------------------------------
@@ -288,9 +297,13 @@ export class Player {
       }
     }
 
-    // 이동
-    const axis = input.getAxis();
+    // 이동 (자동 회피가 켜져 있으면 곧 맞을 길을 비켜 간다. 돌진 중에는 방향을 바꾸지 않는다.)
     const speed = PLAYER_SPEED * speedScale(def) * (focused ? FOCUS_SPEED_MULT : 1);
+    let axis = input.getAxis();
+    if (this.assist.dodge && this.dashLeft <= 0 && this.world.steerAssist) {
+      const body = this.sprite.body as Phaser.Physics.Arcade.Body | null;
+      axis = this.world.steerAssist(axis, speed, body ? body.halfWidth : HIT_RADIUS);
+    }
     if (this.dashLeft > 0) {
       // 돌진 중: 전방 고속 + 상하 조향만 허용
       this.dashLeft -= dtMs;
@@ -338,16 +351,21 @@ export class Player {
     this.updateArrowRain(dtMs);
     this.updateWard(dtMs);
     this.updateVajra(dtMs);
-    this.updateFamiliar(dtMs, focused, input.attackDown);
+    // 자동 공격이면 공격키 없이도 기본 공격을 쏜다. 차지는 공격키를 누르고 있을 때만 모은다.
+    const held = input.attackDown;
+    const firing = held || this.assist.shot;
+    this.updateFamiliar(dtMs, focused, firing);
 
     // 기본 공격 + 차지
-    if (input.attackDown) {
+    if (firing) {
       this.shotTimer -= dtMs;
       while (this.shotTimer <= 0) {
         this.fireBasic();
         const interval = def.shotIntervalMs * (def.id === 'mooyoung' ? 1 - this.power * 0.07 : 1);
         this.shotTimer += Math.max(45, interval);
       }
+    }
+    if (held) {
       this.chargeTime += dtMs;
       if (this.chargeTime >= CHARGE_TIME && !this.chargeReady) {
         this.chargeReady = true;
@@ -992,6 +1010,12 @@ export class Player {
   damagePlayer(): PlayerHitResult {
     if (!this.alive) return 'dead';
     if (this.godMode || this.invulnLeft > 0 || this.cutInActive) return 'invulnerable';
+    // 자동 필살기: 맞는 순간 필살기가 남아 있으면 대신 터뜨린다(컷인 동안 무적, 적탄은 발동 즉시 소거).
+    if (this.assist.bomb && this.bombs > 0) {
+      this.tryBomb();
+      this.world.fx.floatingText(this.sprite.x, this.sprite.y - 40, 'AUTO BOMB', '#ffd75e', 18);
+      return 'autoBomb';
+    }
     this.lives -= 1;
     // 격추되면 파워를 모두 잃는다. 잃은 단계는 GameScene이 P 아이템으로 흘려 다시 주울 수 있게 한다.
     const lostPower = this.power;
