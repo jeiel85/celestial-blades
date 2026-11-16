@@ -39,7 +39,7 @@ for (const r of JSON.parse(out)) {
       '빈 화면%': s.emptyPct,
       '잡몹/분': key === 'road' ? s.enemiesPerMin : '',
       '스침/초': s.grazePerSec,
-      '맞았을 탄/분': s.hitsPerMin,
+      '닿은 탄/분': s.hitsPerMin,
       '침묵 처치%': key === 'road' ? r.silentKillPct : '',
       클리어: key === 'boss' ? (r.cleared ? 'O' : 'X') : '',
     });
