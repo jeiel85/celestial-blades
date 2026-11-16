@@ -39,6 +39,7 @@ import { Player } from '../entities/Player';
 import { InputSystem } from '../systems/InputSystem';
 import { ScoreSystem } from '../systems/ScoreSystem';
 import { AudioSystem } from '../systems/AudioSystem';
+import type { MusicIntensity } from '../systems/AudioSystem';
 import { SaveSystem } from '../systems/SaveSystem';
 import { AutoDodge, assistMask, assistNames } from '../systems/Assist';
 import type { DodgeThreat } from '../systems/Assist';
@@ -325,6 +326,8 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
       return;
     }
 
+    this.audio.setMusicIntensity(this.musicIntensity());
+
     const debug = this.inputSys.consumeDebug();
     if (debug.box) this.toggleDebugDraw();
     if (debug.invincible) {
@@ -392,6 +395,24 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
     }
     this.scoreSys.update(wdt);
     this.refreshHud();
+  }
+
+  /**
+   * 지금 상황의 음악 강도(AudioSystem이 다음 마디부터 적용): 도중 1, 보스전 2, 보스 마지막 페이즈 3,
+   * 마지막 목숨이면 한 단계 더(EXTREME은 목숨 1이라 처음부터 한 단계 높다).
+   */
+  private musicIntensity(): MusicIntensity {
+    let level = 1;
+    if (this.bossState === 'warning' || this.bossState === 'talk' || this.bossState === 'active' || this.bossState === 'dying') {
+      level = 2;
+      const boss = this.boss;
+      if (boss && this.bossState === 'active') {
+        const marks = boss.getPhaseMarks();
+        if (marks.length > 0 && boss.getHpRatio() <= Math.min(...marks)) level = 3;
+      }
+    }
+    if (this.player.isAlive() && this.player.getLives() <= 1) level += 1;
+    return Math.min(3, level) as MusicIntensity;
   }
 
   // -- IGameWorld 구현 --------------------------------------------------------

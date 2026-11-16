@@ -177,6 +177,8 @@ export class EnemySpawner {
       const entry = p.opts?.entry;
       if (!p.warn && entry !== undefined && entry !== 'right' && p.warnAt <= this.elapsed) {
         p.warn = this.showEntryWarn(entry, p.x, p.y);
+        // 뒤·위·아래는 눈길 밖일 수 있어 소리로도 알린다(무리가 한꺼번에 와도 AudioSystem이 0.2초에 한 번으로 거른다)
+        this.world.audio.playSfx('edgeWarn');
       }
       keep.push(p);
     }
