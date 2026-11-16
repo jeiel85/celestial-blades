@@ -10,7 +10,7 @@
 
 <a href="https://jeiel85.github.io/celestial-blades/"><img src="https://img.shields.io/badge/%E2%96%B6%20%EC%A7%80%EA%B8%88%20%ED%94%8C%EB%A0%88%EC%9D%B4-PLAY%20NOW-ffd75e?style=for-the-badge&labelColor=2a1404" alt="지금 플레이"></a>
 
-<img src="https://img.shields.io/badge/version-1.15.1-a06bff?style=flat-square" alt="version">
+<img src="https://img.shields.io/badge/version-1.16.0-a06bff?style=flat-square" alt="version">
 <img src="https://img.shields.io/badge/Phaser-3.80-8fd3ff?style=flat-square" alt="Phaser">
 <img src="https://img.shields.io/badge/TypeScript-strict-3178c6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript">
 <img src="https://img.shields.io/badge/Vite-5-646cff?style=flat-square&logo=vite&logoColor=white" alt="Vite">
@@ -128,6 +128,7 @@
   4. **천공성** — 구름 위의 부유 성 (보스: 백야천녀 — 순간이동·분신, 체력↓ 시 화면 암전)
   5. **백귀야시** — 구름 위 요괴들의 밤시장 (중간보스: 구미호, 보스: 등롱귀왕 — 등롱 부속)
   6. **천문** — 하늘의 균열 (최종 보스: 무명천 — 인간형 → 거대 신수형 2페이즈)
+- **쉴 틈 없는 도중 구간**: 큰 웨이브 사이를 잡몹 무리가 끊임없이 메우고, 잡몹은 화면에 들어오자마자 쏩니다. 위·아래와 기체 뒤(왼쪽)에서도 들어오며, 들어올 길에 주황 경고선이 0.7초 먼저 깜빡입니다. 스테이지가 오를수록 촘촘해집니다
 - **스토리 컷신**: 서장과 각 스테이지 사이 6장, Z로 넘기고 X/ESC로 건너뛰기
 - **식신**: 천명사마다 따라다니며 함께 쏘는 수호 식신 — 검령(윤)·화조(려화)·그림자 고양이(무영)·옥매(소율)·종이 인형(해랑). 집중 중엔 앞으로 붙는다
 - **보스전 대사**: 보스 등장 직후 보스 ↔ 천명사가 세 마디를 주고받는다(천명사마다 다른 대사, Z 넘기기·X 건너뛰기)
@@ -245,6 +246,17 @@ node tools/bench.mjs http://127.0.0.1:4181 midboss_ray
 ```
 
 결과는 JSON(천명사·파워·방식별 초당 피해, 필살기 1회 피해)입니다. 세 번째 인자로 측정 목록 JSON을 넘길 수 있습니다(`src/dev/bench.ts`의 `BenchCase`, `untilDead: true`면 격파 시간). 화력이나 보스 HP를 바꾸면 다시 재서 `characters.ts`의 `measured`를 고칩니다.
+
+### 긴박감 측정
+
+웨이브·탄막을 바꾸면 화면이 얼마나 비는지, 탄이 얼마나 곁을 지나가는지를 같은 방식으로 잽니다. 무적 봇이 계속 쏘며 스테이지를 끝까지 돌고, 도중·중간보스·보스 구간마다 표를 출력합니다.
+
+```bash
+node tools/tension.mjs http://127.0.0.1:4181            # 6스테이지 NORMAL + 1스테이지 파워 0
+node tools/tension.mjs http://127.0.0.1:4181 runs.json  # 측정 목록 지정(src/dev/tension.ts의 TensionRun)
+```
+
+열은 화면 위 적탄 평균·p90·최대, 적탄이 0발인 시간(빈 화면%), 분당 새 잡몹, 초당 스친 탄(기체 32px 안), 분당 판정에 닿은 탄(무적이라 맞지 않고 사라진 탄 — 피하지 않았다면 맞았을 탄), 쏘기 전에 죽은 잡몹 비율입니다. 적과 탄은 풀에서 재사용되므로 프레임마다 훑지 않고 등장·발사·처치·충돌 사건에 계측을 붙여 셉니다. 적 발사 시점·아이템이 무작위라 같은 코드도 판마다 ±10% 안팎 흔들립니다. '닿은 탄'은 탄속이 다른 난이도끼리 비교하지 않습니다(느린 탄은 오래 남아 위아래로 쓸고 다니는 봇에 더 걸립니다). 목표치와 실측은 SPEC.md "도중 구간 밀도"에 있습니다.
 
 ---
 

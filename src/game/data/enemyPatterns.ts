@@ -45,6 +45,11 @@ export interface EnemyTypeDef {
   tint?: number;
   /** 기본 발사 간격 (ms) */
   fireInterval?: number;
+  /**
+   * 화면 안에 들어온 뒤 첫 발까지 (ms, NORMAL 기준). 없으면 스폰 때 정한 임의 간격을 따른다.
+   * 화면 밖에서는 쏘지 않는다. 들어오자마자 쏘아야 잡몹이 '과녁'이 아니라 '위협'이 된다.
+   */
+  firstShot?: number;
   /** 아이템 드롭 추가 확률 (기본 DROP_RATE_*에 가산) */
   dropBias?: Partial<Record<ItemType, number>>;
   move: (e: EnemyAgent, t: number, dt: number) => void;
@@ -275,6 +280,7 @@ export const ENEMY_TYPES: Record<string, EnemyTypeDef> = {
     radius: 14,
     score: 50,
     fireInterval: 2300,
+    firstShot: 450,
     move: smallMove,
     fire: smallFire,
   },
@@ -284,6 +290,7 @@ export const ENEMY_TYPES: Record<string, EnemyTypeDef> = {
     radius: 15,
     score: 80,
     fireInterval: 2600,
+    firstShot: 550,
     tint: 0xd8c8ff,
     move: batMove,
     fire: batFire,
@@ -295,6 +302,7 @@ export const ENEMY_TYPES: Record<string, EnemyTypeDef> = {
     radius: 15,
     score: 90,
     fireInterval: 2400,
+    firstShot: 550,
     move: batMove,
     fire: batFire,
   },
@@ -305,6 +313,7 @@ export const ENEMY_TYPES: Record<string, EnemyTypeDef> = {
     radius: 14,
     score: 70,
     fireInterval: 2000,
+    firstShot: 400,
     move: smallMove,
     fire: smallFire,
   },
@@ -324,6 +333,7 @@ export const ENEMY_TYPES: Record<string, EnemyTypeDef> = {
     radius: 22,
     score: 220,
     fireInterval: 3200,
+    firstShot: 900,
     move: turretMove,
     fire: turretFire,
   },
@@ -333,6 +343,7 @@ export const ENEMY_TYPES: Record<string, EnemyTypeDef> = {
     radius: 20,
     score: 260,
     fireInterval: 2400,
+    firstShot: 700,
     move: shieldMove,
     fire: shieldFire,
   },
@@ -342,6 +353,7 @@ export const ENEMY_TYPES: Record<string, EnemyTypeDef> = {
     radius: 24,
     score: 420,
     fireInterval: 3400,
+    firstShot: 1000,
     dropBias: { P: 0.08, G: 0.1 },
     move: spawnerMove,
     fire: spawnerFire,
@@ -352,6 +364,7 @@ export const ENEMY_TYPES: Record<string, EnemyTypeDef> = {
     radius: 32,
     score: 1500,
     fireInterval: 1750,
+    firstShot: 800,
     tint: 0xffe9c0,
     move: eliteMove,
     fire: eliteFire,

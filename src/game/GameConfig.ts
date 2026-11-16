@@ -173,11 +173,20 @@ export interface PlayerBulletSpawn {
   life?: number;
 }
 
+/**
+ * 잡몹이 들어오는 쪽. right(기본)는 스폰 좌표에서 그대로 시작하고, 나머지는 스폰 좌표를 '도착점'으로 보고
+ * 화면 위·아래 가장자리나 왼쪽(기체 뒤)에서 그 점까지 날아 들어온 뒤 평소 이동을 시작한다.
+ */
+export type EnemyEntry = 'right' | 'top' | 'bottom' | 'back';
+
 export interface EnemySpawnOpts {
   hpScale?: number;
   speedScale?: number;
   scoreScale?: number;
   elite?: boolean;
+  entry?: EnemyEntry;
+  /** 아이템 확률 배율(0~1, 기본 1). 연속 흐름(flow)으로 나온 잡몹이 쓴다. 엘리트의 B 확정 드롭은 그대로. */
+  dropScale?: number;
 }
 
 /** 추적탄이 바라보는 목표(적)의 최소 정보. active가 false면 직진한다. */
