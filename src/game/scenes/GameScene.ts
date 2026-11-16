@@ -593,7 +593,8 @@ export class GameScene extends Phaser.Scene implements IGameWorld {
       if (!e.active) continue;
       const body = e.body as Phaser.Physics.Arcade.Body | null;
       if (!body || !body.enable) continue;
-      threats.push({ x: body.center.x, y: body.center.y, vx: 0, vy: 0, r: body.halfWidth + DODGE_ENEMY_PAD });
+      // 몸체는 자기 속도(vx/vy: 돌진형의 돌진, 가장자리에서 날아 들어오는 중)로 내다본다. 평소 이동은 0이다.
+      threats.push({ x: body.center.x, y: body.center.y, vx: e.vx, vy: e.vy, r: body.halfWidth + DODGE_ENEMY_PAD });
     }
     return this.dodge.steer(want, { x: this.player.x, y: this.player.y, r: radius, speed }, threats, DODGE_BOUNDS);
   }
