@@ -10,7 +10,7 @@
 
 <a href="https://jeiel85.github.io/celestial-blades/"><img src="https://img.shields.io/badge/%E2%96%B6%20%EC%A7%80%EA%B8%88%20%ED%94%8C%EB%A0%88%EC%9D%B4-PLAY%20NOW-ffd75e?style=for-the-badge&labelColor=2a1404" alt="지금 플레이"></a>
 
-<img src="https://img.shields.io/badge/version-1.16.0-a06bff?style=flat-square" alt="version">
+<img src="https://img.shields.io/badge/version-1.17.0-a06bff?style=flat-square" alt="version">
 <img src="https://img.shields.io/badge/Phaser-3.80-8fd3ff?style=flat-square" alt="Phaser">
 <img src="https://img.shields.io/badge/TypeScript-strict-3178c6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript">
 <img src="https://img.shields.io/badge/Vite-5-646cff?style=flat-square&logo=vite&logoColor=white" alt="Vite">
@@ -148,6 +148,7 @@
 - **점수**: 처치·보스 타격·아이템·콤보·노미스·클리어 보너스, 최고 점수는 localStorage 저장
 - **온라인 랭킹**: 게임오버·엔딩 뒤 닉네임으로 등록, 타이틀 `RANKING`에서 난이도별 TOP 20 확인. 어시스트를 켠 기록은 `ASSIST`로 표시
 - **필살기 컷인**: 발동 순간 캐릭터 일러스트 컷인이 화면을 가로지르고 공격이 터짐
+- **음악**: 절차 생성 BGM에 킥·스네어·하이햇이 들어가고, 보스전·보스 마지막 페이즈·마지막 목숨에서 박이 몰아치고 빨라집니다. 레이저와 가장자리 등장은 소리로도 예고합니다
 - **어시스트**: 자동 공격·자동 필살기·자동 회피(설정에서 하나씩, 모바일은 기본 켜짐)
 - **보스**: 각 보스 3개 이상 패턴, 체력 감소 시 패턴 추가/강화, 공격 전 경고 연출, 모든 탄막에 안전 경로 존재
 
@@ -246,6 +247,15 @@ node tools/bench.mjs http://127.0.0.1:4181 midboss_ray
 ```
 
 결과는 JSON(천명사·파워·방식별 초당 피해, 필살기 1회 피해)입니다. 세 번째 인자로 측정 목록 JSON을 넘길 수 있습니다(`src/dev/bench.ts`의 `BenchCase`, `untilDead: true`면 격파 시간). 화력이나 보스 HP를 바꾸면 다시 재서 `characters.ts`의 `measured`를 고칩니다.
+
+### BGM 확인
+
+곡을 강도별로 오프라인 렌더해 WAV로 저장하고 최고·평균 크기를 출력합니다(귀로 들어 보거나 크기가 지나치지 않은지 볼 때).
+
+```bash
+node tools/music.mjs http://127.0.0.1:4181 music-out              # 기본 세트(바꾸기 전 소리·강도별·보스 마지막 페이즈 진입)
+node tools/music.mjs http://127.0.0.1:4181 music-out clips.json   # 목록 지정(src/dev/music.ts의 MusicClip)
+```
 
 ### 긴박감 측정
 

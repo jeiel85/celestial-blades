@@ -301,6 +301,7 @@ function laser(boss: BossAttackContext, world: IGameWorld, params: AttackParams)
   const tint = num(params, 'tint', 0xff4d5e);
   const warnMs = 800;
   boss.telegraph(warnMs, 0xff2d3f);
+  world.audio.playSfx('laserCharge');
   let g: Phaser.GameObjects.Image | null = null;
   try {
     // 경고선: 가로로 균일한 빛줄기 그림을 조준 방향으로 길게 늘린다.
