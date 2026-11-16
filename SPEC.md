@@ -126,7 +126,7 @@ Boot → Title → CharacterSelect → Story(서장) → Game(stage 1) → (중�
 - 어시스트 표시(v1.15.0): GameScene이 이번 판 어시스트를 registry `runAssist`(비트 합: 공격 1·필살기 2·회피 4)에 남기고, RankingScene이 등록할 때 `assist`로 싣는다(Result·Ending은 그대로). 켰으면 등록 창에 'ASSIST로 표시돼요' 안내, 순위표 도달 줄 아래에 `ASSIST 공격·필살·회피`. 순위는 같은 표에서 점수로만 매긴다(DECISIONS).
 - 조회: 타이틀 `RANKING` → 난이도 탭(←→) + TOP 20(점수 내림차순, 동점은 먼저 올린 기록이 위). 방금 올린 기록 강조, TOP 20 밖이면 아래에 순위 표시.
 - 서버 규칙(마이그레이션 `supabase/migrations/`): 조회·제출만 허용, 수정·삭제 불가, 클리어는 4스테이지에서만, 닉네임별 1분 3회. 점수 위조는 완전히 막지 못한다(DECISIONS.md).
-- 무료 플랜 일시정지 방지: `.github/workflows/supabase-keepalive.yml`이 사흘마다 조회.
+- 무료 플랜 일시정지 방지: `.github/workflows/supabase-keepalive.yml`이 6시간마다(하루 4번) 조회.
 
 ## 저장 (SaveSystem, localStorage key `celestial-blades-save`)
 - hiscore, settings(masterVol, sfxVol, musicVol, shake, difficulty, lastChar, autoShot, autoBomb, autoDodge), story(본 장 번호 chapters, 엔딩을 본 천명사 endings), secretPilots(비밀 커맨드 입력 여부), assistNotice(모바일 어시스트 안내를 닫음). 새로고침 후 유지. story가 없는 구버전 저장은 빈 기록으로, 어시스트 값이 없는 저장은 기기에 맞는 기본값(모바일만 켬)으로 읽는다.
