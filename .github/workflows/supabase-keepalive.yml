@@ -1,12 +1,14 @@
 name: Supabase keep-alive
 
-# 무료 플랜 Supabase 프로젝트는 7일간 요청이 없으면 일시정지된다(랭킹이 '불러오지 못함'이 됨).
-# 사흘마다 랭킹 조회를 한 번 보내 깨워 둔다. 응답이 2xx가 아니면 실패로 표시해 알림을 받는다.
+# 무료 플랜 Supabase 프로젝트는 최근 7일간 DB 활동이 '충분하지' 않으면 일시정지된다(랭킹이 '불러오지 못함'이 됨).
+# 공식 문서 기준은 "보통 하루 몇 번의 요청"이라, 사흘에 한 번 핑으로는 성공해도 멈췄다(2026-11-16).
+# 6시간마다(하루 4번) 랭킹 조회를 보내 깨워 둔다. 응답이 2xx가 아니면 실패로 표시해 알림을 받는다.
+# https://supabase.com/docs/guides/platform/free-project-pausing
 # 참고: GitHub은 저장소 활동이 60일 없으면 예약 워크플로를 자동으로 끈다(Actions 탭에서 다시 켜야 함).
 
 on:
   schedule:
-    - cron: '17 3 */3 * *'
+    - cron: '17 */6 * * *'
   workflow_dispatch:
 
 permissions: {}
